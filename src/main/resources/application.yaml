@@ -23,7 +23,8 @@ management:
       exposure:
         include: health,prometheus
   metrics:
-    tags: ${spring.application.name}
+    tags:
+      application: ${spring.application.name}
 
 app:
   slug-ids: limited_slugs.json
