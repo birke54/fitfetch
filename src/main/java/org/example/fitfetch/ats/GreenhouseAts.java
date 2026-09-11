@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
+import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import tools.jackson.databind.JsonNode;
@@ -45,6 +46,7 @@ import java.util.stream.StreamSupport;
  * @see Ats
  * @see AtsName#GREENHOUSE
  */
+@Component
 public class GreenhouseAts implements Ats {
     private static final Logger LOGGER = LoggerFactory.getLogger(GreenhouseAts.class);
     private final FetchedJobsRepository fetchedJobsRepository;
