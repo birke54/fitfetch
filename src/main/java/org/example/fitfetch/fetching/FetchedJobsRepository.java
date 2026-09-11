@@ -4,6 +4,7 @@ import org.example.fitfetch.ats.AtsName;
 import org.example.fitfetch.domain.FetchedJob;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -32,7 +33,8 @@ public interface FetchedJobsRepository extends JpaRepository<FetchedJob,Long> {
      * @param atsName the ATS provider to scope the lookup to
      * @return the set of known job IDs for that provider; empty if none
      */
-    Set<String> findJobIdByAtsName(@Param("ats_name") AtsName atsName);
+    @Query("select f.jobId from FetchedJob f where f.atsName = :atsName")
+    Set<String> findJobIdByAtsName(@Param("atsName") AtsName atsName);
 
     /**
      * Returns the subset of the given job IDs that are already stored for the
@@ -46,7 +48,8 @@ public interface FetchedJobsRepository extends JpaRepository<FetchedJob,Long> {
      * @return the intersection of {@code jobIds} with the stored IDs for that
      *         provider
      */
-    Set<String> findJobIdsByAtsNameAndJobIdIn(AtsName atsName, Set<String> jobIds);
+    @Query("select f.jobId from FetchedJob f where f.atsName = :atsName and f.jobId in :jobIds")
+    Set<String> findJobIdsByAtsNameAndJobIdIn(@Param("atsName") AtsName atsName, @Param("jobIds") Set<String> jobIds);
 
     /**
      * Finds fetched jobs by their normalization state, one page at a time.
