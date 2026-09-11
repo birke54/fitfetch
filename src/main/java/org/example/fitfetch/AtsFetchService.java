@@ -140,6 +140,7 @@ public class AtsFetchService {
                 .map(job -> new FetchedJob(
                         atsName,
                         job.id().toString(),
+                        job.slug(),
                         job,
                         false))
                 .toList();

@@ -15,10 +15,11 @@ import java.time.OffsetDateTime;
  * in the {@code fetched_jobs} table.
  *
  * <p>A row is uniquely identified by the combination of {@link #getAts() ATS
- * name} and {@link #getJobId() job ID} (enforced by the
- * {@code uq_fetched_jobs_ats_name_job_id} unique constraint); this pairing is
- * what {@code GreenhouseAts} checks to avoid re-ingesting a job, and what
- * {@link JobLocation} points at with its foreign key. The full provider
+ * name}, {@link #getJobId() job ID} and {@link #getSlug() board slug}
+ * (enforced by the {@code uq_fetched_jobs_ats_name_job_id_slug} unique
+ * constraint); the ATS name/job ID pairing is what {@code GreenhouseAts}
+ * checks to avoid re-ingesting a job, and what {@link JobLocation} points at
+ * with its foreign key. The full provider
  * payload is kept verbatim in {@link #getJobData() jobData} as a JSON column,
  * and {@link #isNormalized()} tracks whether that payload has since been mapped
  * into the normalized job model.
@@ -33,8 +34,8 @@ import java.time.OffsetDateTime;
 @Table(
         name = "fetched_jobs",
         uniqueConstraints = @UniqueConstraint(
-                name = "uq_fetched_jobs_ats_name_job_id",
-                columnNames = {"ats_name", "job_id"}
+                name = "uq_fetched_jobs_ats_name_job_id_slug",
+                columnNames = {"ats_name", "job_id", "slug"}
         ),
         indexes = {
                 @Index(name = "idx_is_normalized", columnList = "is_normalized"),
@@ -53,6 +54,9 @@ public class FetchedJob {
 
     @Column(name = "job_id", nullable = false, length = 255)
     private String jobId;
+
+    @Column(name = "slug", nullable = false, length = 255)
+    private String slug;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "job_data", nullable = false)
@@ -79,13 +83,15 @@ public class FetchedJob {
      * @param atsName      the ATS provider the job came from
      * @param jobId        the provider's identifier for the job, unique within
      *                     that provider
+     * @param slug         the ATS board slug the job was fetched from
      * @param jobData      the raw provider payload, stored as JSON
      * @param isNormalized whether {@code jobData} has already been mapped into
      *                     the normalized job model
      */
-    public FetchedJob(AtsName atsName, String jobId, AtsJobEntry jobData, boolean isNormalized) {
+    public FetchedJob(AtsName atsName, String jobId, String slug, AtsJobEntry jobData, boolean isNormalized) {
         this.atsName = atsName;
         this.jobId = jobId;
+        this.slug = slug;
         this.jobData = jobData;
         this.isNormalized = isNormalized;
     }
@@ -118,6 +124,16 @@ public class FetchedJob {
     /** @param jobId the provider job identifier to set */
     public void setJobId(String jobId) {
         this.jobId = jobId;
+    }
+
+    /** @return the ATS board slug this job was fetched from */
+    public String getSlug() {
+        return slug;
+    }
+
+    /** @param slug the ATS board slug to set */
+    public void setSlug(String slug) {
+        this.slug = slug;
     }
 
     /** @return the raw provider payload stored for this job */
