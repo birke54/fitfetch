@@ -28,9 +28,12 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
 
-	// Database: PostgreSQL driver + Flyway (runs src/main/resources/db/migration on startup)
+	// Database: PostgreSQL driver + Flyway (runs src/main/resources/db/migration on startup).
+	// Spring Boot 4 moved Flyway's autoconfiguration out of the monolithic
+	// autoconfigure jar into this starter; flyway-core alone no longer
+	// triggers migrations on startup (silently does nothing).
 	runtimeOnly 'org.postgresql:postgresql'
-	implementation 'org.flywaydb:flyway-core'
+	implementation 'org.springframework.boot:spring-boot-starter-flyway'
 	runtimeOnly 'org.flywaydb:flyway-database-postgresql'
 }
 
