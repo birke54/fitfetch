@@ -32,13 +32,13 @@ public interface FetchedJobsRepository extends JpaRepository<FetchedJob,Long> {
      * @param atsName the ATS provider to scope the lookup to
      * @return the set of known job IDs for that provider; empty if none
      */
-    Set<String> findJobIdByAts(@Param("ats_name") AtsName atsName);
+    Set<String> findJobIdByAtsName(@Param("ats_name") AtsName atsName);
 
     /**
      * Returns the subset of the given job IDs that are already stored for the
      * provider.
      *
-     * <p>A bounded alternative to {@link #findJobIdByAts(AtsName)} when only a
+     * <p>A bounded alternative to {@link #findJobIdByAtsName(AtsName)} when only a
      * specific batch of candidate IDs needs checking.
      *
      * @param atsName the ATS provider to scope the lookup to

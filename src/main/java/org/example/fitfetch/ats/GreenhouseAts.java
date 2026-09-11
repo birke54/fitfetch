@@ -146,7 +146,7 @@ public class GreenhouseAts implements Ats {
      */
     @Override
     public List<AtsJobEntry> fetchJobs() {
-        Set<String> jobIds = fetchedJobsRepository.findJobIdByAts(AtsName.GREENHOUSE);
+        Set<String> jobIds = fetchedJobsRepository.findJobIdByAtsName(AtsName.GREENHOUSE);
         List<AtsJobEntry> newJobEntries = new ArrayList<>();
         for (String slug : slugs) {
             AtsResponse<GreenhouseJobEntry> jobs = null;

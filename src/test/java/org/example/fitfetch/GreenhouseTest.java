@@ -156,7 +156,7 @@ public class GreenhouseTest {
         java.util.Set<String> existingDbJobIds = java.util.Set.of("5995721004");
 
         // Use Mockito to tell your existing mock repository what to return
-        Mockito.when(fetchedJobsRepository.findJobIdByAts(AtsName.GREENHOUSE))
+        Mockito.when(fetchedJobsRepository.findJobIdByAtsName(AtsName.GREENHOUSE))
                 .thenReturn(existingDbJobIds);
 
         // 2. Arrange the Mock Server payloads (using your existing file setup)
