@@ -1,4 +1,9 @@
 spring:
+  main:
+    # No embedded web server, and virtual threads (below) are always daemon
+    # threads, so without this the JVM exits right after startup since
+    # nothing non-daemon is left running to keep it alive.
+    keep-alive: true
   application:
     name: FitFetch
   datasource:
