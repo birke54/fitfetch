@@ -29,7 +29,7 @@ app:
   slug-ids: limited_slugs.json
   fetch:
     enable: true
-    schedule: "0 0 * * * *"
+    schedule: ${FETCH_CRON_SCHEDULE}
     read-slugs-list-in-parallel: false
   normalize:
     enable: false
