@@ -1,0 +1,107 @@
+{
+  "crawl": "https://index.commoncrawl.org/CC-MAIN-2026-21-index",
+  "max_pages": 1000,
+  "counts": {
+    "ashby": 3890,
+    "breezy": 4227,
+    "comeet": 456,
+    "crelate": 502,
+    "dayforce": 2898,
+    "eightfold": 135,
+    "gohire": 1017,
+    "greenhouse": 8149,
+    "jobscore": 106,
+    "lever": 3597,
+    "paycom": 6895,
+    "paylocity": 10513,
+    "personio": 5368,
+    "pinpoint": 489,
+    "recruitee": 3287,
+    "recruiterbox": 310,
+    "smartrecruiters": 1510,
+    "workable": 6902,
+    "workday": 3830,
+    "icims": 137,
+    "oraclecloud": 116,
+    "taleo": 22,
+    "successfactors": 3,
+    "ukg": 6,
+    "jobvite": 18
+  },
+  "total_unique_slugs": 64383,
+  "fusions": [
+    {
+      "source": "companies.json (public companies)",
+      "date": "2026-06-15T22:28:05.712897+00:00",
+      "new_slugs": 784,
+      "by_ats": {
+        "workday": 229,
+        "icims": 137,
+        "oraclecloud": 116,
+        "paylocity": 90,
+        "lever": 52,
+        "greenhouse": 52,
+        "taleo": 22,
+        "workable": 21,
+        "jobvite": 18,
+        "dayforce": 8,
+        "breezy": 8,
+        "ashby": 8,
+        "eightfold": 7,
+        "ukg": 6,
+        "paycom": 4,
+        "successfactors": 3,
+        "personio": 2,
+        "recruitee": 1
+      }
+    },
+    {
+      "source": "lever-slugs.json",
+      "date": "2026-06-15T22:58:15.199639+00:00",
+      "new_slugs": 879,
+      "by_ats": {
+        "lever": 879
+      }
+    },
+    {
+      "source": "lever-slugs.json",
+      "date": "2026-06-15T23:48:30.989317+00:00",
+      "new_slugs": 0,
+      "by_ats": {}
+    },
+    {
+      "source": "baseline.json",
+      "date": "2026-06-15T23:48:31.031683+00:00",
+      "new_slugs": 42679,
+      "by_ats": {
+        "paylocity": 10423,
+        "paycom": 5019,
+        "greenhouse": 4301,
+        "personio": 4160,
+        "workable": 3803,
+        "lever": 2666,
+        "breezy": 2555,
+        "recruitee": 2462,
+        "workday": 1684,
+        "ashby": 1292,
+        "dayforce": 1154,
+        "gohire": 885,
+        "smartrecruiters": 829,
+        "pinpoint": 441,
+        "comeet": 319,
+        "crelate": 318,
+        "recruiterbox": 253,
+        "jobscore": 85,
+        "eightfold": 30
+      }
+    },
+    {
+      "source": "dayforce.json",
+      "date": "2026-06-16T01:29:16.675397+00:00",
+      "new_slugs": 356,
+      "by_ats": {
+        "dayforce": 356
+      }
+    }
+  ]
+}

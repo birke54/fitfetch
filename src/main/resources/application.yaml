@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: FitFetch
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME}
+    username: ${APP_POSTGRES_USER}
+    password: ${APP_POSTGRES_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+  task:
+    scheduling:
+      pool:
+        size: 4
+      thread-name-prefix: "scheduled-task-"
+  threads:
+    virtual:
+      enabled: true
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  metrics:
+    tags: ${spring.application.name}
+
+app:
+  slug-ids: limited_slugs.json
+  fetch:
+    enable: true
+    schedule: "0 0 * * * *"
+    read-slugs-list-in-parallel: false
+  normalize:
+    enable: false
+    schedule: "0 0 * * * *"
+  # geocoding:
+  #  api-key: ${GOOGLE_GEO_API_KEY}

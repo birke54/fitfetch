@@ -1,0 +1,79 @@
+{
+  "jobs": [
+    {
+      "absolute_url": "https://job-boards.greenhouse.io/launchdarkly/jobs/7767461003",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "education": "education_optional",
+      "internal_job_id": 5778872003,
+      "location": {
+        "name": "Remote - US"
+      },
+      "metadata": [
+        {
+          "id": 4281358003,
+          "name": "Other Employment Types",
+          "value": null,
+          "value_type": "single_select"
+        },
+        {
+          "id": 4544902003,
+          "name": "Departments",
+          "value": "Engineering",
+          "value_type": "single_select"
+        }
+      ],
+      "id": 7767461003,
+      "updated_at": "2026-08-14T19:26:32-04:00",
+      "requisition_id": "3112",
+      "title": "Backend Engineer, Flag Delivery",
+      "company_name": "LaunchDarkly",
+      "first_published": "2026-06-22T15:41:37-04:00",
+      "language": "en",
+      "application_deadline": null,
+      "content": "&lt;h4&gt;&lt;strong&gt;About the Job:&lt;/strong&gt;&lt;/h4&gt;\n&lt;p&gt;LaunchDarkly is hiring a Backend Software Engineer to join our Flag Delivery team. Serving data to our customers is the core of our product and we’re expanding the team to add bandwidth and energy. The team is very senior, and this role is for someone eager to learn and grow as the team balances modernization with resilience and operational improvements.&lt;/p&gt;\n&lt;p&gt;In this role, you’ll build and improve backend services that sit directly on LaunchDarkly’s critical delivery path, partner closely with SDK, Platform, SRE, and Security, and work on real-time production systems at scale. This role is a strong fit for an engineer who is excited by distributed systems, weird production behavior, and learning quickly on a senior team, and who already brings real production instincts, strong debugging judgment, and clear AI fluency in their engineering work.&lt;/p&gt;\n&lt;h4&gt;Responsibilities:&lt;/h4&gt;\n&lt;ul&gt;\n&lt;li&gt;Build, improve, and operate backend services that power LaunchDarkly’s Flag Delivery systems.&lt;/li&gt;\n&lt;li&gt;Contribute to systems that support streaming and polling delivery models for LaunchDarkly SDKs.&lt;/li&gt;\n&lt;li&gt;Debug production issues, improve service reliability, and help the team maintain strong standards around latency, availability, observability, and operability.&lt;/li&gt;\n&lt;li&gt;Work with technologies and patterns common to modern distributed backend systems, including caching layers, network services, concurrency, failure handling, and cloud infrastructure.&lt;/li&gt;\n&lt;li&gt;Collaborate closely with partner teams including SDK, Platform, SRE, Security, and Enterprise to deliver improvements across the broader platform.&lt;/li&gt;\n&lt;li&gt;Participate in the on-call rotation and take ownership of the systems you help build.&lt;/li&gt;\n&lt;li&gt;Learn the existing architecture deeply and make pragmatic improvements that increase system clarity, performance, and maintainability.&lt;/li&gt;\n&lt;li&gt;Use AI as part of your engineering workflow with sound judgment, including knowing when to use it, how to direct it effectively, and how to verify or reject its output.&lt;/li&gt;\n&lt;li&gt;Reason clearly about code, architecture, and whole-system behavior even when AI is in the loop.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;h4&gt;About You:&lt;/h4&gt;\n&lt;ul&gt;\n&lt;li&gt;You are kind, coachable, and excited to learn from senior engineers.&lt;/li&gt;\n&lt;li&gt;You already use AI regularly in your engineering work and can explain how, when, and why&lt;/li&gt;\n&lt;li&gt;You enjoy understanding how real systems behave in production, not just how they are supposed to work on paper.&lt;/li&gt;\n&lt;li&gt;You are curious about scale, failure, caching, delivery, and operability.&lt;/li&gt;\n&lt;li&gt;You are energized by debugging, tradeoffs, and steadily improving systems over time.&lt;/li&gt;\n&lt;li&gt;You bring real backend or infrastructure ownership, not just feature implementation.&lt;/li&gt;\n&lt;li&gt;You care about writing software that is maintainable, observable, and dependable.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;h4&gt;Qualifications:&lt;/h4&gt;\n&lt;ul&gt;\n&lt;li&gt;5+ years of backend software engineering experience.&lt;/li&gt;\n&lt;li&gt;Experience building or operating production backend systems.&lt;/li&gt;\n&lt;li&gt;Strong programming skills in Go, Java, Rust, or a similar backend language; today the team primarily uses Go, with some Rust in the broader environment.&lt;/li&gt;\n&lt;li&gt;Clear, existing AI usage in engineering work.&lt;/li&gt;\n&lt;li&gt;Ability to use AI without surrendering technical judgment.&lt;/li&gt;\n&lt;li&gt;Familiarity with distributed systems fundamentals such as caching, concurrency, failure modes, and reliability.&lt;/li&gt;\n&lt;li&gt;Experience debugging production issues and using observability to understand system behavior.&lt;/li&gt;\n&lt;li&gt;Ability to reason clearly about code, architecture, and system behavior.&lt;/li&gt;\n&lt;li&gt;Strong learning orientation and comfort working with senior engineers.&lt;/li&gt;\n&lt;li&gt;Strong collaboration and communication skills, with the ability to work well across engineering teams.&lt;/li&gt;\n&lt;li&gt;Willingness to participate in on-call and production support.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;div&gt;\n&lt;p class=&quot;p1&quot;&gt;&lt;strong&gt;Pay:&lt;/strong&gt;&lt;/p&gt;\n&lt;p class=&quot;p1&quot;&gt;&lt;em&gt;Target pay ranges based on Geographic Zones* for Level 3:&lt;/em&gt;&lt;/p&gt;\n&lt;ul class=&quot;ul1&quot;&gt;\n&lt;li class=&quot;li1&quot;&gt;Zone 1: &lt;em&gt;San Francisco/Bay Area or NYC Metropolitan Area, Boston, Seattle&lt;/em&gt; - $171,200 - $235,400**&lt;/li&gt;\n&lt;li class=&quot;li1&quot;&gt;Zone 2:&lt;em&gt; Irvine, LA, Monterey, Santa Barbara, Santa Rosa, Austin, Portland, Philadelphia, Chicago - &lt;/em&gt;$154,100 - $211,860**&lt;/li&gt;\n&lt;li class=&quot;li1&quot;&gt;Zone 3: &lt;em&gt;All other US locations - &lt;/em&gt;$&lt;span class=&quot;collapsed-field-text&quot;&gt;145,500 - $200,090&lt;/span&gt;&amp;nbsp;**&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p class=&quot;p1&quot;&gt;&lt;em&gt;LaunchDarkly operates from a place of high trust and transparency; we are happy to state the pay range for our open roles to best align with your needs. Exact compensation may vary based on skills, experience, and location.&lt;/em&gt;&lt;/p&gt;\n&lt;p class=&quot;p1&quot;&gt;&lt;em&gt;*Within the United States, our geographic pay zones are defined by counties surrounding major metropolitan areas.&lt;/em&gt;&lt;br&gt;&lt;em&gt;**Restricted Stock Units (RSUs), health, vision, and dental insurance, and mental health benefits in addition to salary.&lt;/em&gt;&lt;/p&gt;\n&lt;/div&gt;\n&lt;h4&gt;&lt;strong&gt;About LaunchDarkly:&lt;/strong&gt;&lt;/h4&gt;\n&lt;p&gt;Modern software delivery was supposed to be the foundation for a thriving digital business but reality has proven otherwise. Slow, inefficient development cycles, costly outages, and fragmented customer experiences are preventing developers from building their best software. The LaunchDarkly platform helps developers innovate on new features faster while protecting them with a safety valve to instantly rewind when things go wrong. Developers can target product experiences to any customer segment and maximize the business impact of every feature. And by gradually rolling out new application components, they escape nightmare &quot;big-bang&quot; technology migrations.&amp;nbsp;&lt;/p&gt;\n&lt;p&gt;The LaunchDarkly platform was built to guide engineers to the next frontier of DevOps by:&lt;/p&gt;\n&lt;ul&gt;\n&lt;li&gt;Improving the velocity and stability of software releases, without the fear of end customer outages&lt;/li&gt;\n&lt;li&gt;Delivering targeted experiences by easily personalizing features to customer cohorts&lt;/li&gt;\n&lt;li&gt;Maximizing the business impact of every feature through the ability to experiment and optimize&lt;/li&gt;\n&lt;li&gt;Coordinating the release and optimization of software to provide consistent experiences across mobile platforms and device types&lt;/li&gt;\n&lt;li&gt;Improving the effectiveness and productivity of engineering teams, by providing insights into engineering cadence and stability&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;At LaunchDarkly, we believe in the power of teams. We&#39;re building a team that is humble, open, collaborative, respectful and kind. We are an equal opportunity employer and value diversity at our company. We do not discriminate on the basis of race, religion, color, national origin, gender, gender identity, sexual orientation, age, marital status, veteran status, or disability status. LD invites any applicant to review our written Affirmative Action Plan. To do so, contact People Ops at &lt;span class=&quot;link-annotation-unknown-block-id--893544457&quot;&gt;&lt;a href=&quot;mailto:hr@launchdarkly.com&quot;&gt;hr@launchdarkly.com&lt;/a&gt;&lt;/span&gt;.&amp;nbsp;&lt;/p&gt;\n&lt;p class=&quot;p1&quot;&gt;&lt;span class=&quot;s1&quot;&gt;&lt;strong&gt;Do you need a disability accommodation?&lt;/strong&gt;&lt;/span&gt;&lt;/p&gt;\n&lt;p class=&quot;p1&quot;&gt;Fill out this&amp;nbsp;&lt;a href=&quot;https://docs.google.com/forms/d/e/1FAIpQLSdYb_7upYMtdRVXzvXGHGfQw0pU2FNma-6Rwp-I6NjKm7SYNw/viewform&quot;&gt;&lt;span class=&quot;s2&quot;&gt;accommodations request form&lt;/span&gt;&lt;/a&gt;&amp;nbsp;and someone from our People Operations team will contact you for assistance.&amp;nbsp;&lt;/p&gt;\n&lt;p class=&quot;p1&quot;&gt;&lt;strong&gt;Your safety matters to us.&lt;/strong&gt; To protect yourself from potential scams, LaunchDarkly recruiters will only contact you from @&lt;a href=&quot;http://launchdarkly.com&quot; target=&quot;_blank&quot;&gt;launchdarkly.com&lt;/a&gt; email addresses or via LinkedIn from &quot;Verified Recruiter&quot; accounts. Be cautious of emails from other domains.&amp;nbsp; Legitimate LaunchDarkly recruiters will never ask for money, fees, or banking information before making a job offer. LaunchDarkly will never make a job offer without conducting a formal interview process. Our interview process does not involve asking detailed questions by email. If you are ever unsure about a communication that you receive, don&#39;t click any links—visit &lt;a href=&quot;https://launchdarkly.com/careers/&quot; target=&quot;_blank&quot;&gt;Careers | LaunchDarkly&lt;/a&gt;&amp;nbsp; directly for confirmed job openings and links to apply.&lt;br&gt;&lt;br&gt;Please notify us of any fraudulent representation by sending an email to &lt;a href=&quot;mailto:careers@launchdarkly.com&quot; target=&quot;_blank&quot;&gt;careers@launchdarkly.com&lt;/a&gt;.&lt;/p&gt;",
+      "departments": [
+        {
+          "id": 4024614003,
+          "name": "Engineering",
+          "child_ids": [
+            4082355003,
+            4082352003,
+            4021749003,
+            4082351003,
+            4082353003,
+            4082354003,
+            4082356003,
+            4082358003,
+            4082360003,
+            4082359003,
+            4048385003,
+            4021747003,
+            4021756003
+          ],
+          "parent_id": null
+        }
+      ],
+      "offices": [
+        {
+          "id": 4012901003,
+          "name": "US - Oakland, CA (HQ)",
+          "location": "Oakland, California, United States",
+          "child_ids": [],
+          "parent_id": null
+        }
+      ],
+      "ai_disclaimer": null,
+      "include_ai_disclaimer": false,
+      "ai_opt_out_request_url": "http://app3.greenhouse.io/ai_opt_out_request/job_post/7767461003/ai_opt_out"
+    }
+  ]
+}

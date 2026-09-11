@@ -1,0 +1,54 @@
+{
+  "jobs": [
+    {
+      "absolute_url": "https://job-boards.greenhouse.io/1uphealth/jobs/4703259006",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 4558524006,
+      "location": {
+        "name": "Remote"
+      },
+      "metadata": null,
+      "id": 4703259006,
+      "updated_at": "2026-08-27T10:47:22-04:00",
+      "requisition_id": "109",
+      "title": "Senior Software Engineer",
+      "company_name": "1upHealth",
+      "first_published": "2026-08-07T11:37:39-04:00",
+      "language": "en",
+      "application_deadline": null,
+      "content": "&lt;h3&gt;&lt;strong&gt;About 1upHealth&lt;/strong&gt;&lt;/h3&gt;\n&lt;p&gt;At 1upHealth, we’re on a mission to unlock health data and empower the future of healthcare through modern, cloud-native data infrastructure and interoperability. We build a platform that enables payers, providers, and digital health companies to ingest, normalize, and exchange clinical and claims data at scale; securely, reliably, and with strong compliance foundations. We are a remote-first U.S. company with a culture focused on collaboration, transparency, and meaningful impact.&amp;nbsp;&amp;nbsp;&lt;/p&gt;\n&lt;p&gt;&amp;nbsp;&lt;/p&gt;\n&lt;h3&gt;&lt;strong&gt;Role Summary&lt;/strong&gt;&lt;/h3&gt;\n&lt;p&gt;We are seeking a Senior Software Engineer (IC4) to make significant technical contributions across our full stack platform. In this role, you will lead large, ambiguous projects from design through delivery, architect scalable systems, and raise the technical bar across the team. You will partner closely with Product, Design, QA, Security, and Infrastructure to drive alignment, mentor fellow engineers, and shape the technical direction of the team.&lt;/p&gt;\n&lt;p&gt;&amp;nbsp;&lt;/p&gt;\n&lt;h3&gt;&lt;strong&gt;What You’ll Do&lt;/strong&gt;&lt;/h3&gt;\n&lt;h4&gt;&lt;strong&gt;Technical Leadership&lt;/strong&gt;&lt;/h4&gt;\n&lt;ul&gt;\n&lt;li&gt;Deliver high-quality, well-tested code with strong velocity and lead technical discussions that raise the bar across the team.&lt;/li&gt;\n&lt;li&gt;Proactively identify and mitigate risks, estimate large projects, and advocate for technical investments alongside feature work.&lt;/li&gt;\n&lt;li&gt;Review and optimize system performance, driving meaningful improvements in latency, throughput, and resource consumption.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;h4&gt;&lt;strong&gt;System Design&lt;/strong&gt;&lt;/h4&gt;\n&lt;ul&gt;\n&lt;li&gt;Make significant design contributions to major systems, writing ADRs and leading design reviews to build consensus before work begins.&lt;/li&gt;\n&lt;li&gt;Drive scalable, secure, maintainable architecture and apply threat modeling and secure design principles throughout.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;h4&gt;&lt;strong&gt;Collaboration &amp;amp; People Leadership&lt;/strong&gt;&lt;/h4&gt;\n&lt;ul&gt;\n&lt;li&gt;Drive team-wide alignment by clarifying goals, communicating proactively with cross-functional partners, and influencing technical decisions through clear reasoning.&lt;/li&gt;\n&lt;li&gt;Coach engineers across the team, mentor junior engineers with structured development goals, and contribute to interviews and calibration sessions.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;h4&gt;&lt;strong&gt;Process &amp;amp; Operational Excellence&lt;/strong&gt;&lt;/h4&gt;\n&lt;ul&gt;\n&lt;li&gt;Lead large, ambiguous projects end-to-end. Starting with delivery planning through production and maintenance while improving team engineering standards and removing roadblocks.&lt;/li&gt;\n&lt;li&gt;Own incident response and postmortems for team services, and consistently make sound short- vs. long-term tradeoffs to maintain platform health.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;h4&gt;&lt;strong&gt;AI-Augmented Development&lt;/strong&gt;&lt;/h4&gt;\n&lt;ul&gt;\n&lt;li&gt;Use AI tools as a force multiplier to accelerate prototyping, scaffolding new services, and reducing time spent on boilerplate so more focus goes to high-judgment engineering work.&lt;/li&gt;\n&lt;li&gt;Leverage AI to rapidly explore solution spaces, generate proof-of-concepts, and pressure-test designs before committing to implementation.&lt;/li&gt;\n&lt;li&gt;Apply appropriate skepticism to AI-generated output by reviewing, testing, and owning everything that ships regardless of how it was produced.&lt;/li&gt;\n&lt;li&gt;Help the team develop good intuitions around when and how to use AI effectively, sharing patterns that work and raising the floor on responsible AI-assisted development.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;&amp;nbsp;&lt;/p&gt;\n&lt;h3&gt;&lt;strong&gt;What We’re Looking For&lt;/strong&gt;&lt;/h3&gt;\n&lt;h4&gt;&lt;strong&gt;Core Qualifications&lt;/strong&gt;&lt;/h4&gt;\n&lt;ul&gt;\n&lt;li&gt;5+ years of professional software engineering experience, with a track record of senior-level ownership and delivery.&lt;/li&gt;\n&lt;li&gt;Strong full stack proficiency. Ideally comfortable across frontend and backend systems with a depth in at least one layer.&lt;/li&gt;\n&lt;li&gt;Experience architecting and delivering complex, distributed systems in cloud-native environments (e.g., AWS, serverless, containers).&lt;/li&gt;\n&lt;li&gt;Demonstrated ability to lead large, ambiguous projects end-to-end, from design through production.&lt;/li&gt;\n&lt;li&gt;Experience mentoring engineers and raising team-wide technical standards.&lt;/li&gt;\n&lt;li&gt;Strong communication skills with the ability to write clear RFCs, lead design reviews, and align cross-functional partners.&lt;/li&gt;\n&lt;li&gt;Familiarity with secure SDLC practices, including threat modeling, security reviews, and DevSecOps principles.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;h4&gt;&lt;strong&gt;Nice-to-Haves&lt;/strong&gt;&lt;/h4&gt;\n&lt;ul&gt;\n&lt;li&gt;Experience with healthcare data standards (e.g., FHIR, HL7) or compliance frameworks (e.g., HIPAA, HITRUST, SOC2).&lt;/li&gt;\n&lt;li&gt;Familiarity with data engineering technologies (e.g., Spark, data lake/lakehouse architectures, workflow orchestration).&lt;/li&gt;\n&lt;li&gt;Experience building platform services or large-scale data ingestion and processing pipelines.&lt;/li&gt;\n&lt;li&gt;Experience working in a remote-first environment and on distributed teams.&lt;/li&gt;\n&lt;/ul&gt;\n&lt;p&gt;&amp;nbsp;&lt;/p&gt;\n&lt;h3&gt;&lt;strong&gt;Why 1upHealth&lt;/strong&gt;&lt;/h3&gt;\n&lt;ul&gt;\n&lt;li&gt;Help shape the foundation of a cloud-native healthcare data platform used across the industry.&lt;/li&gt;\n&lt;li&gt;Work with modern tooling, distributed systems, and scalable architectures.&lt;/li&gt;\n&lt;li&gt;Remote-first culture, flexible work arrangements, and strong benefits.&lt;/li&gt;\n&lt;li&gt;Mission-driven work with real impact in healthcare interoperability and data access.&lt;/li&gt;\n&lt;/ul&gt;&lt;div class=&quot;content-conclusion&quot;&gt;&lt;div&gt;Don&#39;t meet every requirement? Studies have shown that women, communities of color and historically underrepresented talent are less likely to apply to jobs unless they meet every single qualification. At 1upHealth we are dedicated to building a diverse, inclusive and authentic workplace. We encourage folks to apply if they meet at least 50% of the qualifications above.&lt;/div&gt;\n&lt;div&gt;&amp;nbsp;&lt;/div&gt;\n&lt;div&gt;&lt;strong&gt;About 1upHealth&lt;/strong&gt;&lt;/div&gt;\n&lt;div&gt;At 1upHealth, our mission is to unlock health data and improve industry outcomes. As leaders in FHIR® interoperability, our platform makes it easier for partners to access, integrate, aggregate, and share data across a variety of systems. 1upHealth is building a data ecosystem to promote the digital transformation of the industry and encourage insight-driven healthcare.&lt;/div&gt;\n&lt;div&gt;&amp;nbsp;&lt;/div&gt;\n&lt;div&gt;&lt;strong&gt;Benefits&lt;/strong&gt;&lt;/div&gt;\n&lt;div&gt;100% Paid BCBS Medical and Dental Insurance for Employees&lt;/div&gt;\n&lt;div&gt;Vision Insurance&lt;/div&gt;\n&lt;div&gt;Flexible PTO&lt;/div&gt;\n&lt;div&gt;Equity for All Employees&lt;/div&gt;\n&lt;div&gt;401(k)&lt;/div&gt;\n&lt;div&gt;Home Office Stipend&lt;/div&gt;\n&lt;div&gt;Lifestyle Savings Account&lt;/div&gt;\n&lt;div&gt;Parental Leave (6 weeks bonding leave for all new parents + 10 weeks for birthing parents)&lt;/div&gt;\n&lt;div&gt;&amp;nbsp;&lt;/div&gt;\n&lt;div&gt;\n&lt;p&gt;&lt;strong&gt;Security Alert: &lt;/strong&gt;1upHealth only uses email domains of First Name. Last Name@1up.health or no-reply@1up.health to communicate with prospects. You will never receive an email from a third-party email service such as gmail. In addition, we will never ask a candidate for employment to share personal information (such as banking information, social security numbers, passport, etc), purchase their own equipment, or pay to apply to an open position.&lt;/p&gt;\n&lt;/div&gt;&lt;/div&gt;",
+      "departments": [
+        {
+          "id": 4005195006,
+          "name": "Engineering",
+          "child_ids": [],
+          "parent_id": null
+        }
+      ],
+      "offices": [
+        {
+          "id": 4002292006,
+          "name": "Boston, MA",
+          "location": "Boston, Massachusetts, United States",
+          "child_ids": [],
+          "parent_id": null
+        }
+      ],
+      "ai_disclaimer": null,
+      "include_ai_disclaimer": null,
+      "ai_opt_out_request_url": null
+    }
+  ],
+  "meta": {
+    "total": 1
+  }
+}

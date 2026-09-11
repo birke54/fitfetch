@@ -1,0 +1,37 @@
+services:
+  fitfetch-db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${POSTGRES_SUPER_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_SUPER_USER} -d ${DB_NAME:-fitfetch}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    image: ghcr.io/birke54/fitfetch:latest
+    depends_on:
+      fitfetch-db:
+        condition: service_healthy
+    environment:
+      # application.yaml builds the JDBC URL from these
+      DB_HOST: ${DB_NAME}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME}
+      APP_DB_USER: ${APP_POSTGRES_USER}
+      APP_DB_PASSWORD: ${APP_POSTGRES_PASSWORD}
+    restart: unless-stopped
+    # No embedded web server yet (no spring-boot-starter-web), so nothing
+    # listens on a port. After adding one, expose actuator/prometheus:
+    # ports:
+    #   - "${APP_PORT:-8080}:8080"
+
+volumes:
+  db-data:

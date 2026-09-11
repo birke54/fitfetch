@@ -1,0 +1,26 @@
+# Build output / caches
+.gradle
+build
+out
+
+# VCS & IDE
+.git
+.gitattributes
+.gitignore
+.idea
+*.iml
+*.iws
+*.ipr
+
+# Docker / local env
+Dockerfile
+.dockerignore
+docker-compose*.yml
+compose*.yml
+.env
+.env.*
+!.env.example
+
+# Docs
+HELP.md
+*.md
