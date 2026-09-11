@@ -46,4 +46,23 @@ public sealed interface AtsJobEntry permits GreenhouseJobEntry {
      *         name this uniquely identifies a job and is what dedup checks use
      */
     String jobId();
+
+    /**
+     * @return the ATS board slug this entry was fetched from, or {@code null}
+     *         if it has not been tagged yet via {@link #withSlug(String)}
+     */
+    String slug();
+
+    /**
+     * Returns a copy of this entry with {@link #slug()} set to the given value.
+     *
+     * <p>The board slug is a fetch-time parameter, not part of the provider's
+     * JSON payload, so implementations start with a {@code null} slug on
+     * deserialization; the fetching {@code Ats} implementation calls this to
+     * stamp in the slug it was fetched under before the entry is persisted.
+     *
+     * @param slug the ATS board slug to tag this entry with
+     * @return a new entry equal to this one except for {@link #slug()}
+     */
+    AtsJobEntry withSlug(String slug);
 }

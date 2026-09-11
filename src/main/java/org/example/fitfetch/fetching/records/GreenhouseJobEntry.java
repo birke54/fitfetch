@@ -31,6 +31,9 @@ import java.util.List;
  * @param content             the job description body, HTML-escaped by Greenhouse
  * @param offices             the offices this job is attached to ({@code offices});
  *                            may be {@code null} or empty
+ * @param slug                the ATS board slug this entry was fetched from;
+ *                            {@code null} until tagged via {@link #withSlug(String)},
+ *                            since it is not part of the Greenhouse JSON payload
  */
 public record GreenhouseJobEntry (
         @JsonProperty("absolute_url") String absoluteUrl,
@@ -44,7 +47,8 @@ public record GreenhouseJobEntry (
         String language,
         @JsonProperty("application_deadline") OffsetDateTime applicationDeadline,
         String content,
-        List<Office> offices
+        List<Office> offices,
+        String slug
 ) implements AtsJobEntry {
 
     /** @return always the literal {@code "Greenhouse"} */
@@ -60,5 +64,11 @@ public record GreenhouseJobEntry (
     @Override
     public String jobId() {
         return id.toString();
+    }
+
+    @Override
+    public GreenhouseJobEntry withSlug(String slug) {
+        return new GreenhouseJobEntry(absoluteUrl, education, id, updatedAt, requisitionId, title, companyName,
+                firstPublished, language, applicationDeadline, content, offices, slug);
     }
 }

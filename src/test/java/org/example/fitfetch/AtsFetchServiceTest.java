@@ -68,7 +68,7 @@ public class AtsFetchServiceTest {
         AtsJobEntry jobA = new GreenhouseJobEntry(
                 "https://example.com", "Bachelors", 1L,
                 OffsetDateTime.now(), "REQ-001", "Software Engineer", "Company A", OffsetDateTime.now(), "en", null,
-                "This is the JD of the posting", List.of()
+                "This is the JD of the posting", List.of(), "company-a"
         );
 
         List<AtsJobEntry> jobsA = List.of(jobA);
@@ -120,6 +120,7 @@ public class AtsFetchServiceTest {
         FetchedJob savedJob = firstBatch.getFirst();
         assertEquals(AtsName.GREENHOUSE, savedJob.getAts());
         assertEquals("1", savedJob.getJobId());
+        assertEquals("company-a", savedJob.getSlug());
     }
 
     @Test
@@ -132,7 +133,7 @@ public class AtsFetchServiceTest {
         AtsJobEntry jobB = new GreenhouseJobEntry(
                 "https://example.com", "Bachelors", 2L,
                 OffsetDateTime.now(), "REQ-002", "Frontend Engineer", "Company B", OffsetDateTime.now(), "en", null,
-                "This is the JD of the posting", List.of()
+                "This is the JD of the posting", List.of(), "company-b"
         );
 
         // Board 1 throws a timeout failure

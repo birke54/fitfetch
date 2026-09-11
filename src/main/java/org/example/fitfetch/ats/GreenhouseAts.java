@@ -167,6 +167,7 @@ public class GreenhouseAts implements Ats {
                     .stream()
                     .filter(job -> job instanceof GreenhouseJobEntry ghJob
                             && !jobIds.contains(ghJob.id().toString()) && TitleFilter.keep(ghJob.title()))
+                    .map(job -> job.withSlug(slug))
                     .toList();
 
             LOGGER.debug("Found {} new jobs for {} from Greenhouse; filtered out {} existing jobs", jobs.jobs().size() - filteredJobs.size(), slug, filteredJobs.size());
