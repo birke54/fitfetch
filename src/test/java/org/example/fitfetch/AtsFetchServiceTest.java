@@ -7,6 +7,7 @@ import org.example.fitfetch.domain.FetchedJob;
 import org.example.fitfetch.fetching.FetchedJobsRepository;
 import org.example.fitfetch.fetching.records.AtsJobEntry;
 import org.example.fitfetch.fetching.records.GreenhouseJobEntry;
+import org.example.fitfetch.fetching.records.GreenhouseSubRecords.Location;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -66,9 +67,10 @@ public class AtsFetchServiceTest {
     void testFetchAtsBoards_Success() {
         // Arrange
         AtsJobEntry jobA = new GreenhouseJobEntry(
-                "https://example.com", "Bachelors", 1L,
+                "https://example.com", "Bachelors", 1L, 101L,
                 OffsetDateTime.now(), "REQ-001", "Software Engineer", "Company A", OffsetDateTime.now(), "en", null,
-                "This is the JD of the posting", List.of(), "company-a"
+                "This is the JD of the posting", new Location("Remote - US"), List.of(), List.of(), List.of(),
+                "company-a"
         );
 
         List<AtsJobEntry> jobsA = List.of(jobA);
@@ -131,9 +133,10 @@ public class AtsFetchServiceTest {
         atsBoards.add(mockSecondaryGreenhouseAts);
 
         AtsJobEntry jobB = new GreenhouseJobEntry(
-                "https://example.com", "Bachelors", 2L,
+                "https://example.com", "Bachelors", 2L, 102L,
                 OffsetDateTime.now(), "REQ-002", "Frontend Engineer", "Company B", OffsetDateTime.now(), "en", null,
-                "This is the JD of the posting", List.of(), "company-b"
+                "This is the JD of the posting", new Location("New York, New York"), List.of(), List.of(), List.of(),
+                "company-b"
         );
 
         // Board 1 throws a timeout failure
