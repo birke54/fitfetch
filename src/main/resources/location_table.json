@@ -1,0 +1,1494 @@
+{
+  "version": 1,
+  "note": "Hand-curated exact-match table (tier 1). Keys are normalized from `raw` at load time.",
+  "entries": [
+    {
+      "raw": "New York, New York, USA",
+      "jobs": 91,
+      "outputs": [
+        {
+          "raw": "New York, New York, USA",
+          "resolution": "PLACE",
+          "geocodeQuery": "New York, NY, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Remote US",
+      "jobs": 90,
+      "outputs": [
+        {
+          "raw": "Remote US",
+          "resolution": "REMOTE_IN_US",
+          "geocodeQuery": "__ORIGIN__",
+          "regionCode": "US"
+        }
+      ]
+    },
+    {
+      "raw": "Amsterdam",
+      "jobs": 63,
+      "outputs": [
+        {
+          "raw": "Amsterdam",
+          "resolution": "PLACE",
+          "geocodeQuery": "Amsterdam, Netherlands",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Singapore",
+      "jobs": 63,
+      "outputs": [
+        {
+          "raw": "Singapore",
+          "resolution": "PLACE",
+          "geocodeQuery": "Singapore",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Remote Canada",
+      "jobs": 63,
+      "outputs": [
+        {
+          "raw": "Remote Canada",
+          "resolution": "REMOTE_ELSEWHERE",
+          "geocodeQuery": "Canada",
+          "regionCode": "CA"
+        }
+      ]
+    },
+    {
+      "raw": "United States",
+      "jobs": 56,
+      "outputs": [
+        {
+          "raw": "United States",
+          "resolution": "COUNTRY_US",
+          "geocodeQuery": "__ORIGIN__",
+          "regionCode": "US"
+        }
+      ]
+    },
+    {
+      "raw": "San Francisco",
+      "jobs": 52,
+      "outputs": [
+        {
+          "raw": "San Francisco",
+          "resolution": "PLACE",
+          "geocodeQuery": "San Francisco, CA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Tokyo, Japan",
+      "jobs": 48,
+      "outputs": [
+        {
+          "raw": "Tokyo, Japan",
+          "resolution": "PLACE",
+          "geocodeQuery": "Tokyo, Japan",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Paris, France",
+      "jobs": 39,
+      "outputs": [
+        {
+          "raw": "Paris, France",
+          "resolution": "PLACE",
+          "geocodeQuery": "Paris, France",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Chicago",
+      "jobs": 36,
+      "outputs": [
+        {
+          "raw": "Chicago",
+          "resolution": "PLACE",
+          "geocodeQuery": "Chicago, IL, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Bengaluru",
+      "jobs": 33,
+      "outputs": [
+        {
+          "raw": "Bengaluru",
+          "resolution": "PLACE",
+          "geocodeQuery": "Bengaluru, India",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Dublin",
+      "jobs": 33,
+      "outputs": [
+        {
+          "raw": "Dublin",
+          "resolution": "PLACE",
+          "geocodeQuery": "Dublin, Ireland",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "London",
+      "jobs": 32,
+      "outputs": [
+        {
+          "raw": "London",
+          "resolution": "PLACE",
+          "geocodeQuery": "London, United Kingdom",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "New York, NY",
+      "jobs": 29,
+      "outputs": [
+        {
+          "raw": "New York, NY",
+          "resolution": "PLACE",
+          "geocodeQuery": "New York, NY, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "New York",
+      "jobs": 28,
+      "outputs": [
+        {
+          "raw": "New York",
+          "resolution": "PLACE",
+          "geocodeQuery": "New York, NY, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Canada",
+      "jobs": 26,
+      "outputs": [
+        {
+          "raw": "Canada",
+          "resolution": "COUNTRY_OTHER",
+          "geocodeQuery": "Canada",
+          "regionCode": "CA"
+        }
+      ]
+    },
+    {
+      "raw": "Mexico City",
+      "jobs": 25,
+      "outputs": [
+        {
+          "raw": "Mexico City",
+          "resolution": "PLACE",
+          "geocodeQuery": "Mexico City, Mexico",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "N/A",
+      "jobs": 23,
+      "outputs": [
+        {
+          "raw": "N/A",
+          "resolution": "EMPTY_DEFAULT",
+          "geocodeQuery": "__ORIGIN__",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Singapore, Singapore",
+      "jobs": 23,
+      "outputs": [
+        {
+          "raw": "Singapore, Singapore",
+          "resolution": "PLACE",
+          "geocodeQuery": "Singapore",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Dublin, Ireland",
+      "jobs": 21,
+      "outputs": [
+        {
+          "raw": "Dublin, Ireland",
+          "resolution": "PLACE",
+          "geocodeQuery": "Dublin, Ireland",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Novato, California, United States",
+      "jobs": 21,
+      "outputs": [
+        {
+          "raw": "Novato, California, United States",
+          "resolution": "PLACE",
+          "geocodeQuery": "Novato, CA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Boston, Massachusetts, USA; New York, New York, USA",
+      "jobs": 21,
+      "outputs": [
+        {
+          "raw": "Boston, Massachusetts, USA; New York, New York, USA",
+          "resolution": "PLACE",
+          "geocodeQuery": "Boston, MA, USA",
+          "regionCode": null
+        },
+        {
+          "raw": "Boston, Massachusetts, USA; New York, New York, USA",
+          "resolution": "PLACE",
+          "geocodeQuery": "New York, NY, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Remote Poland",
+      "jobs": 20,
+      "outputs": [
+        {
+          "raw": "Remote Poland",
+          "resolution": "REMOTE_ELSEWHERE",
+          "geocodeQuery": "Poland",
+          "regionCode": "PL"
+        }
+      ]
+    },
+    {
+      "raw": "Remote Spain",
+      "jobs": 19,
+      "outputs": [
+        {
+          "raw": "Remote Spain",
+          "resolution": "REMOTE_ELSEWHERE",
+          "geocodeQuery": "Spain",
+          "regionCode": "ES"
+        }
+      ]
+    },
+    {
+      "raw": "Sao Paulo, Brazil",
+      "jobs": 18,
+      "outputs": [
+        {
+          "raw": "Sao Paulo, Brazil",
+          "resolution": "PLACE",
+          "geocodeQuery": "São Paulo, Brazil",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Montréal, Quebec, Canada",
+      "jobs": 17,
+      "outputs": [
+        {
+          "raw": "Montréal, Quebec, Canada",
+          "resolution": "PLACE",
+          "geocodeQuery": "Montréal, QC, Canada",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "United States, Remote",
+      "jobs": 17,
+      "outputs": [
+        {
+          "raw": "United States, Remote",
+          "resolution": "REMOTE_IN_US",
+          "geocodeQuery": "__ORIGIN__",
+          "regionCode": "US"
+        }
+      ]
+    },
+    {
+      "raw": "Madrid, Spain",
+      "jobs": 15,
+      "outputs": [
+        {
+          "raw": "Madrid, Spain",
+          "resolution": "PLACE",
+          "geocodeQuery": "Madrid, Spain",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Edinburgh, UK",
+      "jobs": 15,
+      "outputs": [
+        {
+          "raw": "Edinburgh, UK",
+          "resolution": "PLACE",
+          "geocodeQuery": "Edinburgh, United Kingdom",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "US",
+      "jobs": 15,
+      "outputs": [
+        {
+          "raw": "US",
+          "resolution": "COUNTRY_US",
+          "geocodeQuery": "__ORIGIN__",
+          "regionCode": "US"
+        }
+      ]
+    },
+    {
+      "raw": "Denver, Colorado, USA",
+      "jobs": 15,
+      "outputs": [
+        {
+          "raw": "Denver, Colorado, USA",
+          "resolution": "PLACE",
+          "geocodeQuery": "Denver, CO, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Boston, Massachusetts, USA",
+      "jobs": 15,
+      "outputs": [
+        {
+          "raw": "Boston, Massachusetts, USA",
+          "resolution": "PLACE",
+          "geocodeQuery": "Boston, MA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Sydney, Australia",
+      "jobs": 14,
+      "outputs": [
+        {
+          "raw": "Sydney, Australia",
+          "resolution": "PLACE",
+          "geocodeQuery": "Sydney, NSW, Australia",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Seoul, South Korea",
+      "jobs": 14,
+      "outputs": [
+        {
+          "raw": "Seoul, South Korea",
+          "resolution": "PLACE",
+          "geocodeQuery": "Seoul, South Korea",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Toronto",
+      "jobs": 14,
+      "outputs": [
+        {
+          "raw": "Toronto",
+          "resolution": "PLACE",
+          "geocodeQuery": "Toronto, ON, Canada",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Remote, USA",
+      "jobs": 14,
+      "outputs": [
+        {
+          "raw": "Remote, USA",
+          "resolution": "REMOTE_IN_US",
+          "geocodeQuery": "__ORIGIN__",
+          "regionCode": "US"
+        }
+      ]
+    },
+    {
+      "raw": "Pune, India",
+      "jobs": 14,
+      "outputs": [
+        {
+          "raw": "Pune, India",
+          "resolution": "PLACE",
+          "geocodeQuery": "Pune, India",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "London, United Kingdom",
+      "jobs": 13,
+      "outputs": [
+        {
+          "raw": "London, United Kingdom",
+          "resolution": "PLACE",
+          "geocodeQuery": "London, United Kingdom",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Burnaby, British Columbia, Canada",
+      "jobs": 13,
+      "outputs": [
+        {
+          "raw": "Burnaby, British Columbia, Canada",
+          "resolution": "PLACE",
+          "geocodeQuery": "Burnaby, BC, Canada",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Remote - USA",
+      "jobs": 11,
+      "outputs": [
+        {
+          "raw": "Remote - USA",
+          "resolution": "REMOTE_IN_US",
+          "geocodeQuery": "__ORIGIN__",
+          "regionCode": "US"
+        }
+      ]
+    },
+    {
+      "raw": "San Francisco, CA",
+      "jobs": 11,
+      "outputs": [
+        {
+          "raw": "San Francisco, CA",
+          "resolution": "PLACE",
+          "geocodeQuery": "San Francisco, CA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "State College, PA",
+      "jobs": 11,
+      "outputs": [
+        {
+          "raw": "State College, PA",
+          "resolution": "PLACE",
+          "geocodeQuery": "State College, PA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Poland",
+      "jobs": 11,
+      "outputs": [
+        {
+          "raw": "Poland",
+          "resolution": "COUNTRY_OTHER",
+          "geocodeQuery": "Poland",
+          "regionCode": "PL"
+        }
+      ]
+    },
+    {
+      "raw": "US-Remote",
+      "jobs": 11,
+      "outputs": [
+        {
+          "raw": "US-Remote",
+          "resolution": "REMOTE_IN_US",
+          "geocodeQuery": "__ORIGIN__",
+          "regionCode": "US"
+        }
+      ]
+    },
+    {
+      "raw": "Tokyo",
+      "jobs": 10,
+      "outputs": [
+        {
+          "raw": "Tokyo",
+          "resolution": "PLACE",
+          "geocodeQuery": "Tokyo, Japan",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Bangalore, India",
+      "jobs": 10,
+      "outputs": [
+        {
+          "raw": "Bangalore, India",
+          "resolution": "PLACE",
+          "geocodeQuery": "Bengaluru, India",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Remote UK",
+      "jobs": 10,
+      "outputs": [
+        {
+          "raw": "Remote UK",
+          "resolution": "REMOTE_ELSEWHERE",
+          "geocodeQuery": "United Kingdom",
+          "regionCode": "GB"
+        }
+      ]
+    },
+    {
+      "raw": "Boston or Remote",
+      "jobs": 9,
+      "outputs": [
+        {
+          "raw": "Boston or Remote",
+          "resolution": "PLACE",
+          "geocodeQuery": "Boston, MA, USA",
+          "regionCode": null
+        },
+        {
+          "raw": "Boston or Remote",
+          "resolution": "REMOTE_BARE",
+          "geocodeQuery": "__ORIGIN__",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Salt Lake City, UT",
+      "jobs": 9,
+      "outputs": [
+        {
+          "raw": "Salt Lake City, UT",
+          "resolution": "PLACE",
+          "geocodeQuery": "Salt Lake City, UT, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "London, UK",
+      "jobs": 9,
+      "outputs": [
+        {
+          "raw": "London, UK",
+          "resolution": "PLACE",
+          "geocodeQuery": "London, United Kingdom",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Seattle",
+      "jobs": 9,
+      "outputs": [
+        {
+          "raw": "Seattle",
+          "resolution": "PLACE",
+          "geocodeQuery": "Seattle, WA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Brazil",
+      "jobs": 8,
+      "outputs": [
+        {
+          "raw": "Brazil",
+          "resolution": "COUNTRY_OTHER",
+          "geocodeQuery": "Brazil",
+          "regionCode": "BR"
+        }
+      ]
+    },
+    {
+      "raw": "Bengaluru, Karnataka, India",
+      "jobs": 8,
+      "outputs": [
+        {
+          "raw": "Bengaluru, Karnataka, India",
+          "resolution": "PLACE",
+          "geocodeQuery": "Bengaluru, Karnataka, India",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "State College, PA or Remote",
+      "jobs": 8,
+      "outputs": [
+        {
+          "raw": "State College, PA or Remote",
+          "resolution": "PLACE",
+          "geocodeQuery": "State College, PA, USA",
+          "regionCode": null
+        },
+        {
+          "raw": "State College, PA or Remote",
+          "resolution": "REMOTE_BARE",
+          "geocodeQuery": "__ORIGIN__",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "San Francisco, California, USA",
+      "jobs": 8,
+      "outputs": [
+        {
+          "raw": "San Francisco, California, USA",
+          "resolution": "PLACE",
+          "geocodeQuery": "San Francisco, CA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Sydney",
+      "jobs": 7,
+      "outputs": [
+        {
+          "raw": "Sydney",
+          "resolution": "PLACE",
+          "geocodeQuery": "Sydney, NSW, Australia",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Mexico City, Mexico",
+      "jobs": 7,
+      "outputs": [
+        {
+          "raw": "Mexico City, Mexico",
+          "resolution": "PLACE",
+          "geocodeQuery": "Mexico City, Mexico",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Remote",
+      "jobs": 7,
+      "outputs": [
+        {
+          "raw": "Remote",
+          "resolution": "REMOTE_BARE",
+          "geocodeQuery": "__ORIGIN__",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Brighton, England, United Kingdom",
+      "jobs": 7,
+      "outputs": [
+        {
+          "raw": "Brighton, England, United Kingdom",
+          "resolution": "PLACE",
+          "geocodeQuery": "Brighton, England, United Kingdom",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Remote; State College, PA",
+      "jobs": 7,
+      "outputs": [
+        {
+          "raw": "Remote; State College, PA",
+          "resolution": "REMOTE_BARE",
+          "geocodeQuery": "__ORIGIN__",
+          "regionCode": null
+        },
+        {
+          "raw": "Remote; State College, PA",
+          "resolution": "PLACE",
+          "geocodeQuery": "State College, PA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Bangalore",
+      "jobs": 7,
+      "outputs": [
+        {
+          "raw": "Bangalore",
+          "resolution": "PLACE",
+          "geocodeQuery": "Bengaluru, India",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Mexico",
+      "jobs": 6,
+      "outputs": [
+        {
+          "raw": "Mexico",
+          "resolution": "COUNTRY_OTHER",
+          "geocodeQuery": "Mexico",
+          "regionCode": "MX"
+        }
+      ]
+    },
+    {
+      "raw": "San Francisco, United States",
+      "jobs": 6,
+      "outputs": [
+        {
+          "raw": "San Francisco, United States",
+          "resolution": "PLACE",
+          "geocodeQuery": "San Francisco, CA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "San Mateo, California, United States",
+      "jobs": 6,
+      "outputs": [
+        {
+          "raw": "San Mateo, California, United States",
+          "resolution": "PLACE",
+          "geocodeQuery": "San Mateo, CA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Austin, Texas, United States",
+      "jobs": 6,
+      "outputs": [
+        {
+          "raw": "Austin, Texas, United States",
+          "resolution": "PLACE",
+          "geocodeQuery": "Austin, TX, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "LOCATION",
+      "jobs": 6,
+      "outputs": [
+        {
+          "raw": "LOCATION",
+          "resolution": "EMPTY_DEFAULT",
+          "geocodeQuery": "__ORIGIN__",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "San Francisco, Seattle",
+      "jobs": 6,
+      "outputs": [
+        {
+          "raw": "San Francisco, Seattle",
+          "resolution": "PLACE",
+          "geocodeQuery": "San Francisco, CA, USA",
+          "regionCode": null
+        },
+        {
+          "raw": "San Francisco, Seattle",
+          "resolution": "PLACE",
+          "geocodeQuery": "Seattle, WA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Boston, Massachusetts, USA; Denver, Colorado, USA; New York, New York, USA; San Francisco, California, USA",
+      "jobs": 6,
+      "outputs": [
+        {
+          "raw": "Boston, Massachusetts, USA; Denver, Colorado, USA; New York, New York, USA; San Francisco, California, USA",
+          "resolution": "PLACE",
+          "geocodeQuery": "Boston, MA, USA",
+          "regionCode": null
+        },
+        {
+          "raw": "Boston, Massachusetts, USA; Denver, Colorado, USA; New York, New York, USA; San Francisco, California, USA",
+          "resolution": "PLACE",
+          "geocodeQuery": "Denver, CO, USA",
+          "regionCode": null
+        },
+        {
+          "raw": "Boston, Massachusetts, USA; Denver, Colorado, USA; New York, New York, USA; San Francisco, California, USA",
+          "resolution": "PLACE",
+          "geocodeQuery": "New York, NY, USA",
+          "regionCode": null
+        },
+        {
+          "raw": "Boston, Massachusetts, USA; Denver, Colorado, USA; New York, New York, USA; San Francisco, California, USA",
+          "resolution": "PLACE",
+          "geocodeQuery": "San Francisco, CA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Amsterdam, The Netherlands",
+      "jobs": 6,
+      "outputs": [
+        {
+          "raw": "Amsterdam, The Netherlands",
+          "resolution": "PLACE",
+          "geocodeQuery": "Amsterdam, Netherlands",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "China",
+      "jobs": 5,
+      "outputs": [
+        {
+          "raw": "China",
+          "resolution": "COUNTRY_OTHER",
+          "geocodeQuery": "China",
+          "regionCode": "CN"
+        }
+      ]
+    },
+    {
+      "raw": "USA",
+      "jobs": 5,
+      "outputs": [
+        {
+          "raw": "USA",
+          "resolution": "COUNTRY_US",
+          "geocodeQuery": "__ORIGIN__",
+          "regionCode": "US"
+        }
+      ]
+    },
+    {
+      "raw": "San Francisco, California, United States",
+      "jobs": 5,
+      "outputs": [
+        {
+          "raw": "San Francisco, California, United States",
+          "resolution": "PLACE",
+          "geocodeQuery": "San Francisco, CA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Bangalore, Karnataka, India",
+      "jobs": 5,
+      "outputs": [
+        {
+          "raw": "Bangalore, Karnataka, India",
+          "resolution": "PLACE",
+          "geocodeQuery": "Bengaluru, Karnataka, India",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Chicago, IL",
+      "jobs": 5,
+      "outputs": [
+        {
+          "raw": "Chicago, IL",
+          "resolution": "PLACE",
+          "geocodeQuery": "Chicago, IL, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "South San Francisco, CA",
+      "jobs": 5,
+      "outputs": [
+        {
+          "raw": "South San Francisco, CA",
+          "resolution": "PLACE",
+          "geocodeQuery": "South San Francisco, CA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Toronto, Canada",
+      "jobs": 5,
+      "outputs": [
+        {
+          "raw": "Toronto, Canada",
+          "resolution": "PLACE",
+          "geocodeQuery": "Toronto, ON, Canada",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Dublin, London",
+      "jobs": 5,
+      "outputs": [
+        {
+          "raw": "Dublin, London",
+          "resolution": "PLACE",
+          "geocodeQuery": "Dublin, Ireland",
+          "regionCode": null
+        },
+        {
+          "raw": "Dublin, London",
+          "resolution": "PLACE",
+          "geocodeQuery": "London, United Kingdom",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "US Remote",
+      "jobs": 5,
+      "outputs": [
+        {
+          "raw": "US Remote",
+          "resolution": "REMOTE_IN_US",
+          "geocodeQuery": "__ORIGIN__",
+          "regionCode": "US"
+        }
+      ]
+    },
+    {
+      "raw": "US / Canada",
+      "jobs": 5,
+      "outputs": [
+        {
+          "raw": "US / Canada",
+          "resolution": "COUNTRY_US",
+          "geocodeQuery": "__ORIGIN__",
+          "regionCode": "US"
+        },
+        {
+          "raw": "US / Canada",
+          "resolution": "COUNTRY_OTHER",
+          "geocodeQuery": "Canada",
+          "regionCode": "CA"
+        }
+      ]
+    },
+    {
+      "raw": "Amsterdam, The Netherlands; Dublin, Ireland",
+      "jobs": 5,
+      "outputs": [
+        {
+          "raw": "Amsterdam, The Netherlands; Dublin, Ireland",
+          "resolution": "PLACE",
+          "geocodeQuery": "Amsterdam, Netherlands",
+          "regionCode": null
+        },
+        {
+          "raw": "Amsterdam, The Netherlands; Dublin, Ireland",
+          "resolution": "PLACE",
+          "geocodeQuery": "Dublin, Ireland",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "São Paulo",
+      "jobs": 4,
+      "outputs": [
+        {
+          "raw": "São Paulo",
+          "resolution": "PLACE",
+          "geocodeQuery": "São Paulo, Brazil",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Sao Jose dos Campos",
+      "jobs": 4,
+      "outputs": [
+        {
+          "raw": "Sao Jose dos Campos",
+          "resolution": "PLACE",
+          "geocodeQuery": "São José dos Campos, Brazil",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Paris",
+      "jobs": 4,
+      "outputs": [
+        {
+          "raw": "Paris",
+          "resolution": "PLACE",
+          "geocodeQuery": "Paris, France",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Berlin",
+      "jobs": 4,
+      "outputs": [
+        {
+          "raw": "Berlin",
+          "resolution": "PLACE",
+          "geocodeQuery": "Berlin, Germany",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Ireland",
+      "jobs": 4,
+      "outputs": [
+        {
+          "raw": "Ireland",
+          "resolution": "COUNTRY_OTHER",
+          "geocodeQuery": "Ireland",
+          "regionCode": "IE"
+        }
+      ]
+    },
+    {
+      "raw": "Remote - US",
+      "jobs": 4,
+      "outputs": [
+        {
+          "raw": "Remote - US",
+          "resolution": "REMOTE_IN_US",
+          "geocodeQuery": "__ORIGIN__",
+          "regionCode": "US"
+        }
+      ]
+    },
+    {
+      "raw": "London, England, United Kingdom",
+      "jobs": 4,
+      "outputs": [
+        {
+          "raw": "London, England, United Kingdom",
+          "resolution": "PLACE",
+          "geocodeQuery": "London, England, United Kingdom",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Israel",
+      "jobs": 4,
+      "outputs": [
+        {
+          "raw": "Israel",
+          "resolution": "COUNTRY_OTHER",
+          "geocodeQuery": "Israel",
+          "regionCode": "IL"
+        }
+      ]
+    },
+    {
+      "raw": "NYC-Privy",
+      "jobs": 4,
+      "outputs": [
+        {
+          "raw": "NYC-Privy",
+          "resolution": "PLACE",
+          "geocodeQuery": "New York, NY, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Seattle, San Francisco",
+      "jobs": 4,
+      "outputs": [
+        {
+          "raw": "Seattle, San Francisco",
+          "resolution": "PLACE",
+          "geocodeQuery": "Seattle, WA, USA",
+          "regionCode": null
+        },
+        {
+          "raw": "Seattle, San Francisco",
+          "resolution": "PLACE",
+          "geocodeQuery": "San Francisco, CA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "London, Dublin",
+      "jobs": 4,
+      "outputs": [
+        {
+          "raw": "London, Dublin",
+          "resolution": "PLACE",
+          "geocodeQuery": "London, United Kingdom",
+          "regionCode": null
+        },
+        {
+          "raw": "London, Dublin",
+          "resolution": "PLACE",
+          "geocodeQuery": "Dublin, Ireland",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Seattle, WA",
+      "jobs": 4,
+      "outputs": [
+        {
+          "raw": "Seattle, WA",
+          "resolution": "PLACE",
+          "geocodeQuery": "Seattle, WA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "NYC",
+      "jobs": 4,
+      "outputs": [
+        {
+          "raw": "NYC",
+          "resolution": "PLACE",
+          "geocodeQuery": "New York, NY, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "New York, New York, USA; San Francisco, California, USA",
+      "jobs": 4,
+      "outputs": [
+        {
+          "raw": "New York, New York, USA; San Francisco, California, USA",
+          "resolution": "PLACE",
+          "geocodeQuery": "New York, NY, USA",
+          "regionCode": null
+        },
+        {
+          "raw": "New York, New York, USA; San Francisco, California, USA",
+          "resolution": "PLACE",
+          "geocodeQuery": "San Francisco, CA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Jakarta, Indonesia",
+      "jobs": 4,
+      "outputs": [
+        {
+          "raw": "Jakarta, Indonesia",
+          "resolution": "PLACE",
+          "geocodeQuery": "Jakarta, Indonesia",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Dublin, Ireland; Paris, France",
+      "jobs": 4,
+      "outputs": [
+        {
+          "raw": "Dublin, Ireland; Paris, France",
+          "resolution": "PLACE",
+          "geocodeQuery": "Dublin, Ireland",
+          "regionCode": null
+        },
+        {
+          "raw": "Dublin, Ireland; Paris, France",
+          "resolution": "PLACE",
+          "geocodeQuery": "Paris, France",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "District of Columbia, USA, Remote; Maryland, USA, Remote; Virginia, USA, Remote",
+      "jobs": 4,
+      "outputs": [
+        {
+          "raw": "District of Columbia, USA, Remote; Maryland, USA, Remote; Virginia, USA, Remote",
+          "resolution": "REMOTE_ELSEWHERE",
+          "geocodeQuery": "District of Columbia, USA",
+          "regionCode": "US-DC"
+        },
+        {
+          "raw": "District of Columbia, USA, Remote; Maryland, USA, Remote; Virginia, USA, Remote",
+          "resolution": "REMOTE_ELSEWHERE",
+          "geocodeQuery": "Maryland, USA",
+          "regionCode": "US-MD"
+        },
+        {
+          "raw": "District of Columbia, USA, Remote; Maryland, USA, Remote; Virginia, USA, Remote",
+          "resolution": "REMOTE_ELSEWHERE",
+          "geocodeQuery": "Virginia, USA",
+          "regionCode": "US-VA"
+        }
+      ]
+    },
+    {
+      "raw": "Boston, Massachusetts, USA; Denver, Colorado, USA; New York, New York, USA",
+      "jobs": 4,
+      "outputs": [
+        {
+          "raw": "Boston, Massachusetts, USA; Denver, Colorado, USA; New York, New York, USA",
+          "resolution": "PLACE",
+          "geocodeQuery": "Boston, MA, USA",
+          "regionCode": null
+        },
+        {
+          "raw": "Boston, Massachusetts, USA; Denver, Colorado, USA; New York, New York, USA",
+          "resolution": "PLACE",
+          "geocodeQuery": "Denver, CO, USA",
+          "regionCode": null
+        },
+        {
+          "raw": "Boston, Massachusetts, USA; Denver, Colorado, USA; New York, New York, USA",
+          "resolution": "PLACE",
+          "geocodeQuery": "New York, NY, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Lisbon, Portugal",
+      "jobs": 4,
+      "outputs": [
+        {
+          "raw": "Lisbon, Portugal",
+          "resolution": "PLACE",
+          "geocodeQuery": "Lisbon, Portugal",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Shanghai",
+      "jobs": 3,
+      "outputs": [
+        {
+          "raw": "Shanghai",
+          "resolution": "PLACE",
+          "geocodeQuery": "Shanghai, China",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Stockholm",
+      "jobs": 3,
+      "outputs": [
+        {
+          "raw": "Stockholm",
+          "resolution": "PLACE",
+          "geocodeQuery": "Stockholm, Sweden",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Chicago; San Francisco",
+      "jobs": 3,
+      "outputs": [
+        {
+          "raw": "Chicago; San Francisco",
+          "resolution": "PLACE",
+          "geocodeQuery": "Chicago, IL, USA",
+          "regionCode": null
+        },
+        {
+          "raw": "Chicago; San Francisco",
+          "resolution": "PLACE",
+          "geocodeQuery": "San Francisco, CA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Madrid",
+      "jobs": 3,
+      "outputs": [
+        {
+          "raw": "Madrid",
+          "resolution": "PLACE",
+          "geocodeQuery": "Madrid, Spain",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "New York; San Francisco",
+      "jobs": 3,
+      "outputs": [
+        {
+          "raw": "New York; San Francisco",
+          "resolution": "PLACE",
+          "geocodeQuery": "New York, NY, USA",
+          "regionCode": null
+        },
+        {
+          "raw": "New York; San Francisco",
+          "resolution": "PLACE",
+          "geocodeQuery": "San Francisco, CA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Mumbai",
+      "jobs": 3,
+      "outputs": [
+        {
+          "raw": "Mumbai",
+          "resolution": "PLACE",
+          "geocodeQuery": "Mumbai, India",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Gurugram, India",
+      "jobs": 3,
+      "outputs": [
+        {
+          "raw": "Gurugram, India",
+          "resolution": "PLACE",
+          "geocodeQuery": "Gurugram, India",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Milan, Italy",
+      "jobs": 3,
+      "outputs": [
+        {
+          "raw": "Milan, Italy",
+          "resolution": "PLACE",
+          "geocodeQuery": "Milan, Italy",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "California, United States",
+      "jobs": 3,
+      "outputs": [
+        {
+          "raw": "California, United States",
+          "resolution": "STATE_OTHER",
+          "geocodeQuery": "California, USA",
+          "regionCode": "US-CA"
+        }
+      ]
+    },
+    {
+      "raw": "New York, NY; Remote - US",
+      "jobs": 3,
+      "outputs": [
+        {
+          "raw": "New York, NY; Remote - US",
+          "resolution": "PLACE",
+          "geocodeQuery": "New York, NY, USA",
+          "regionCode": null
+        },
+        {
+          "raw": "New York, NY; Remote - US",
+          "resolution": "REMOTE_IN_US",
+          "geocodeQuery": "__ORIGIN__",
+          "regionCode": "US"
+        }
+      ]
+    },
+    {
+      "raw": "San Francisco, CA; New York, NY",
+      "jobs": 3,
+      "outputs": [
+        {
+          "raw": "San Francisco, CA; New York, NY",
+          "resolution": "PLACE",
+          "geocodeQuery": "San Francisco, CA, USA",
+          "regionCode": null
+        },
+        {
+          "raw": "San Francisco, CA; New York, NY",
+          "resolution": "PLACE",
+          "geocodeQuery": "New York, NY, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Los Angeles, California, United States; Novato, California, United States",
+      "jobs": 3,
+      "outputs": [
+        {
+          "raw": "Los Angeles, California, United States; Novato, California, United States",
+          "resolution": "PLACE",
+          "geocodeQuery": "Los Angeles, CA, USA",
+          "regionCode": null
+        },
+        {
+          "raw": "Los Angeles, California, United States; Novato, California, United States",
+          "resolution": "PLACE",
+          "geocodeQuery": "Novato, CA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Tokyo, Chiyoda, Japan",
+      "jobs": 3,
+      "outputs": [
+        {
+          "raw": "Tokyo, Chiyoda, Japan",
+          "resolution": "PLACE",
+          "geocodeQuery": "Tokyo, Chiyoda, Japan",
+          "regionCode": null
+        }
+      ]
+    }
+  ]
+}
