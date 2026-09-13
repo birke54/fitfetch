@@ -200,14 +200,17 @@ class LocationResolverTest {
     // ------------------------------------------------------------ empty label
 
     @Test
-    @DisplayName("A null or blank label resolves to the origin rather than failing")
+    @DisplayName("A null or blank label resolves to the origin without asking the model")
     void testBlankLabelResolvesToOrigin() {
-        extractorReturns(ExtractedLocation.of("", LocationKind.SENTINEL));
-
+        // The real extractor reports a blank label as UNPARSEABLE, which the
+        // policy turns into UNDEFINED. The resolver must answer it before then,
+        // so the extractor is deliberately left unstubbed here.
         for (String label : new String[]{null, "", "   "}) {
             ResolvedLocation only = resolver.resolve(label).getFirst();
             assertEquals(Resolution.EMPTY_DEFAULT, only.input().resolution());
             assertEquals(ORIGIN, only.input().geocodeQuery());
+            assertEquals(SourceTier.CURATED, only.tier());
         }
+        verifyNoInteractions(extractor);
     }
 }
