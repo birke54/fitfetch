@@ -59,7 +59,7 @@ app:
     schedule: "0 */15 * * * *"
     # One page per run: a backlog clears steadily instead of a single invocation
     # holding the model and the geocoding budget for as long as it takes.
-    page-size: 1
+    page-size: 5
     table: location_table.json
     # Used verbatim by every resolution that redirects here. A full street
     # address geocodes to distance zero, so no radius setting can exclude a row
