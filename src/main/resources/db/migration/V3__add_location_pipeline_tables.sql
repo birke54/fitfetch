@@ -25,7 +25,15 @@ CREATE TABLE IF NOT EXISTS location_interpretation (
     -- this is a pure tail case -- exactly the kind that survives testing.
     location_key   TEXT        NOT NULL,
     raw            TEXT        NOT NULL,
-    -- List<LocationInput>: one raw string can resolve to several locations.
+    -- List<ExtractedLocation>: one raw string can name several locations.
+    --
+    -- Deliberately the PRE-policy shape. Extractions describe what a posting
+    -- says; they know nothing about the search origin or the home state. Caching
+    -- the post-policy LocationInput instead would mean every cached row had a
+    -- particular address baked into it, so reconfiguring the origin -- or the
+    -- user moving -- would invalidate the entire cache and force every label
+    -- back through the model. Storing the extraction keeps policy in code, where
+    -- re-running it is free.
     outputs        JSONB       NOT NULL,
     -- Which model and prompt produced this. Without both, the prompt can never
     -- be safely changed: nothing would distinguish stale interpretations from
