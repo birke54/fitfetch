@@ -28,10 +28,10 @@ import java.util.List;
  * Keeping policy in code makes re-running it free.
  *
  * <p>{@link #getModel() model} and {@link #getPromptVersion() promptVersion}
- * are what make the prompt safe to change. A version bump is applied lazily:
- * lower-version rows are treated as misses on read, so labels still in
- * circulation are re-extracted while dead tail entries age out through eviction
- * without ever costing a call.
+ * are what make the prompt and the model safe to change. Either change is
+ * applied lazily: rows from another model or a lower prompt version are treated
+ * as misses on read, so labels still in circulation are re-extracted while dead
+ * tail entries age out through eviction without ever costing a call.
  *
  * @see org.example.fitfetch.location.CachingLocationExtractor
  */
@@ -183,11 +183,20 @@ public class LocationInterpretation {
     }
 
     /**
+     * A row is stale if a different model produced it or it predates the current
+     * prompt. A different model is a different extractor: its answers to the same
+     * prompt are not the configured model's answers, so honouring them would keep
+     * serving the old model's output indefinitely after a switch.
+     *
+     * <p>A row from a <em>newer</em> prompt is still honoured, so a prompt
+     * rollback does not thrash. Model changes have no such ordering, so switching
+     * back to an earlier model re-extracts too.
+     *
+     * @param currentModel         the model tag in force
      * @param currentPromptVersion the prompt version in force
-     * @return {@code true} if this row predates the current prompt and must be
-     *         treated as a miss
+     * @return {@code true} if this row must be treated as a miss
      */
-    public boolean isStale(int currentPromptVersion) {
-        return promptVersion < currentPromptVersion;
+    public boolean isStale(String currentModel, int currentPromptVersion) {
+        return !model.equals(currentModel) || promptVersion < currentPromptVersion;
     }
 }

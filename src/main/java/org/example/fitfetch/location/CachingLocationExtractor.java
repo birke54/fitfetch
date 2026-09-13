@@ -25,10 +25,10 @@ import java.util.Optional;
  * bad moment does not become a permanent verdict about a label.
  *
  * <p>Cached rows carry the model tag and prompt version that produced them. A
- * prompt change is applied lazily rather than by bulk invalidation: rows below
- * the current version are treated as misses, so labels still in circulation are
- * re-extracted while dead tail entries age out through eviction without ever
- * costing a call.
+ * model or prompt change is applied lazily rather than by bulk invalidation:
+ * rows from another model or below the current version are treated as misses,
+ * so labels still in circulation are re-extracted while dead tail entries age
+ * out through eviction without ever costing a call.
  *
  * <p>Instances are immutable and safe to share; the underlying repository
  * handles its own concurrency.
@@ -47,7 +47,8 @@ public class CachingLocationExtractor implements LocationExtractor {
     /**
      * @param delegate       the extractor to fall through to on a miss
      * @param repository     the interpretation cache
-     * @param model          the model tag to record against new rows
+     * @param model          the model tag in force; recorded against new rows,
+     *                       and rows from any other model are treated as misses
      * @param promptVersion  the prompt version in force; rows below it are
      *                       treated as misses
      * @param hitGranularity how stale a row's last-read timestamp must be before
@@ -85,13 +86,13 @@ public class CachingLocationExtractor implements LocationExtractor {
 
         if (cached.isPresent()) {
             LocationInterpretation entry = cached.get();
-            if (!entry.isStale(promptVersion)) {
+            if (!entry.isStale(model, promptVersion)) {
                 recordHit(entry, now);
                 return ExtractionResult.of(entry.getOutputs())
                         .withTier(SourceTier.INTERPRETATION);
             }
-            LOGGER.debug("Re-extracting '{}': cached at prompt v{}, current is v{}",
-                    rawLocationName, entry.getPromptVersion(), promptVersion);
+            LOGGER.debug("Re-extracting '{}': cached by {} at prompt v{}, current is {} at v{}",
+                    rawLocationName, entry.getModel(), entry.getPromptVersion(), model, promptVersion);
         }
 
         // Propagates LocationExtractionException, which is the point: a transport
