@@ -53,6 +53,19 @@ public final class OllamaPrompt {
      * <p>A change of model tag needs no bump, since rows from another model are
      * already treated as misses. A tag re-pulled with new weights does, because
      * the tag string is all the cache can see.
+     *
+     * <p>A bump only affects jobs resolved after it. The location pass reads
+     * {@code PENDING} jobs and nothing moves a job back, so jobs already
+     * {@code RESOLVED} or {@code FAILED} keep what the old prompt produced. Failed
+     * jobs are usually why the prompt changed, so requeue them after deploying:
+     *
+     * <pre>{@code
+     * UPDATE fetched_jobs SET location_status = 'PENDING' WHERE location_status = 'FAILED';
+     * }</pre>
+     *
+     * <p>Include {@code 'RESOLVED'} as well to redo every job. The pass drains the
+     * queue a page per run and replaces each job's existing location rows, so
+     * either is safe to run at any time.
      */
     public static final int VERSION = 1;
 
