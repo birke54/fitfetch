@@ -33,6 +33,11 @@ management:
 
 app:
   slug-ids: limited_slugs.json
+  http:
+    # Applied to every outbound call. The JDK client has no timeouts by
+    # default, so without these one hung connection stalls a run indefinitely.
+    connect-timeout: PT10S
+    read-timeout: PT30S
   fetch:
     enable: true
     schedule: ${FETCH_CRON_SCHEDULE}
@@ -62,6 +67,9 @@ app:
     llm:
       base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
       model: ${OLLAMA_MODEL:llama3.1:8b}
+      # Longer than app.http.read-timeout: a local model can take a while to
+      # answer, above all on the first call after it loads.
+      read-timeout: PT2M
     geocoding:
       # Cache-only while false: the pass runs and resolves what is already
       # known, spending nothing and writing no negative entries.
