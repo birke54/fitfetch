@@ -32,7 +32,7 @@ management:
       application: ${spring.application.name}
 
 app:
-  slug-ids: slugs.json
+  slug-ids: limited_slugs.json
   fetch:
     enable: true
     schedule: ${FETCH_CRON_SCHEDULE}
