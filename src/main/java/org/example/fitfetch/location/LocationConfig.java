@@ -1,5 +1,6 @@
 package org.example.fitfetch.location;
 
+import org.example.fitfetch.fetching.RestClientConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -66,25 +67,33 @@ public class LocationConfig {
     /**
      * Builds the extraction chain: the interpretation cache in front of Ollama.
      *
-     * @param restClient      shared HTTP client
+     * <p>Ollama gets its own HTTP client rather than the shared one. A local
+     * model can take far longer than an API call to answer, especially the
+     * first call after it loads, so it needs a longer read timeout. It still
+     * needs one: a hung model must fail the pass, not block it.
+     *
      * @param repository      the interpretation cache
      * @param clock           time source
      * @param baseUrl         Ollama's base URL
      * @param model           the model tag
+     * @param connectTimeout  {@code app.http.connect-timeout}
+     * @param readTimeout     {@code app.location.llm.read-timeout}
      * @param hitGranularity  how stale a row's last-read timestamp must be
      *                        before it is worth rewriting
      * @return the cached extractor
      */
     @Bean
     public LocationExtractor locationExtractor(
-            RestClient restClient,
             LocationInterpretationRepository repository,
             Clock clock,
             @Value("${app.location.llm.base-url}") String baseUrl,
             @Value("${app.location.llm.model}") String model,
+            @Value("${app.http.connect-timeout}") Duration connectTimeout,
+            @Value("${app.location.llm.read-timeout}") Duration readTimeout,
             @Value("${app.location.cache.last-hit-granularity}") Duration hitGranularity) {
+        RestClient ollamaClient = RestClientConfig.withTimeouts(connectTimeout, readTimeout);
         return new CachingLocationExtractor(
-                new OllamaLocationExtractor(restClient, baseUrl, model),
+                new OllamaLocationExtractor(ollamaClient, baseUrl, model),
                 repository, model, OllamaPrompt.VERSION, hitGranularity, clock);
     }
 

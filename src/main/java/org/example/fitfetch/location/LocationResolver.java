@@ -105,6 +105,15 @@ public class LocationResolver {
     }
 
     private Resolved resolveInputs(String raw) {
+        if (LocationKey.normalize(raw).isEmpty()) {
+            // Rule 4: a posting with no location resolves to the search origin.
+            // The curated table cannot hold an empty key, and the extractor would
+            // report it as UNPARSEABLE, so the rule is applied here. Like a
+            // curated entry it is decided by code rather than a model, hence the
+            // CURATED tier.
+            LocationInput origin = policy.apply(ExtractedLocation.of(raw, LocationKind.SENTINEL));
+            return new Resolved(List.of(origin), SourceTier.CURATED);
+        }
         return curated.lookup(raw)
                 .map(inputs -> new Resolved(inputs, SourceTier.CURATED))
                 .orElseGet(() -> {

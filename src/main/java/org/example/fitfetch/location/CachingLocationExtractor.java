@@ -78,6 +78,8 @@ public class CachingLocationExtractor implements LocationExtractor {
         String key = LocationKey.normalize(rawLocationName);
         if (key.isEmpty()) {
             // Nothing to key on, and nothing worth asking a model about.
+            // LocationResolver answers blank labels itself, under rule 4, so
+            // this only guards other callers.
             return ExtractionResult.unparseable(rawLocationName);
         }
 

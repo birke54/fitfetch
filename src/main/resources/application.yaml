@@ -33,6 +33,13 @@ management:
 
 app:
   slug-ids: limited_slugs.json
+  http:
+    # Applied to every outbound call. The JDK client has no timeouts by
+    # default, so without these one hung connection stalls a run indefinitely.
+    # The read timeout covers the whole exchange, body included, so it also
+    # caps how long a large Greenhouse board may take to download.
+    connect-timeout: PT2S
+    read-timeout: PT10S
   fetch:
     enable: true
     schedule: ${FETCH_CRON_SCHEDULE}
@@ -62,6 +69,9 @@ app:
     llm:
       base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
       model: ${OLLAMA_MODEL:llama3.1:8b}
+      # Longer than app.http.read-timeout: a local model can take a while to
+      # answer, above all on the first call after it loads.
+      read-timeout: PT2M
     geocoding:
       # Cache-only while false: the pass runs and resolves what is already
       # known, spending nothing and writing no negative entries.

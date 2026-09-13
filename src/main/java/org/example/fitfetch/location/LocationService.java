@@ -22,6 +22,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -67,6 +68,20 @@ public class LocationService {
      * revisiting deferred jobs.
      */
     private final AtomicLong cursor = new AtomicLong();
+
+    /**
+     * How many times a label may abort the page before it is deferred instead.
+     * Three runs is 45 minutes at the default schedule: long enough to ride out
+     * a restart, short enough that one bad label cannot hold the queue for long.
+     */
+    static final int STRIKE_LIMIT = 3;
+
+    /**
+     * Consecutive aborting failures per label, cleared when the label resolves.
+     * In memory only, like the cursor; a restart gives every label a fresh
+     * start. Holds only labels that are currently failing, so it stays small.
+     */
+    private final Map<String, Integer> strikes = new ConcurrentHashMap<>();
 
     /**
      * @param fetchedJobsRepository source of pending jobs, and where status is
@@ -139,10 +154,19 @@ public class LocationService {
     /**
      * Resolves a single page of pending jobs.
      *
-     * <p>A label whose query is not cached while geocoding is switched off is
-     * deferred: its jobs are not written and stay {@code PENDING}, so they
-     * resolve properly once lookups are enabled. Every other label on the page is
-     * written as normal.
+     * <p>Two kinds of label are deferred: their jobs are not written and stay
+     * {@code PENDING}, while every other label on the page is written as
+     * normal.
+     *
+     * <ul>
+     *   <li>A label whose query is not cached while geocoding is switched off,
+     *       so it resolves properly once lookups are enabled.</li>
+     *   <li>A label that has failed {@link #STRIKE_LIMIT} times in a row with
+     *       an error that would otherwise abort the page. An outage fails every
+     *       label, but a label that only fails on its own (an input the model
+     *       always errors on, say) would abort the same page on every run,
+     *       and the cursor would never move past it.</li>
+     * </ul>
      *
      * @return how many jobs were written
      */
@@ -160,17 +184,41 @@ public class LocationService {
         }
         LOGGER.debug("Resolving {} distinct labels for {} jobs", distinct.size(), page.size());
 
-        // 2. Resolve each distinct label once. Any transport failure aborts the
+        // 2. Resolve each distinct label once. A transport failure aborts the
         //    page: every job keeps its PENDING status and nothing is written.
+        //    The exception is a label that keeps failing (see STRIKE_LIMIT).
         Map<String, List<ResolvedLocation>> byLabel = new HashMap<>(distinct.size());
         Set<String> deferred = new HashSet<>();
+        boolean probed = false;
         for (String label : distinct) {
+            if (strikes.getOrDefault(label, 0) >= STRIKE_LIMIT) {
+                // Retry at most one struck-out label per run. During an outage
+                // they all fail, so trying each would stretch a run by a timeout
+                // per label; the rest wait for a later run.
+                if (probed) {
+                    deferred.add(label);
+                    continue;
+                }
+                probed = true;
+            }
             try {
                 byLabel.put(label, resolver.resolve(label));
+                strikes.remove(label);
             } catch (GeocodingDisabledException e) {
                 deferred.add(label);
             } catch (LocationExtractionException | GeocodingException e) {
-                throw e;
+                if (e instanceof GeocodingException geocoding && geocoding.isFatal()) {
+                    // A denied key fails every label alike; it says nothing
+                    // about this one.
+                    throw e;
+                }
+                int count = strikes.merge(label, 1, Integer::sum);
+                if (count < STRIKE_LIMIT) {
+                    throw e;
+                }
+                LOGGER.warn("'{}' has failed {} times in a row ({}); leaving its jobs pending "
+                        + "so the rest of the page can proceed", label, count, e.getMessage());
+                deferred.add(label);
             } catch (RuntimeException e) {
                 // A bug rather than an outage, so it will fail the same way every
                 // time. Resolving the label to nothing marks its jobs FAILED, where
@@ -184,7 +232,7 @@ public class LocationService {
                 .filter(job -> !deferred.contains(labelOf(job)))
                 .toList();
         if (toWrite.size() < page.size()) {
-            LOGGER.info("Deferred {} jobs across {} labels until geocoding is enabled",
+            LOGGER.info("Deferred {} jobs across {} labels; they stay pending",
                     page.size() - toWrite.size(), deferred.size());
         }
 

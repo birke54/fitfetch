@@ -7,6 +7,7 @@ import org.example.fitfetch.fetching.FetchedJobsRepository;
 import org.example.fitfetch.fetching.GreenhouseFetch;
 import org.example.fitfetch.fetching.records.AtsJobEntry;
 import org.example.fitfetch.fetching.records.GreenhouseJobEntry;
+import org.example.fitfetch.metrics.MetricName;
 import org.example.fitfetch.metrics.MetricService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -27,6 +28,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.SocketTimeoutException;
 import java.security.KeyException;
 import java.util.List;
 import java.util.stream.StreamSupport;
@@ -146,6 +148,58 @@ public class GreenhouseTest {
         assertEquals(3, results.size());
 
         mockServer.verify();
+    }
+
+    @Test
+    @DisplayName("An HTTP error is counted once, as an error and not also as an empty response")
+    void httpErrorCountedOnce() throws Exception {
+        mockServer.expect(requestTo("https://boards-api.greenhouse.io/v1/boards/1uphealth/jobs?content=true"))
+                .andRespond(withServerError());
+        mockServer.expect(requestTo("https://boards-api.greenhouse.io/v1/boards/warp/jobs?content=true"))
+                .andRespond(withSuccess(resource("warpValidResponse.json"), MediaType.APPLICATION_JSON));
+
+        defaultGreenhouse.fetchJobs();
+
+        Mockito.verify(metricService).recordCounter(Mockito.eq(MetricName.SLUG_FETCH_ERROR_COUNT), Mockito.anyMap());
+        Mockito.verify(metricService, Mockito.never())
+                .recordCounter(Mockito.eq(MetricName.SLUG_FETCH_NULL_RESPONSE_COUNT), Mockito.anyMap());
+    }
+
+    @Test
+    @DisplayName("A timeout on one slug skips that slug and keeps the others")
+    void timeoutSkipsOnlyThatSlug() throws Exception {
+        // Previously uncaught: it failed the whole board and discarded every slug.
+        mockServer.expect(requestTo("https://boards-api.greenhouse.io/v1/boards/1uphealth/jobs?content=true"))
+                .andRespond(withException(new SocketTimeoutException("Read timed out")));
+        mockServer.expect(requestTo("https://boards-api.greenhouse.io/v1/boards/warp/jobs?content=true"))
+                .andRespond(withSuccess(resource("warpValidResponse.json"), MediaType.APPLICATION_JSON));
+
+        List<AtsJobEntry> results = defaultGreenhouse.fetchJobs();
+
+        assertEquals(3, results.size(), "warp's jobs survive the other slug's timeout");
+        Mockito.verify(metricService).recordCounter(Mockito.eq(MetricName.SLUG_FETCH_ERROR_COUNT), Mockito.anyMap());
+        mockServer.verify();
+    }
+
+    @Test
+    @DisplayName("An unreadable body on one slug skips that slug and keeps the others")
+    void unreadableBodySkipsOnlyThatSlug() throws Exception {
+        mockServer.expect(requestTo("https://boards-api.greenhouse.io/v1/boards/1uphealth/jobs?content=true"))
+                .andRespond(withSuccess("<html>maintenance</html>", MediaType.APPLICATION_JSON));
+        mockServer.expect(requestTo("https://boards-api.greenhouse.io/v1/boards/warp/jobs?content=true"))
+                .andRespond(withSuccess(resource("warpValidResponse.json"), MediaType.APPLICATION_JSON));
+
+        List<AtsJobEntry> results = defaultGreenhouse.fetchJobs();
+
+        assertEquals(3, results.size());
+        mockServer.verify();
+    }
+
+    private String resource(String name) throws IOException {
+        try (InputStream in = getClass().getClassLoader().getResourceAsStream(name)) {
+            assertNotNull(in, "Could not find " + name + " in test resources");
+            return new String(in.readAllBytes());
+        }
     }
 
     @Test

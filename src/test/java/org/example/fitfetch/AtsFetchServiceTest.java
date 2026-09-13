@@ -12,19 +12,21 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataAccessResourceFailureException;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
@@ -40,7 +42,7 @@ public class AtsFetchServiceTest {
 
     @Spy private List<Ats> atsBoards = new ArrayList<>();
 
-    @InjectMocks
+    // Built in setUp: @InjectMocks cannot supply the constructor's boolean flag.
     private AtsFetchService atsFetchService;
 
     // Implement all abstract methods required by your interface
@@ -60,6 +62,48 @@ public class AtsFetchServiceTest {
     @BeforeEach
     void setUp() {
         atsBoards.add(mockGreenhouseAts);
+        atsFetchService = new AtsFetchService(fetchedJobsRepository, atsBoards, true);
+    }
+
+    /** Runs each task inline, surfacing a failure the way a real Future does. */
+    private static ExecutorService directExecutor() {
+        ExecutorService executor = mock(ExecutorService.class);
+        when(executor.submit(any(Callable.class))).thenAnswer(invocation -> {
+            Callable<?> callable = invocation.getArgument(0);
+            CompletableFuture<Object> future = new CompletableFuture<>();
+            try {
+                future.complete(callable.call());
+            } catch (Exception e) {
+                future.completeExceptionally(e);
+            }
+            return future;
+        });
+        return executor;
+    }
+
+    private static AtsJobEntry job(long id, String slug) {
+        return new GreenhouseJobEntry(
+                "https://example.com", "Bachelors", id, 100L + id,
+                OffsetDateTime.now(), "REQ-" + id, "Software Engineer", "Company", OffsetDateTime.now(), "en", null,
+                "This is the JD of the posting", new Location("Remote - US"), List.of(), List.of(), List.of(),
+                slug);
+    }
+
+    @Test
+    @DisplayName("A database error storing one board's jobs does not stop the next board")
+    void testStoreFailureOnOneBoard_ContinuesProcessing() {
+        GreenhouseAts secondBoard = mock(GreenhouseAts.class);
+        atsBoards.add(secondBoard);
+        when(mockGreenhouseAts.fetchJobs()).thenReturn(List.of(job(1L, "company-a")));
+        when(secondBoard.fetchJobs()).thenReturn(List.of(job(2L, "company-b")));
+        when(fetchedJobsRepository.findJobIdsByAtsNameAndJobIdIn(any(), anySet())).thenReturn(Set.of());
+        doThrow(new DataAccessResourceFailureException("connection refused"))
+                .doReturn(List.of())
+                .when(fetchedJobsRepository).saveAll(anyIterable());
+
+        assertDoesNotThrow(() -> atsFetchService.fetchAtsBoards(directExecutor()));
+
+        verify(fetchedJobsRepository, times(2)).saveAll(anyIterable());
     }
 
     @Test
