@@ -5,6 +5,7 @@ import org.example.fitfetch.fetching.Fetch;
 import org.example.fitfetch.fetching.GreenhouseFetch;
 import org.example.fitfetch.fetching.records.AtsResponse;
 import org.example.fitfetch.fetching.records.GreenhouseJobEntry;
+import org.example.fitfetch.fetching.records.GreenhouseSubRecords.Location;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,6 +16,7 @@ import org.springframework.web.client.RestClient;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
@@ -92,6 +94,63 @@ public class GreenhouseFetchTest {
 
         // Verifies all expected mock server requests actually occurred
         mockServer.verify();
+    }
+
+    @Test
+    @DisplayName("Payload fields the record used to drop are now deserialized")
+    void testPreviouslyDroppedFieldsAreDeserialized() throws IOException {
+        InputStream inputStream = getClass()
+                .getClassLoader()
+                .getResourceAsStream("greenhouse_single_valid_response.json");
+        assertNotNull(inputStream, "Could not find file in test resources");
+        String jsonPayload = new String(inputStream.readAllBytes());
+
+        mockServer.expect(requestTo("https://boards-api.greenhouse.io/v1/boards/launchdarkly/jobs?content=true"))
+                .andRespond(withSuccess(jsonPayload, MediaType.APPLICATION_JSON));
+
+        GreenhouseJobEntry job = fetcher.fetchJobs("launchdarkly").jobs().getFirst();
+
+        // `location` is what the location pipeline is built on. It was silently
+        // discarded on every fetch before this component existed.
+        assertNotNull(job.location(), "location object should be deserialized");
+        assertEquals("Remote - US", job.location().name());
+        assertEquals("Remote - US", job.locationName());
+
+        assertEquals(Long.valueOf("5778872003"), job.internalJobId());
+        assertEquals(2, job.metadata().size());
+        assertEquals("Other Employment Types", job.metadata().getFirst().name());
+        assertEquals(1, job.dataCompliance().size());
+        assertEquals("gdpr", job.dataCompliance().getFirst().type());
+
+        mockServer.verify();
+    }
+
+    @Test
+    @DisplayName("locationName is null-safe for payloads carrying no location")
+    void testLocationNameIsNullSafeWhenLocationAbsent() {
+        // Mirrors a job_data payload persisted before the location component existed.
+        GreenhouseJobEntry noLocation = new GreenhouseJobEntry(
+                "https://example.com", null, 1L, null, null, null, "Backend Engineer", null, null,
+                null, null, "JD body", null, List.of(), List.of(), List.of(), "some-slug");
+
+        assertNull(noLocation.location());
+        assertNull(noLocation.locationName());
+    }
+
+    @Test
+    @DisplayName("withSlug preserves every other component")
+    void testWithSlugPreservesAllOtherComponents() {
+        GreenhouseJobEntry original = new GreenhouseJobEntry(
+                "https://example.com", "Bachelors", 1L, 101L, null, "REQ-1", "Backend Engineer",
+                "Company A", null, "en", null, "JD body", new Location("Remote - US"),
+                List.of(), List.of(), List.of(), null);
+
+        GreenhouseJobEntry tagged = original.withSlug("company-a");
+
+        assertEquals("company-a", tagged.slug());
+        // Round-trip: clearing the slug again must reproduce the original exactly,
+        // which fails if withSlug drops a component it should be threading through.
+        assertEquals(original, tagged.withSlug(null));
     }
 
     @Test

@@ -16,11 +16,15 @@ import java.util.List;
  *
  * <p>Field names follow the JSON payload; {@code @JsonProperty} bridges the
  * provider's snake_case keys to these components. Any key not modelled here is
- * ignored on deserialization.
+ * ignored on deserialization &mdash; currently {@code departments} and the
+ * {@code ai_disclaimer} / {@code include_ai_disclaimer} /
+ * {@code ai_opt_out_request_url} trio.
  *
  * @param absoluteUrl         public URL of the job posting ({@code absolute_url})
  * @param education           education requirement classification, if provided
  * @param id                  the public job ID; primary identifier for this entry
+ * @param internalJobId       the employer-facing job ID, distinct from {@link #id()}
+ *                            ({@code internal_job_id})
  * @param updatedAt           last modification timestamp ({@code updated_at})
  * @param requisitionId       employer requisition ID ({@code requisition_id})
  * @param title               job title
@@ -29,8 +33,20 @@ import java.util.List;
  * @param language            posting language code
  * @param applicationDeadline application close date, if set ({@code application_deadline})
  * @param content             the job description body, HTML-escaped by Greenhouse
+ * @param location            the free-text location label for this job; the
+ *                            recruiter's own answer to where the job is, and the
+ *                            only field in the payload carrying workplace
+ *                            semantics. May be {@code null}, and is {@code null}
+ *                            on any entry deserialized from a {@code job_data}
+ *                            payload stored before this component existed
  * @param offices             the offices this job is attached to ({@code offices});
- *                            may be {@code null} or empty
+ *                            may be {@code null} or empty. An office is a
+ *                            board-level entity describing its own address, not a
+ *                            statement of where the work may be performed
+ * @param metadata            board-defined custom fields ({@code metadata}); may
+ *                            be {@code null}
+ * @param dataCompliance      applicant-data compliance regimes that apply to this
+ *                            posting ({@code data_compliance}); may be {@code null}
  * @param slug                the ATS board slug this entry was fetched from;
  *                            {@code null} until tagged via {@link #withSlug(String)},
  *                            since it is not part of the Greenhouse JSON payload
@@ -39,6 +55,7 @@ public record GreenhouseJobEntry (
         @JsonProperty("absolute_url") String absoluteUrl,
         String education,
         Long id,
+        @JsonProperty("internal_job_id") Long internalJobId,
         @JsonProperty("updated_at") OffsetDateTime updatedAt,
         @JsonProperty("requisition_id") String requisitionId,
         String title,
@@ -47,7 +64,10 @@ public record GreenhouseJobEntry (
         String language,
         @JsonProperty("application_deadline") OffsetDateTime applicationDeadline,
         String content,
+        Location location,
         List<Office> offices,
+        List<Metadata> metadata,
+        @JsonProperty("data_compliance") List<DataCompliance> dataCompliance,
         String slug
 ) implements AtsJobEntry {
 
@@ -66,9 +86,24 @@ public record GreenhouseJobEntry (
         return id.toString();
     }
 
+    /**
+     * Returns the raw location label for this job, guarding against a
+     * {@code null} {@link #location()}.
+     *
+     * <p>A {@code null} result means the payload carried no {@code location}
+     * object at all, which is distinct from a present-but-blank label; callers
+     * that need to tell those apart should inspect {@link #location()} directly.
+     *
+     * @return the free-text location label, or {@code null} if absent
+     */
+    public String locationName() {
+        return location == null ? null : location.name();
+    }
+
     @Override
     public GreenhouseJobEntry withSlug(String slug) {
-        return new GreenhouseJobEntry(absoluteUrl, education, id, updatedAt, requisitionId, title, companyName,
-                firstPublished, language, applicationDeadline, content, offices, slug);
+        return new GreenhouseJobEntry(absoluteUrl, education, id, internalJobId, updatedAt, requisitionId, title,
+                companyName, firstPublished, language, applicationDeadline, content, location, offices, metadata,
+                dataCompliance, slug);
     }
 }
