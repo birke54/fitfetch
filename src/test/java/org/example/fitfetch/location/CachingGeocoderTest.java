@@ -198,18 +198,33 @@ class CachingGeocoderTest {
     // ----------------------------------------------------------- cache-only
 
     @Test
-    @DisplayName("With lookups disabled a miss spends nothing and writes nothing")
+    @DisplayName("With lookups disabled a miss spends nothing, writes nothing, and is not reported as ZERO_RESULTS")
     void testCacheOnlyModeOnMiss() {
         CachingGeocoder cacheOnly = newGeocoder(false, Clock.fixed(NOW, ZoneOffset.UTC));
         when(repository.findById(anyString())).thenReturn(Optional.empty());
 
-        GeocodeOutcome outcome = cacheOnly.geocode("Seattle, WA");
+        // ZERO_RESULTS would mark the job unresolvable when it only needs lookups
+        // switched on, so a miss is signalled separately and is retryable.
+        GeocodingDisabledException e = assertThrows(GeocodingDisabledException.class,
+                () -> cacheOnly.geocode("Seattle, WA"));
 
-        assertEquals(GeocodeStatus.ZERO_RESULTS, outcome.status());
+        assertTrue(e.isRetryable());
         verify(delegate, never()).geocode(anyString());
         // Critically, nothing is written: enabling lookups later must resolve
         // this properly rather than find a poisoned negative entry.
         verify(repository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("With lookups disabled stale coordinates are served rather than treated as a miss")
+    void testCacheOnlyModeServesStaleCoordinates() {
+        // They cannot be refreshed, and a place that has not moved beats no answer.
+        CachingGeocoder cacheOnly = newGeocoder(false, Clock.fixed(NOW, ZoneOffset.UTC));
+        when(repository.findById(anyString()))
+                .thenReturn(Optional.of(entry(SEATTLE, NOW.minus(Duration.ofDays(45)))));
+
+        assertEquals(GeocodeStatus.OK, cacheOnly.geocode("Seattle, WA").status());
+        verify(delegate, never()).geocode(anyString());
     }
 
     @Test

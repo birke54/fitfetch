@@ -77,7 +77,10 @@ public class LocationResolver {
      * @return one entry per location named, never empty
      * @throws LocationExtractionException if the model was unreachable
      * @throws GeocodingException          if geocoding failed for reasons
-     *                                     unrelated to the query
+     *                                     unrelated to the query, including
+     *                                     {@link GeocodingDisabledException}
+     *                                     when a query was not cached and
+     *                                     lookups are switched off
      */
     public List<ResolvedLocation> resolve(String rawLocationName) {
         String raw = rawLocationName == null ? "" : rawLocationName;
@@ -121,8 +124,8 @@ public class LocationResolver {
         GeocodeOutcome outcome = geocoder.geocode(input.geocodeQuery());
         if (!outcome.status().hasCoordinates()) {
             // The geocoder knows this query names nowhere. The row is still kept,
-            // without coordinates, so the job stays visible in the curation
-            // worklist rather than disappearing.
+            // as UNDEFINED and without coordinates, so the job stays visible in
+            // the curation worklist rather than disappearing.
             LOGGER.debug("Query '{}' resolved to no coordinates ({})",
                     input.geocodeQuery(), outcome.status());
         }

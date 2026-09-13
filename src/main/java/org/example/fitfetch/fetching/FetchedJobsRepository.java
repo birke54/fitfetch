@@ -63,19 +63,28 @@ public interface FetchedJobsRepository extends JpaRepository<FetchedJob,Long> {
     List<FetchedJob> findByIsNormalized(boolean isNormalized, Pageable pageable);
 
     /**
-     * Finds fetched jobs by their location resolution state, one page at a time.
+     * Finds fetched jobs in a location resolution state with an id above a
+     * cursor, one page at a time.
      *
      * <p>The location pass works in pages so it can dedupe labels within each
      * one: a hundred jobs typically carry only a dozen distinct location strings,
      * so resolving per page rather than per job is the difference between twelve
      * model calls and a hundred.
      *
+     * <p>It pages by id rather than always reading the first page because some
+     * jobs stay {@link LocationStatus#PENDING} after a pass sees them. Always
+     * reading from the front would hand the pass those same jobs forever once a
+     * page filled up with them.
+     *
      * @param locationStatus the state to retrieve, usually
      *                       {@link LocationStatus#PENDING}
-     * @param pageable       paging and sort specification
+     * @param afterId        only jobs with an id strictly greater than this;
+     *                       {@code 0} for the start of the table
+     * @param pageable       page size and sort, which should be by id
      * @return the matching page of fetched jobs
      */
-    List<FetchedJob> findByLocationStatus(LocationStatus locationStatus, Pageable pageable);
+    List<FetchedJob> findByLocationStatusAndIdGreaterThan(LocationStatus locationStatus, Long afterId,
+                                                          Pageable pageable);
 
     /**
      * Counts jobs in a given location resolution state.
