@@ -48,8 +48,9 @@ app:
     enable: false
     schedule: "0 0 * * * *"
   location:
-    # On, but in warm-up only (below): with geocoding off, this fills the
-    # interpretation cache and nothing else. The pass is a no-op while disabled.
+    # On, but in warm-up only (below): with geocoding on, this fills the
+    # interpretation and geocode caches and nothing else. The pass is a no-op
+    # while disabled.
     enable: true
     # Warm-up: resolve labels into the interpretation and geocode caches
     # without writing job_locations or changing any job's status, so model
