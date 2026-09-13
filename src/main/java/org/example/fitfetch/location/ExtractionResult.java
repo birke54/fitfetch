@@ -22,11 +22,16 @@ import java.util.Objects;
  *                  instead of vanishing
  * @param cacheable whether this outcome may be written to the interpretation
  *                  cache
+ * @param tier      which tier produced it. Persisted as provenance on every
+ *                  resulting location, and tracked as a distribution: a rising
+ *                  {@link SourceTier#LLM} share means new boards are
+ *                  introducing label shapes worth curating
  */
-public record ExtractionResult(List<ExtractedLocation> locations, boolean cacheable) {
+public record ExtractionResult(List<ExtractedLocation> locations, boolean cacheable, SourceTier tier) {
 
     public ExtractionResult {
         Objects.requireNonNull(locations, "locations");
+        Objects.requireNonNull(tier, "tier");
         if (locations.isEmpty()) {
             throw new IllegalArgumentException(
                     "locations must not be empty; use unparseable() or untrusted() instead");
@@ -39,7 +44,16 @@ public record ExtractionResult(List<ExtractedLocation> locations, boolean cachea
      * @return an authoritative result, safe to cache
      */
     public static ExtractionResult of(List<ExtractedLocation> locations) {
-        return new ExtractionResult(locations, true);
+        return new ExtractionResult(locations, true, SourceTier.LLM);
+    }
+
+    /**
+     * @param tier the tier that answered
+     * @return a copy attributed to a different tier, used when a cache serves a
+     *         result the model originally produced
+     */
+    public ExtractionResult withTier(SourceTier tier) {
+        return new ExtractionResult(locations, cacheable, tier);
     }
 
     /**
@@ -55,7 +69,8 @@ public record ExtractionResult(List<ExtractedLocation> locations, boolean cachea
      *         {@link LocationKind#UNPARSEABLE} entry
      */
     public static ExtractionResult unparseable(String raw) {
-        return new ExtractionResult(List.of(ExtractedLocation.of(raw, LocationKind.UNPARSEABLE)), true);
+        return new ExtractionResult(
+                List.of(ExtractedLocation.of(raw, LocationKind.UNPARSEABLE)), true, SourceTier.LLM);
     }
 
     /**
@@ -67,6 +82,7 @@ public record ExtractionResult(List<ExtractedLocation> locations, boolean cachea
      *         {@link LocationKind#UNPARSEABLE} entry
      */
     public static ExtractionResult untrusted(String raw) {
-        return new ExtractionResult(List.of(ExtractedLocation.of(raw, LocationKind.UNPARSEABLE)), false);
+        return new ExtractionResult(
+                List.of(ExtractedLocation.of(raw, LocationKind.UNPARSEABLE)), false, SourceTier.LLM);
     }
 }
