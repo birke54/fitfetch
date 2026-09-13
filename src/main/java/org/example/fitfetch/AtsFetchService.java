@@ -1,6 +1,5 @@
 package org.example.fitfetch;
 
-import jakarta.transaction.Transactional;
 import org.example.fitfetch.ats.Ats;
 import org.example.fitfetch.ats.AtsName;
 import org.example.fitfetch.domain.FetchedJob;
@@ -76,9 +75,9 @@ public class AtsFetchService {
      * the given executor, then processes each result as it becomes available.
      *
      * <p>Each board is handled independently &mdash; an
-     * {@link InterruptedException} (interrupt status is restored) or
-     * {@link ExecutionException} from one board is logged and the remaining
-     * boards continue.
+     * {@link InterruptedException} (interrupt status is restored), an
+     * {@link ExecutionException} from fetching, or a failure while storing one
+     * board's jobs is logged and the remaining boards continue.
      *
      * @param executor the executor tasks are submitted to; not shut down by
      *                 this method
@@ -102,6 +101,10 @@ public class AtsFetchService {
                 Thread.currentThread().interrupt(); // Restore interrupted status
             } catch (ExecutionException e) {
                 LOGGER.error("Fetching for the {} ATS failed: {}", task.site().getClass().getSimpleName(), e.getCause().getMessage());
+            } catch (RuntimeException e) {
+                // Storing failed, most likely the database. Left uncaught, this would
+                // skip every board after this one; their jobs are already fetched.
+                LOGGER.error("Storing jobs from the {} ATS failed", task.site().getClass().getSimpleName(), e);
             }
         }
     }
@@ -117,11 +120,16 @@ public class AtsFetchService {
      * {@code isNormalized == false}. A no-op when every incoming job already
      * exists.
      *
+     * <p>The lookup and the insert are not one transaction, and need not be.
+     * {@code saveAll} is atomic on its own, and nothing else inserts jobs between
+     * them: a cron-scheduled method never overlaps its own previous run. (A
+     * {@code @Transactional} here would be ignored anyway, since Spring's proxy
+     * does not intercept a private method called from inside the class.)
+     *
      * @param jobs          the jobs returned by the board this cycle
      * @param atsBoardClass the concrete {@link Ats} implementation class the
      *                      jobs came from (possibly a Spring proxy)
      */
-    @Transactional
     private void storeFetchedJobs(List<AtsJobEntry> jobs, Class<? extends Ats> atsBoardClass) {
         AtsName atsName = AtsName.fromBoardClass(atsBoardClass);
 
