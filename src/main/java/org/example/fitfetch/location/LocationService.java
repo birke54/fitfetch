@@ -142,6 +142,7 @@ public class LocationService {
     @Scheduled(cron = "${app.location.schedule}")
     public void resolvePendingLocations() {
         if (!enabled) {
+            LOGGER.info("LocationService is disabled");
             return;
         }
         try {

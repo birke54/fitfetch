@@ -59,7 +59,7 @@ app:
     schedule: "0 */15 * * * *"
     # One page per run: a backlog clears steadily instead of a single invocation
     # holding the model and the geocoding budget for as long as it takes.
-    page-size: 200
+    page-size: 1
     table: location_table.json
     # Used verbatim by every resolution that redirects here. A full street
     # address geocodes to distance zero, so no radius setting can exclude a row
@@ -72,8 +72,8 @@ app:
     # cap stops a pathological label from filling job_locations.
     max-locations-per-job: 25
     llm:
-      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
-      model: ${OLLAMA_MODEL:llama3.1:8b}
+      base-url: ${OLLAMA_BASE_URL}
+      model: ${OLLAMA_MODEL}
       # Longer than app.http.read-timeout: a local model can take a while to
       # answer, above all on the first call after it loads.
       read-timeout: PT2M
