@@ -33,7 +33,26 @@ import tools.jackson.databind.ObjectMapper;
 public final class OllamaPrompt {
 
     /**
-     * Version of the prompt and schema pair. Increment on any change to either.
+     * Version of everything that shapes a cached extraction other than the model.
+     * Increment on any change to:
+     *
+     * <ul>
+     *   <li>the prompt text or the JSON Schema in this class;</li>
+     *   <li>the sampling options in
+     *       {@link org.example.fitfetch.location.records.OllamaOptions#deterministic()};</li>
+     *   <li>how {@link OllamaLocationExtractor} turns the model's output into
+     *       {@link ExtractedLocation}s, since the cache stores the parsed result
+     *       and a parsing fix would otherwise never reach existing rows.</li>
+     * </ul>
+     *
+     * <p>Nothing enforces this; it relies on whoever makes the change. When in
+     * doubt, bump: a missed bump silently serves stale answers for every label
+     * still in circulation, while a needless one costs a single re-extraction of
+     * those labels and nothing for the dead tail.
+     *
+     * <p>A change of model tag needs no bump, since rows from another model are
+     * already treated as misses. A tag re-pulled with new weights does, because
+     * the tag string is all the cache can see.
      */
     public static final int VERSION = 1;
 
