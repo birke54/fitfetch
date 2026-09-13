@@ -1,5 +1,8 @@
 package org.example.fitfetch.location;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import org.example.fitfetch.ats.AtsName;
 import org.example.fitfetch.domain.FetchedJob;
 import org.example.fitfetch.domain.JobLocation;
@@ -12,6 +15,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Pageable;
@@ -50,6 +54,10 @@ class LocationServiceTest {
     }
 
     private LocationService newService(boolean enabled) {
+        return newService(enabled, false);
+    }
+
+    private LocationService newService(boolean enabled, boolean warmCachesOnly) {
         TransactionTemplate template = mock(TransactionTemplate.class);
         // Run the callback inline so the write path is exercised without a
         // transaction manager.
@@ -59,7 +67,7 @@ class LocationServiceTest {
         }).when(template).executeWithoutResult(any());
 
         return new LocationService(fetchedJobs, jobLocations, resolver, template,
-                Clock.fixed(NOW, ZoneOffset.UTC), enabled, 200);
+                Clock.fixed(NOW, ZoneOffset.UTC), enabled, 200, warmCachesOnly);
     }
 
     private FetchedJob job(String locationName) {
@@ -447,6 +455,96 @@ class LocationServiceTest {
 
         assertDoesNotThrow(() -> service.resolvePendingLocations());
         verify(jobLocations, never()).saveAll(anyList());
+    }
+
+    // ------------------------------------------------------------- warm-up
+
+    @Test
+    @DisplayName("Warm-up resolves every label, which fills the caches, but writes nothing")
+    void testWarmUpResolvesWithoutWriting() {
+        LocationService warmUp = newService(true, true);
+        FetchedJob remote = job("Remote US");
+        FetchedJob boston = job("Boston");
+        pageContains(remote, boston);
+        when(resolver.resolve("Remote US"))
+                .thenReturn(List.of(resolved("Remote US", Resolution.REMOTE_IN_US, POINT)));
+        when(resolver.resolve("Boston"))
+                .thenReturn(List.of(resolved("Boston", Resolution.PLACE, POINT)));
+
+        assertEquals(0, warmUp.resolveOnePage(), "no job is written");
+
+        verify(resolver).resolve("Remote US");
+        verify(resolver).resolve("Boston");
+        verifyNoInteractions(jobLocations);
+        verify(fetchedJobs, never()).saveAll(anyList());
+        verify(fetchedJobs, never()).save(any());
+        assertEquals(LocationStatus.PENDING, remote.getLocationStatus());
+        assertEquals(LocationStatus.PENDING, boston.getLocationStatus());
+    }
+
+    @Test
+    @DisplayName("With geocoding off, the warm-up log counts labels the model answered, not only fully resolved ones")
+    void testWarmUpLogCountsAnsweredLabelsWithGeocodingOff() {
+        // Warming only the interpretation cache stops every label at geocoding
+        // after its answer is cached; reporting only fully resolved labels
+        // would show 0 on every run.
+        Logger logger = (Logger) LoggerFactory.getLogger(LocationService.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            LocationService warmUp = newService(true, true);
+            pageContains(job("Remote, Faroe Islands"), job("Atlantis"), job("Remote US"));
+            when(resolver.resolve("Remote, Faroe Islands"))
+                    .thenThrow(new GeocodingDisabledException("Faroe Islands"));
+            when(resolver.resolve("Atlantis")).thenThrow(new GeocodingDisabledException("Atlantis"));
+            when(resolver.resolve("Remote US"))
+                    .thenReturn(List.of(resolved("Remote US", Resolution.REMOTE_IN_US, POINT)));
+
+            warmUp.resolveOnePage();
+
+            List<String> messages = appender.list.stream().map(ILoggingEvent::getFormattedMessage).toList();
+            assertTrue(messages.stream().anyMatch(message ->
+                            message.startsWith("Warm-up: 3 of 3 labels on 3 jobs answered")
+                                    && message.contains("1 also geocoded")),
+                    "unexpected log lines: " + messages);
+        } finally {
+            logger.detachAppender(appender);
+        }
+    }
+
+    @Test
+    @DisplayName("Warm-up moves the cursor on, so it sweeps the whole table")
+    void testWarmUpAdvancesCursor() {
+        // Jobs stay PENDING in warm-up; without the cursor it would re-warm the
+        // first page forever.
+        LocationService warmUp = newService(true, true);
+        FetchedJob first = job("Remote US");
+        FetchedJob second = job("Remote US");
+        pageAfter(0L, first, second);
+        when(resolver.resolve(anyString()))
+                .thenReturn(List.of(resolved("Remote US", Resolution.REMOTE_IN_US, POINT)));
+
+        warmUp.resolveOnePage();
+        warmUp.resolveOnePage();
+
+        verify(fetchedJobs).findByLocationStatusAndIdGreaterThan(
+                eq(LocationStatus.PENDING), eq(second.getId()), any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("An outage during warm-up aborts the page and keeps the cursor, as in a normal run")
+    void testWarmUpOutageRetriesSamePage() {
+        LocationService warmUp = newService(true, true);
+        pageContains(job("Remote US"));
+        when(resolver.resolve(anyString())).thenThrow(new GeocodingException("quota exhausted", false));
+
+        warmUp.resolvePendingLocations();
+        warmUp.resolvePendingLocations();
+
+        verify(fetchedJobs, times(2)).findByLocationStatusAndIdGreaterThan(
+                eq(LocationStatus.PENDING), eq(0L), any(Pageable.class));
+        verifyNoInteractions(jobLocations);
     }
 
     // ------------------------------------------------------------- strikes

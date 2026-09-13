@@ -63,6 +63,17 @@ public class LocationService {
     private final int pageSize;
 
     /**
+     * Warm-up mode. Every label is resolved exactly as in a normal run, so the
+     * interpretation cache and (with geocoding enabled) the geocode cache fill
+     * up, but nothing is written to {@code job_locations} and every job stays
+     * {@code PENDING}. That lets the model answers, the geocode queries and
+     * their cost be checked in the two cache tables before any location is
+     * recorded against a job. Switching it off then resolves the waiting jobs
+     * from the warm caches.
+     */
+    private final boolean warmCachesOnly;
+
+    /**
      * Id of the last job the pass looked at. Held in memory only: after a
      * restart the pass starts from the front again, which costs nothing but
      * revisiting deferred jobs.
@@ -97,6 +108,9 @@ public class LocationService {
      *                              timing-dependent
      * @param enabled               {@code app.location.enable}
      * @param pageSize              {@code app.location.page-size}
+     * @param warmCachesOnly        {@code app.location.warm-caches-only}: resolve
+     *                              labels to fill both caches, but write no
+     *                              locations and change no job's status
      */
     public LocationService(FetchedJobsRepository fetchedJobsRepository,
                            JobLocationRepository jobLocationRepository,
@@ -104,7 +118,8 @@ public class LocationService {
                            TransactionTemplate transactionTemplate,
                            Clock clock,
                            @Value("${app.location.enable}") boolean enabled,
-                           @Value("${app.location.page-size}") int pageSize) {
+                           @Value("${app.location.page-size}") int pageSize,
+                           @Value("${app.location.warm-caches-only}") boolean warmCachesOnly) {
         this.fetchedJobsRepository = fetchedJobsRepository;
         this.jobLocationRepository = jobLocationRepository;
         this.resolver = resolver;
@@ -112,6 +127,7 @@ public class LocationService {
         this.clock = clock;
         this.enabled = enabled;
         this.pageSize = pageSize;
+        this.warmCachesOnly = warmCachesOnly;
     }
 
     /**
@@ -126,6 +142,7 @@ public class LocationService {
     @Scheduled(cron = "${app.location.schedule}")
     public void resolvePendingLocations() {
         if (!enabled) {
+            LOGGER.info("LocationService is disabled");
             return;
         }
         try {
@@ -168,7 +185,13 @@ public class LocationService {
      *       and the cursor would never move past it.</li>
      * </ul>
      *
-     * @return how many jobs were written
+     * <p>In warm-up mode ({@link #warmCachesOnly}) the labels are resolved the
+     * same way, and failures abort or defer the same way, but nothing is written
+     * at all. A label deferred because geocoding is off has still been through
+     * the model, so its answer is cached; only its geocode lookups are not. A
+     * struck-out label is not warmed at all and is left for a later sweep.
+     *
+     * @return how many jobs were written; always 0 in warm-up mode
      */
     int resolveOnePage() {
         List<FetchedJob> page = nextPage();
@@ -189,6 +212,8 @@ public class LocationService {
         //    The exception is a label that keeps failing (see STRIKE_LIMIT).
         Map<String, List<ResolvedLocation>> byLabel = new HashMap<>(distinct.size());
         Set<String> deferred = new HashSet<>();
+        // Labels that got past the model step and stopped only at geocoding.
+        int geocodingOff = 0;
         boolean probed = false;
         for (String label : distinct) {
             if (strikes.getOrDefault(label, 0) >= STRIKE_LIMIT) {
@@ -206,6 +231,7 @@ public class LocationService {
                 strikes.remove(label);
             } catch (GeocodingDisabledException e) {
                 deferred.add(label);
+                geocodingOff++;
             } catch (LocationExtractionException | GeocodingException e) {
                 if (e instanceof GeocodingException geocoding && geocoding.isFatal()) {
                     // A denied key fails every label alike; it says nothing
@@ -223,9 +249,23 @@ public class LocationService {
                 // A bug rather than an outage, so it will fail the same way every
                 // time. Resolving the label to nothing marks its jobs FAILED, where
                 // they can be found; aborting instead would retry this page forever.
-                LOGGER.error("Could not resolve '{}'; marking its jobs FAILED", label, e);
+                LOGGER.error("Could not resolve '{}'{}", label,
+                        warmCachesOnly ? "" : "; marking its jobs FAILED", e);
                 byLabel.put(label, List.of());
             }
+        }
+
+        if (warmCachesOnly) {
+            // Resolving has already filled the caches; that was the point. Write
+            // nothing, so every job is still PENDING when this mode is switched off.
+            // A label stopped by geocoding being off still got its answer first,
+            // so with geocoding off "answered" is the number that shows progress.
+            long resolved = byLabel.values().stream().filter(locations -> !locations.isEmpty()).count();
+            LOGGER.info("Warm-up: {} of {} labels on {} jobs answered (curated table, cache or model), "
+                            + "{} also geocoded; nothing written",
+                    resolved + geocodingOff, distinct.size(), page.size(), resolved);
+            cursor.set(page.getLast().getId());
+            return 0;
         }
 
         List<FetchedJob> toWrite = page.stream()
@@ -253,6 +293,13 @@ public class LocationService {
     private List<FetchedJob> nextPage() {
         List<FetchedJob> page = pendingAfter(cursor.get());
         if (page.isEmpty() && cursor.get() > 0) {
+            if (warmCachesOnly) {
+                // Every job stays PENDING in warm-up, so the pass loops forever;
+                // later sweeps only re-read the caches. This is the point to switch.
+                LOGGER.info("Warm-up sweep complete: every pending job has been through the "
+                        + "resolution chain once. Set app.location.warm-caches-only to false "
+                        + "to start writing locations.");
+            }
             cursor.set(0);
             page = pendingAfter(0);
         }
