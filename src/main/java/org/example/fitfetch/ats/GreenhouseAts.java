@@ -16,6 +16,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.RestClientException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -132,8 +133,9 @@ public class GreenhouseAts implements Ats {
      *
      * <p>For each slug the raw job list is fetched and then filtered to drop
      * entries whose ID is already recorded in {@link FetchedJobsRepository} and
-     * entries rejected by {@link TitleFilter#keep(String)}. Client and server
-     * HTTP errors for a single slug are logged, recorded as
+     * entries rejected by {@link TitleFilter#keep(String)}. A failed request for
+     * a single slug &mdash; an HTTP error, a timeout, a refused connection or an
+     * unreadable body &mdash; is logged, recorded once as
      * {@link org.example.fitfetch.metrics.MetricName#SLUG_FETCH_ERROR_COUNT} and
      * skipped without aborting the remaining slugs; a {@code null} or empty
      * response is recorded as
@@ -149,15 +151,23 @@ public class GreenhouseAts implements Ats {
         Set<String> jobIds = fetchedJobsRepository.findJobIdByAtsName(AtsName.GREENHOUSE);
         List<AtsJobEntry> newJobEntries = new ArrayList<>();
         for (String slug : slugs) {
-            AtsResponse<GreenhouseJobEntry> jobs = null;
+            AtsResponse<GreenhouseJobEntry> jobs;
             try {
                 jobs = fetcher.fetchJobs(slug);
             } catch (HttpClientErrorException e) {
                 LOGGER.error("Client error requesting jobs for {} from Greenhouse: {}", slug, e.getMessage());
                 metricService.recordCounter(MetricName.SLUG_FETCH_ERROR_COUNT, Map.of(TagName.ATS, AtsName.GREENHOUSE.stringValue(), TagName.SLUG, slug));
+                continue;
             } catch (HttpServerErrorException e) {
                 LOGGER.error("Server error requesting jobs for {} from Greenhouse: {}", slug, e.getMessage());
                 metricService.recordCounter(MetricName.SLUG_FETCH_ERROR_COUNT, Map.of(TagName.ATS, AtsName.GREENHOUSE.stringValue(), TagName.SLUG, slug));
+                continue;
+            } catch (RestClientException e) {
+                // Timeouts, refused connections and unreadable bodies. Left uncaught,
+                // these fail the whole board and discard every slug already fetched.
+                LOGGER.error("Could not fetch jobs for {} from Greenhouse: {}", slug, e.getMessage());
+                metricService.recordCounter(MetricName.SLUG_FETCH_ERROR_COUNT, Map.of(TagName.ATS, AtsName.GREENHOUSE.stringValue(), TagName.SLUG, slug));
+                continue;
             }
             if (jobs == null || jobs.jobs() == null) {
                 metricService.recordCounter(MetricName.SLUG_FETCH_NULL_RESPONSE_COUNT, Map.of(TagName.ATS, AtsName.GREENHOUSE.stringValue(), TagName.SLUG, slug));
