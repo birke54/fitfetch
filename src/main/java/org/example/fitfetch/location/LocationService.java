@@ -29,14 +29,6 @@ import java.util.concurrent.atomic.AtomicLong;
  * Scheduled pass that resolves the location of every fetched job that still
  * needs one.
  *
- * <p>Runs separately from normalization rather than inside it. The two are
- * siblings, not stages &mdash; this reads {@code job_data->'location'} and needs
- * nothing normalization produces &mdash; and they fail in ways that call for
- * opposite responses: a normalization failure is a bug, while a model or
- * geocoder failure is transient and retrying is correct. Sharing one flag would
- * conflate the two, and sharing one pass would make a fast, local operation run
- * at the speed of a slow, networked one.
- *
  * <p><strong>Network calls happen outside the transaction.</strong> Resolving a
  * page can involve a model call and a geocode lookup per distinct label; holding
  * a database transaction open across those would tie up a connection for minutes
@@ -82,10 +74,10 @@ public class LocationService {
 
     /**
      * How many times a label may abort the page before it is deferred instead.
-     * Three runs is 45 minutes at the default schedule: long enough to ride out
+     * Two runs is 20 minutes at the default schedule: long enough to ride out
      * a restart, short enough that one bad label cannot hold the queue for long.
      */
-    static final int STRIKE_LIMIT = 3;
+    static final int STRIKE_LIMIT = 2;
 
     /**
      * Consecutive aborting failures per label, cleared when the label resolves.
