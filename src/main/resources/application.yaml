@@ -80,7 +80,7 @@ app:
     geocoding:
       # Cache-only while false: the pass runs and resolves what is already
       # known, spending nothing and writing no negative entries.
-      enabled: false
+      enabled: true
       api-key: ${GOOGLE_GEO_API_KEY:}
       coordinate-ttl: P30D
     cache:
