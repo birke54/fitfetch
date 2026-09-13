@@ -50,6 +50,10 @@ class LocationServiceTest {
     }
 
     private LocationService newService(boolean enabled) {
+        return newService(enabled, false);
+    }
+
+    private LocationService newService(boolean enabled, boolean warmCachesOnly) {
         TransactionTemplate template = mock(TransactionTemplate.class);
         // Run the callback inline so the write path is exercised without a
         // transaction manager.
@@ -59,7 +63,7 @@ class LocationServiceTest {
         }).when(template).executeWithoutResult(any());
 
         return new LocationService(fetchedJobs, jobLocations, resolver, template,
-                Clock.fixed(NOW, ZoneOffset.UTC), enabled, 200);
+                Clock.fixed(NOW, ZoneOffset.UTC), enabled, 200, warmCachesOnly);
     }
 
     private FetchedJob job(String locationName) {
@@ -447,6 +451,65 @@ class LocationServiceTest {
 
         assertDoesNotThrow(() -> service.resolvePendingLocations());
         verify(jobLocations, never()).saveAll(anyList());
+    }
+
+    // ------------------------------------------------------------- warm-up
+
+    @Test
+    @DisplayName("Warm-up resolves every label, which fills the caches, but writes nothing")
+    void testWarmUpResolvesWithoutWriting() {
+        LocationService warmUp = newService(true, true);
+        FetchedJob remote = job("Remote US");
+        FetchedJob boston = job("Boston");
+        pageContains(remote, boston);
+        when(resolver.resolve("Remote US"))
+                .thenReturn(List.of(resolved("Remote US", Resolution.REMOTE_IN_US, POINT)));
+        when(resolver.resolve("Boston"))
+                .thenReturn(List.of(resolved("Boston", Resolution.PLACE, POINT)));
+
+        assertEquals(0, warmUp.resolveOnePage(), "no job is written");
+
+        verify(resolver).resolve("Remote US");
+        verify(resolver).resolve("Boston");
+        verifyNoInteractions(jobLocations);
+        verify(fetchedJobs, never()).saveAll(anyList());
+        verify(fetchedJobs, never()).save(any());
+        assertEquals(LocationStatus.PENDING, remote.getLocationStatus());
+        assertEquals(LocationStatus.PENDING, boston.getLocationStatus());
+    }
+
+    @Test
+    @DisplayName("Warm-up moves the cursor on, so it sweeps the whole table")
+    void testWarmUpAdvancesCursor() {
+        // Jobs stay PENDING in warm-up; without the cursor it would re-warm the
+        // first page forever.
+        LocationService warmUp = newService(true, true);
+        FetchedJob first = job("Remote US");
+        FetchedJob second = job("Remote US");
+        pageAfter(0L, first, second);
+        when(resolver.resolve(anyString()))
+                .thenReturn(List.of(resolved("Remote US", Resolution.REMOTE_IN_US, POINT)));
+
+        warmUp.resolveOnePage();
+        warmUp.resolveOnePage();
+
+        verify(fetchedJobs).findByLocationStatusAndIdGreaterThan(
+                eq(LocationStatus.PENDING), eq(second.getId()), any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("An outage during warm-up aborts the page and keeps the cursor, as in a normal run")
+    void testWarmUpOutageRetriesSamePage() {
+        LocationService warmUp = newService(true, true);
+        pageContains(job("Remote US"));
+        when(resolver.resolve(anyString())).thenThrow(new GeocodingException("quota exhausted", false));
+
+        warmUp.resolvePendingLocations();
+        warmUp.resolvePendingLocations();
+
+        verify(fetchedJobs, times(2)).findByLocationStatusAndIdGreaterThan(
+                eq(LocationStatus.PENDING), eq(0L), any(Pageable.class));
+        verifyNoInteractions(jobLocations);
     }
 
     // ------------------------------------------------------------- strikes
