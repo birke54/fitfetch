@@ -17,10 +17,12 @@ import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Scheduled pass that resolves the location of every fetched job that still
@@ -58,6 +60,13 @@ public class LocationService {
     private final Clock clock;
     private final boolean enabled;
     private final int pageSize;
+
+    /**
+     * Id of the last job the pass looked at. Held in memory only: after a
+     * restart the pass starts from the front again, which costs nothing but
+     * revisiting deferred jobs.
+     */
+    private final AtomicLong cursor = new AtomicLong();
 
     /**
      * @param fetchedJobsRepository source of pending jobs, and where status is
@@ -120,17 +129,25 @@ public class LocationService {
             }
         } catch (LocationExtractionException e) {
             LOGGER.warn("Location pass stopped early, model unavailable: {}", e.getMessage());
+        } catch (RuntimeException e) {
+            // Most likely the database itself. The page stays pending and the
+            // cursor does not move, so the next run retries it.
+            LOGGER.error("Location pass failed, will retry", e);
         }
     }
 
     /**
      * Resolves a single page of pending jobs.
      *
+     * <p>A label whose query is not cached while geocoding is switched off is
+     * deferred: its jobs are not written and stay {@code PENDING}, so they
+     * resolve properly once lookups are enabled. Every other label on the page is
+     * written as normal.
+     *
      * @return how many jobs were written
      */
     int resolveOnePage() {
-        List<FetchedJob> page = fetchedJobsRepository.findByLocationStatus(
-                LocationStatus.PENDING, PageRequest.of(0, pageSize, Sort.by("id")));
+        List<FetchedJob> page = nextPage();
         if (page.isEmpty()) {
             return 0;
         }
@@ -146,14 +163,101 @@ public class LocationService {
         // 2. Resolve each distinct label once. Any transport failure aborts the
         //    page: every job keeps its PENDING status and nothing is written.
         Map<String, List<ResolvedLocation>> byLabel = new HashMap<>(distinct.size());
+        Set<String> deferred = new HashSet<>();
         for (String label : distinct) {
-            byLabel.put(label, resolver.resolve(label));
+            try {
+                byLabel.put(label, resolver.resolve(label));
+            } catch (GeocodingDisabledException e) {
+                deferred.add(label);
+            } catch (LocationExtractionException | GeocodingException e) {
+                throw e;
+            } catch (RuntimeException e) {
+                // A bug rather than an outage, so it will fail the same way every
+                // time. Resolving the label to nothing marks its jobs FAILED, where
+                // they can be found; aborting instead would retry this page forever.
+                LOGGER.error("Could not resolve '{}'; marking its jobs FAILED", label, e);
+                byLabel.put(label, List.of());
+            }
+        }
+
+        List<FetchedJob> toWrite = page.stream()
+                .filter(job -> !deferred.contains(labelOf(job)))
+                .toList();
+        if (toWrite.size() < page.size()) {
+            LOGGER.info("Deferred {} jobs across {} labels until geocoding is enabled",
+                    page.size() - toWrite.size(), deferred.size());
         }
 
         // 3. Write. Only now is a transaction opened.
-        OffsetDateTime now = OffsetDateTime.now(clock);
-        transactionTemplate.executeWithoutResult(status -> persist(page, byLabel, now));
-        return page.size();
+        write(toWrite, byLabel, OffsetDateTime.now(clock));
+        cursor.set(page.getLast().getId());
+        return toWrite.size();
+    }
+
+    /**
+     * Reads the next page of pending jobs after the cursor, wrapping to the start
+     * of the table once the end is reached.
+     *
+     * <p>Paging by id rather than always reading the first page is what lets the
+     * pass move past deferred jobs, which stay {@code PENDING}. Wrapping is what
+     * brings them, and anything requeued behind the cursor, round again.
+     */
+    private List<FetchedJob> nextPage() {
+        List<FetchedJob> page = pendingAfter(cursor.get());
+        if (page.isEmpty() && cursor.get() > 0) {
+            cursor.set(0);
+            page = pendingAfter(0);
+        }
+        return page;
+    }
+
+    private List<FetchedJob> pendingAfter(long afterId) {
+        return fetchedJobsRepository.findByLocationStatusAndIdGreaterThan(
+                LocationStatus.PENDING, afterId, PageRequest.of(0, pageSize, Sort.by("id")));
+    }
+
+    /**
+     * Writes a page in one transaction, falling back to one transaction per job
+     * if that fails.
+     *
+     * <p>A constraint violation on one job's rows would otherwise roll back the
+     * whole page on every run. The fallback isolates it: every other job is
+     * written, and a job that cannot be written even on its own is marked
+     * {@code FAILED} with no rows. If marking it fails as well, the database
+     * itself is the problem, and the exception propagates so the page is retried.
+     */
+    private void write(List<FetchedJob> jobs, Map<String, List<ResolvedLocation>> byLabel,
+                       OffsetDateTime now) {
+        if (jobs.isEmpty()) {
+            return;
+        }
+        try {
+            transactionTemplate.executeWithoutResult(status -> persist(jobs, byLabel, now));
+            return;
+        } catch (RuntimeException e) {
+            if (jobs.size() == 1) {
+                markFailed(jobs.getFirst(), e);
+                return;
+            }
+            LOGGER.warn("Writing {} jobs failed, retrying one at a time: {}", jobs.size(), e.getMessage());
+        }
+        for (FetchedJob job : jobs) {
+            try {
+                transactionTemplate.executeWithoutResult(status -> persist(List.of(job), byLabel, now));
+            } catch (RuntimeException e) {
+                markFailed(job, e);
+            }
+        }
+    }
+
+    private void markFailed(FetchedJob job, RuntimeException cause) {
+        LOGGER.error("Could not write locations for job {}; marking it FAILED", job.getId(), cause);
+        job.setLocationStatus(LocationStatus.FAILED);
+        transactionTemplate.executeWithoutResult(status -> {
+            // Rows from an earlier resolution would contradict the FAILED status.
+            jobLocationRepository.deleteByFetchedJobIds(List.of(job.getId()));
+            fetchedJobsRepository.save(job);
+        });
     }
 
     private void persist(List<FetchedJob> page, Map<String, List<ResolvedLocation>> byLabel,
@@ -169,9 +273,20 @@ public class LocationService {
         List<JobLocation> toSave = new ArrayList<>();
         for (FetchedJob job : page) {
             List<ResolvedLocation> resolved = byLabel.get(labelOf(job));
+            // uq_job_locations_job_raw_resolution allows one row per element and
+            // resolution. A model can name the same element twice, and an
+            // unlocatable one is stored as UNDEFINED, so two rows can collapse
+            // onto one key; the first is kept, which preserves the primary.
+            Set<RowKey> seen = new HashSet<>();
             for (ResolvedLocation location : resolved) {
-                toSave.add(new JobLocation(job.getId(), location.input(), location.outcome(),
-                        location.tier(), location.primary(), now));
+                JobLocation row = new JobLocation(job.getId(), location.input(), location.outcome(),
+                        location.tier(), location.primary(), now);
+                if (seen.add(new RowKey(row.getRaw(), row.getResolution()))) {
+                    toSave.add(row);
+                } else {
+                    LOGGER.debug("Dropping duplicate location '{}' ({}) for job {}",
+                            row.getRaw(), row.getResolution(), job.getId());
+                }
             }
             // A job whose every location failed to resolve is marked FAILED, not
             // PENDING. Retrying would produce the same answer, and FAILED is what
@@ -195,5 +310,9 @@ public class LocationService {
     private static String labelOf(FetchedJob job) {
         String label = job.getJobData() == null ? null : job.getJobData().locationName();
         return label == null ? "" : label;
+    }
+
+    /** The columns {@code uq_job_locations_job_raw_resolution} is unique on, within one job. */
+    private record RowKey(String raw, Resolution resolution) {
     }
 }

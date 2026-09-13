@@ -12,6 +12,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
+import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -79,8 +81,21 @@ class LocationServiceTest {
     }
 
     private void pageContains(FetchedJob... jobs) {
-        when(fetchedJobs.findByLocationStatus(eq(LocationStatus.PENDING), any(Pageable.class)))
+        when(fetchedJobs.findByLocationStatusAndIdGreaterThan(
+                eq(LocationStatus.PENDING), anyLong(), any(Pageable.class)))
                 .thenReturn(List.of(jobs));
+    }
+
+    private void pageAfter(long afterId, FetchedJob... jobs) {
+        when(fetchedJobs.findByLocationStatusAndIdGreaterThan(
+                eq(LocationStatus.PENDING), eq(afterId), any(Pageable.class)))
+                .thenReturn(List.of(jobs));
+    }
+
+    private List<JobLocation> savedRows() {
+        ArgumentCaptor<List<JobLocation>> saved = ArgumentCaptor.forClass(List.class);
+        verify(jobLocations).saveAll(saved.capture());
+        return saved.getValue();
     }
 
     // ------------------------------------------------------------- disabled
@@ -222,6 +237,174 @@ class LocationServiceTest {
         service.resolveOnePage();
 
         assertEquals(LocationStatus.RESOLVED, job.getLocationStatus());
+    }
+
+    // --------------------------------------------------- row constraints
+
+    @Test
+    @DisplayName("A place the geocoder cannot find is stored as UNDEFINED, keeping its query")
+    void testUnlocatablePlaceStoredAsUndefined() {
+        // ck_job_locations_coords_match_resolution lets only UNDEFINED rows lack
+        // a coordinate, so a PLACE row with none would fail the whole page.
+        FetchedJob job = job("Atlantis, GA");
+        pageContains(job);
+        when(resolver.resolve(anyString())).thenReturn(List.of(new ResolvedLocation(
+                new LocationInput("Atlantis, GA", Resolution.PLACE, "Atlantis, GA", null),
+                GeocodeOutcome.empty(GeocodeStatus.ZERO_RESULTS), SourceTier.LLM, true)));
+
+        service.resolveOnePage();
+
+        JobLocation row = savedRows().getFirst();
+        assertEquals(Resolution.UNDEFINED, row.getResolution());
+        assertEquals("Atlantis, GA", row.getGeocodeQuery(), "the worklist shows what was looked up");
+        assertNull(row.getLatitude());
+        assertEquals(LocationStatus.FAILED, job.getLocationStatus());
+    }
+
+    @Test
+    @DisplayName("Locations colliding on element and resolution are written once")
+    void testDuplicateRowsCollapsed() {
+        // uq_job_locations_job_raw_resolution would otherwise fail the page.
+        FetchedJob job = job("Boston, Boston");
+        pageContains(job);
+        when(resolver.resolve(anyString())).thenReturn(List.of(
+                resolved("Boston", Resolution.PLACE, POINT),
+                resolved("Boston", Resolution.PLACE, POINT),
+                resolved("???", Resolution.UNDEFINED, null)));
+
+        service.resolveOnePage();
+
+        assertEquals(2, savedRows().size());
+    }
+
+    @Test
+    @DisplayName("Two unlocatable places with the same element collapse once both are UNDEFINED")
+    void testRowsCollidingAfterDowngradeCollapsed() {
+        FetchedJob job = job("Atlantis");
+        pageContains(job);
+        when(resolver.resolve(anyString())).thenReturn(List.of(
+                resolved("Atlantis", Resolution.PLACE, GeocodeOutcome.empty(GeocodeStatus.ZERO_RESULTS)),
+                resolved("Atlantis", Resolution.UNDEFINED, null)));
+
+        service.resolveOnePage();
+
+        assertEquals(1, savedRows().size());
+    }
+
+    // ------------------------------------------------------------ deferral
+
+    @Test
+    @DisplayName("A label not cached while geocoding is off is deferred; the rest of the page is written")
+    void testCacheOnlyMissDefersOnlyThatLabel() {
+        FetchedJob deferred = job("Atlantis");
+        FetchedJob written = job("Remote US");
+        pageContains(deferred, written);
+        when(resolver.resolve("Atlantis")).thenThrow(new GeocodingDisabledException("Atlantis"));
+        when(resolver.resolve("Remote US"))
+                .thenReturn(List.of(resolved("Remote US", Resolution.REMOTE_IN_US, POINT)));
+
+        assertEquals(1, service.resolveOnePage());
+
+        assertEquals(LocationStatus.PENDING, deferred.getLocationStatus(),
+                "it resolves properly once lookups are enabled");
+        assertEquals(LocationStatus.RESOLVED, written.getLocationStatus());
+        verify(jobLocations).deleteByFetchedJobIds(List.of(written.getId()));
+        verify(fetchedJobs).saveAll(List.of(written));
+    }
+
+    @Test
+    @DisplayName("The pass pages past deferred jobs and wraps to the start at the end")
+    void testCursorAdvancesAndWraps() {
+        // Always reading the first page would hand the pass the same deferred
+        // jobs forever once a page filled up with them.
+        FetchedJob first = job("Atlantis");
+        FetchedJob second = job("Atlantis");
+        pageAfter(0L, first, second);
+        pageAfter(second.getId());
+        when(resolver.resolve(anyString())).thenThrow(new GeocodingDisabledException("Atlantis"));
+
+        service.resolveOnePage();
+        service.resolveOnePage();
+
+        InOrder order = inOrder(fetchedJobs);
+        order.verify(fetchedJobs).findByLocationStatusAndIdGreaterThan(
+                eq(LocationStatus.PENDING), eq(0L), any(Pageable.class));
+        order.verify(fetchedJobs).findByLocationStatusAndIdGreaterThan(
+                eq(LocationStatus.PENDING), eq(second.getId()), any(Pageable.class));
+        order.verify(fetchedJobs).findByLocationStatusAndIdGreaterThan(
+                eq(LocationStatus.PENDING), eq(0L), any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("An aborted page does not move the cursor, so the same page is retried")
+    void testAbortedPageRetriedFromSameCursor() {
+        FetchedJob job = job("Remote US");
+        pageContains(job);
+        when(resolver.resolve(anyString()))
+                .thenThrow(new LocationExtractionException("Ollama unreachable"));
+
+        service.resolvePendingLocations();
+        service.resolvePendingLocations();
+
+        verify(fetchedJobs, times(2)).findByLocationStatusAndIdGreaterThan(
+                eq(LocationStatus.PENDING), eq(0L), any(Pageable.class));
+    }
+
+    // ------------------------------------------------------ write failures
+
+    @Test
+    @DisplayName("A job whose rows cannot be written is marked FAILED; the rest of the page is written")
+    void testWriteFailureIsolatedToOneJob() {
+        FetchedJob good = job("Remote US");
+        FetchedJob bad = job("Poison");
+        pageContains(good, bad);
+        when(resolver.resolve("Remote US"))
+                .thenReturn(List.of(resolved("Remote US", Resolution.REMOTE_IN_US, POINT)));
+        when(resolver.resolve("Poison"))
+                .thenReturn(List.of(resolved("Poison", Resolution.REMOTE_IN_US, POINT)));
+        doAnswer(invocation -> {
+            List<JobLocation> rows = invocation.getArgument(0);
+            if (rows.stream().anyMatch(row -> row.getFetchedJobId().equals(bad.getId()))) {
+                throw new DataIntegrityViolationException("constraint violated");
+            }
+            return rows;
+        }).when(jobLocations).saveAll(anyList());
+
+        service.resolveOnePage();
+
+        assertEquals(LocationStatus.RESOLVED, good.getLocationStatus());
+        assertEquals(LocationStatus.FAILED, bad.getLocationStatus());
+        verify(fetchedJobs).saveAll(List.of(good));
+        verify(fetchedJobs).save(bad);
+    }
+
+    @Test
+    @DisplayName("A bug resolving one label marks its jobs FAILED rather than stalling the queue")
+    void testUnexpectedResolutionFailureFailsThatLabelOnly() {
+        FetchedJob broken = job("Broken");
+        FetchedJob fine = job("Remote US");
+        pageContains(broken, fine);
+        when(resolver.resolve("Broken")).thenThrow(new IllegalStateException("bug"));
+        when(resolver.resolve("Remote US"))
+                .thenReturn(List.of(resolved("Remote US", Resolution.REMOTE_IN_US, POINT)));
+
+        assertEquals(2, service.resolveOnePage());
+
+        assertEquals(LocationStatus.FAILED, broken.getLocationStatus());
+        assertEquals(LocationStatus.RESOLVED, fine.getLocationStatus());
+        assertEquals(1, savedRows().size());
+    }
+
+    @Test
+    @DisplayName("A database failure is caught and logged rather than escaping the scheduler")
+    void testDatabaseFailureHandled() {
+        pageContains(job("Remote US"));
+        when(resolver.resolve(anyString()))
+                .thenReturn(List.of(resolved("Remote US", Resolution.REMOTE_IN_US, POINT)));
+        when(jobLocations.saveAll(anyList())).thenThrow(new DataAccessResourceFailureException("down"));
+        when(fetchedJobs.save(any())).thenThrow(new DataAccessResourceFailureException("down"));
+
+        assertDoesNotThrow(() -> service.resolvePendingLocations());
     }
 
     // ---------------------------------------------------------- failures

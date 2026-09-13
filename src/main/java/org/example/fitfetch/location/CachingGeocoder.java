@@ -59,7 +59,8 @@ public class CachingGeocoder implements Geocoder {
      *                       resolves whatever is already known, and spends
      *                       nothing. That makes local runs and tests free and
      *                       hermetic, and lets the cache be warmed deliberately
-     *                       before any budget is committed
+     *                       before any budget is committed. A miss in this mode
+     *                       throws {@link GeocodingDisabledException}
      * @param clock          time source; injectable so expiry is testable
      */
     public CachingGeocoder(Geocoder delegate,
@@ -87,7 +88,9 @@ public class CachingGeocoder implements Geocoder {
 
         if (cached.isPresent()) {
             GeocodeCacheEntry entry = cached.get();
-            if (!entry.isStale(coordinateTtl, now)) {
+            // In cache-only mode a stale coordinate is still served: it cannot be
+            // refreshed, and a place that has not moved beats no answer at all.
+            if (!lookupEnabled || !entry.isStale(coordinateTtl, now)) {
                 recordHit(entry, now);
                 return entry.toOutcome();
             }
@@ -95,11 +98,11 @@ public class CachingGeocoder implements Geocoder {
         }
 
         if (!lookupEnabled) {
-            // Cache-only mode. Report a miss as a durable "no result" for this
-            // pass without writing it down, so enabling lookups later resolves
-            // it properly rather than finding a poisoned negative entry.
+            // Cache-only mode. A miss is not an answer about the query, so it is
+            // neither written down nor reported as ZERO_RESULTS; either would mark
+            // the job unresolvable when it only needs lookups switched on.
             LOGGER.debug("Geocoding disabled; '{}' left unresolved", query);
-            return GeocodeOutcome.empty(GeocodeStatus.ZERO_RESULTS);
+            throw new GeocodingDisabledException(query);
         }
 
         // Propagates GeocodingException. A quota breach or denied key must reach

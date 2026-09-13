@@ -107,6 +107,13 @@ public class JobLocation {
     }
 
     /**
+     * A location the geocoder could not place is stored as
+     * {@link Resolution#UNDEFINED}, whatever the input's resolution was.
+     * {@code ck_job_locations_coords_match_resolution} allows only
+     * {@code UNDEFINED} rows to lack a coordinate, and such a row matches nothing
+     * either way. The geocode query is kept, so the curation worklist shows what
+     * was looked up and found nowhere.
+     *
      * @param fetchedJobId the job this location belongs to
      * @param input        the resolved location
      * @param outcome      the geocode result, or {@code null} when the
@@ -117,15 +124,16 @@ public class JobLocation {
      */
     public JobLocation(Long fetchedJobId, LocationInput input, GeocodeOutcome outcome,
                        SourceTier sourceTier, boolean primary, OffsetDateTime now) {
+        boolean located = outcome != null && outcome.status().hasCoordinates();
         this.fetchedJobId = fetchedJobId;
         this.raw = input.raw();
-        this.resolution = input.resolution();
+        this.resolution = located ? input.resolution() : Resolution.UNDEFINED;
         this.geocodeQuery = input.geocodeQuery();
         this.regionCode = input.regionCode();
         this.sourceTier = sourceTier;
         this.primary = primary;
         this.createdAt = now;
-        if (outcome != null) {
+        if (located) {
             this.latitude = outcome.latitude();
             this.longitude = outcome.longitude();
             this.formattedAddress = outcome.formattedAddress();
