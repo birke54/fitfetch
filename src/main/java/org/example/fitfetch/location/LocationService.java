@@ -187,8 +187,9 @@ public class LocationService {
      *
      * <p>In warm-up mode ({@link #warmCachesOnly}) the labels are resolved the
      * same way, and failures abort or defer the same way, but nothing is written
-     * at all. Deferred labels are therefore not warmed: a query missed while
-     * geocoding is off, or a struck-out label, is left for a later sweep.
+     * at all. A label deferred because geocoding is off has still been through
+     * the model, so its answer is cached; only its geocode lookups are not. A
+     * struck-out label is not warmed at all and is left for a later sweep.
      *
      * @return how many jobs were written; always 0 in warm-up mode
      */
@@ -211,6 +212,8 @@ public class LocationService {
         //    The exception is a label that keeps failing (see STRIKE_LIMIT).
         Map<String, List<ResolvedLocation>> byLabel = new HashMap<>(distinct.size());
         Set<String> deferred = new HashSet<>();
+        // Labels that got past the model step and stopped only at geocoding.
+        int geocodingOff = 0;
         boolean probed = false;
         for (String label : distinct) {
             if (strikes.getOrDefault(label, 0) >= STRIKE_LIMIT) {
@@ -228,6 +231,7 @@ public class LocationService {
                 strikes.remove(label);
             } catch (GeocodingDisabledException e) {
                 deferred.add(label);
+                geocodingOff++;
             } catch (LocationExtractionException | GeocodingException e) {
                 if (e instanceof GeocodingException geocoding && geocoding.isFatal()) {
                     // A denied key fails every label alike; it says nothing
@@ -254,9 +258,12 @@ public class LocationService {
         if (warmCachesOnly) {
             // Resolving has already filled the caches; that was the point. Write
             // nothing, so every job is still PENDING when this mode is switched off.
-            long warmed = byLabel.values().stream().filter(locations -> !locations.isEmpty()).count();
-            LOGGER.info("Warm-up: {} of {} labels on {} jobs resolved into the caches; nothing written",
-                    warmed, distinct.size(), page.size());
+            // A label stopped by geocoding being off still got its answer first,
+            // so with geocoding off "answered" is the number that shows progress.
+            long resolved = byLabel.values().stream().filter(locations -> !locations.isEmpty()).count();
+            LOGGER.info("Warm-up: {} of {} labels on {} jobs answered (curated table, cache or model), "
+                            + "{} also geocoded; nothing written",
+                    resolved + geocodingOff, distinct.size(), page.size(), resolved);
             cursor.set(page.getLast().getId());
             return 0;
         }

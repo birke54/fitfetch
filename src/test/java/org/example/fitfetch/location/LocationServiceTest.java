@@ -1,5 +1,8 @@
 package org.example.fitfetch.location;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import org.example.fitfetch.ats.AtsName;
 import org.example.fitfetch.domain.FetchedJob;
 import org.example.fitfetch.domain.JobLocation;
@@ -12,6 +15,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Pageable;
@@ -476,6 +480,37 @@ class LocationServiceTest {
         verify(fetchedJobs, never()).save(any());
         assertEquals(LocationStatus.PENDING, remote.getLocationStatus());
         assertEquals(LocationStatus.PENDING, boston.getLocationStatus());
+    }
+
+    @Test
+    @DisplayName("With geocoding off, the warm-up log counts labels the model answered, not only fully resolved ones")
+    void testWarmUpLogCountsAnsweredLabelsWithGeocodingOff() {
+        // Warming only the interpretation cache stops every label at geocoding
+        // after its answer is cached; reporting only fully resolved labels
+        // would show 0 on every run.
+        Logger logger = (Logger) LoggerFactory.getLogger(LocationService.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            LocationService warmUp = newService(true, true);
+            pageContains(job("Remote, Faroe Islands"), job("Atlantis"), job("Remote US"));
+            when(resolver.resolve("Remote, Faroe Islands"))
+                    .thenThrow(new GeocodingDisabledException("Faroe Islands"));
+            when(resolver.resolve("Atlantis")).thenThrow(new GeocodingDisabledException("Atlantis"));
+            when(resolver.resolve("Remote US"))
+                    .thenReturn(List.of(resolved("Remote US", Resolution.REMOTE_IN_US, POINT)));
+
+            warmUp.resolveOnePage();
+
+            List<String> messages = appender.list.stream().map(ILoggingEvent::getFormattedMessage).toList();
+            assertTrue(messages.stream().anyMatch(message ->
+                            message.startsWith("Warm-up: 3 of 3 labels on 3 jobs answered")
+                                    && message.contains("1 also geocoded")),
+                    "unexpected log lines: " + messages);
+        } finally {
+            logger.detachAppender(appender);
+        }
     }
 
     @Test
