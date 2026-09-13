@@ -45,8 +45,13 @@ class CachingLocationExtractorTest {
     }
 
     private LocationInterpretation cachedEntry(String key, String raw, int promptVersion, Instant hitAt) {
+        return cachedEntry(key, raw, MODEL, promptVersion, hitAt);
+    }
+
+    private LocationInterpretation cachedEntry(String key, String raw, String model, int promptVersion,
+                                               Instant hitAt) {
         LocationInterpretation entry = new LocationInterpretation(
-                key, raw, List.of(CANADA), MODEL, promptVersion,
+                key, raw, List.of(CANADA), model, promptVersion,
                 OffsetDateTime.ofInstant(hitAt, ZoneOffset.UTC));
         entry.setLastHitAt(OffsetDateTime.ofInstant(hitAt, ZoneOffset.UTC));
         return entry;
@@ -170,6 +175,40 @@ class CachingLocationExtractorTest {
         extractor.extract("Remote, Canada");
 
         verify(delegate, never()).extract(anyString());
+    }
+
+    // ------------------------------------------------------------------ model
+
+    @Test
+    @DisplayName("A row from another model is treated as a miss and re-extracted")
+    void testDifferentModelReExtracts() {
+        // Without this, switching models keeps serving the old model's answers
+        // until someone remembers to bump the prompt version as well.
+        LocationInterpretation old = cachedEntry("remote, canada", "Remote, Canada",
+                "qwen2.5:7b", PROMPT_VERSION, NOW);
+        when(repository.findById(anyString())).thenReturn(Optional.of(old));
+        when(delegate.extract(anyString())).thenReturn(ExtractionResult.of(List.of(CANADA)));
+
+        extractor.extract("Remote, Canada");
+
+        verify(delegate).extract("Remote, Canada");
+        verify(repository).save(old);
+        assertEquals(MODEL, old.getModel(), "the row is re-stamped with the current model");
+    }
+
+    @Test
+    @DisplayName("A row from another model is re-extracted even at a newer prompt version")
+    void testDifferentModelOverridesNewerPromptVersion() {
+        // The newer-version allowance exists so a prompt rollback does not thrash.
+        // It says nothing about whether another model's answers can be trusted.
+        when(repository.findById(anyString()))
+                .thenReturn(Optional.of(cachedEntry("remote, canada", "Remote, Canada",
+                        "qwen2.5:7b", PROMPT_VERSION + 1, NOW)));
+        when(delegate.extract(anyString())).thenReturn(ExtractionResult.of(List.of(CANADA)));
+
+        extractor.extract("Remote, Canada");
+
+        verify(delegate).extract("Remote, Canada");
     }
 
     // ----------------------------------------------------------- cacheability
