@@ -87,7 +87,8 @@ public class CachingLocationExtractor implements LocationExtractor {
             LocationInterpretation entry = cached.get();
             if (!entry.isStale(promptVersion)) {
                 recordHit(entry, now);
-                return ExtractionResult.of(entry.getOutputs());
+                return ExtractionResult.of(entry.getOutputs())
+                        .withTier(SourceTier.INTERPRETATION);
             }
             LOGGER.debug("Re-extracting '{}': cached at prompt v{}, current is v{}",
                     rawLocationName, entry.getPromptVersion(), promptVersion);

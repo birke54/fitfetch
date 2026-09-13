@@ -54,6 +54,20 @@ public sealed interface AtsJobEntry permits GreenhouseJobEntry {
     String slug();
 
     /**
+     * Returns the provider's free-text location label for this job.
+     *
+     * <p>Every ATS publishes this as prose rather than structured geography, so
+     * the location pipeline treats it as the single input to resolve. A
+     * {@code null} result means the payload carried no location at all, which is
+     * distinct from a present-but-blank label and from a placeholder such as
+     * {@code "N/A"}.
+     *
+     * @return the raw location label, or {@code null} if the provider supplied
+     *         none
+     */
+    String locationName();
+
+    /**
      * Returns a copy of this entry with {@link #slug()} set to the given value.
      *
      * <p>The board slug is a fetch-time parameter, not part of the provider's

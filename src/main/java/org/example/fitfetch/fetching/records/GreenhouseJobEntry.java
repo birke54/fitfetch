@@ -96,6 +96,7 @@ public record GreenhouseJobEntry (
      *
      * @return the free-text location label, or {@code null} if absent
      */
+    @Override
     public String locationName() {
         return location == null ? null : location.name();
     }

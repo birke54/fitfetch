@@ -40,5 +40,36 @@ app:
   normalize:
     enable: false
     schedule: "0 0 * * * *"
-  # geocoding:
-  #  api-key: ${GOOGLE_GEO_API_KEY}
+  location:
+    # Off until the curated table and the caches have been exercised against a
+    # real database. The pass is a no-op while disabled.
+    enable: false
+    schedule: "0 */15 * * * *"
+    # One page per run: a backlog clears steadily instead of a single invocation
+    # holding the model and the geocoding budget for as long as it takes.
+    page-size: 200
+    table: location_table.json
+    # Used verbatim by every resolution that redirects here. A full street
+    # address geocodes to distance zero, so no radius setting can exclude a row
+    # that was redirected on purpose; a city name would land arbitrarily far off.
+    default-origin: "3001 NE 130th St, Seattle, WA 98125"
+    # Enables rules 6b and 7: remote-in-this-state means remote where you are,
+    # not at the state centroid, which for Washington sits near Ellensburg.
+    home-state: WA
+    # One real posting enumerates remote eligibility across fifteen states; the
+    # cap stops a pathological label from filling job_locations.
+    max-locations-per-job: 25
+    llm:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      model: ${OLLAMA_MODEL:llama3.1:8b}
+    geocoding:
+      # Cache-only while false: the pass runs and resolves what is already
+      # known, spending nothing and writing no negative entries.
+      enabled: false
+      api-key: ${GOOGLE_GEO_API_KEY:}
+      coordinate-ttl: P30D
+    cache:
+      # Read statistics drive eviction, so every cache read implies a write.
+      # Coarsening to a day cuts that by orders of magnitude and leaves
+      # eviction ordering perfectly usable.
+      last-hit-granularity: P1D

@@ -66,6 +66,19 @@ public class FetchedJob {
     @ColumnDefault("false")
     private boolean isNormalized;
 
+    /**
+     * How far this job has got through location resolution.
+     *
+     * <p>Tracked separately from {@link #isNormalized} because the two passes
+     * are siblings rather than stages: location resolution reads
+     * {@code job_data->'location'} and needs nothing normalization produces, and
+     * the two fail in ways that call for opposite responses.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "location_status", nullable = false, length = 16)
+    @ColumnDefault("'PENDING'")
+    private LocationStatus locationStatus = LocationStatus.PENDING;
+
     @CreationTimestamp
     @Column(name = "fetched_at", nullable = false, updatable = false)
     private OffsetDateTime fetchedAt;
@@ -144,6 +157,16 @@ public class FetchedJob {
     /** @param jobData the raw provider payload to set */
     public void setJobData(AtsJobEntry jobData) {
         this.jobData = jobData;
+    }
+
+    /** @return how far this job has got through location resolution */
+    public LocationStatus getLocationStatus() {
+        return locationStatus;
+    }
+
+    /** @param locationStatus the location resolution state to set */
+    public void setLocationStatus(LocationStatus locationStatus) {
+        this.locationStatus = locationStatus;
     }
 
     /** @return {@code true} once {@link #getJobData()} has been normalized */

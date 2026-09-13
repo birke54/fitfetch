@@ -2,6 +2,7 @@ package org.example.fitfetch.fetching;
 
 import org.example.fitfetch.ats.AtsName;
 import org.example.fitfetch.domain.FetchedJob;
+import org.example.fitfetch.domain.LocationStatus;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -60,5 +61,28 @@ public interface FetchedJobsRepository extends JpaRepository<FetchedJob,Long> {
      * @return the matching page of fetched jobs
      */
     List<FetchedJob> findByIsNormalized(boolean isNormalized, Pageable pageable);
+
+    /**
+     * Finds fetched jobs by their location resolution state, one page at a time.
+     *
+     * <p>The location pass works in pages so it can dedupe labels within each
+     * one: a hundred jobs typically carry only a dozen distinct location strings,
+     * so resolving per page rather than per job is the difference between twelve
+     * model calls and a hundred.
+     *
+     * @param locationStatus the state to retrieve, usually
+     *                       {@link LocationStatus#PENDING}
+     * @param pageable       paging and sort specification
+     * @return the matching page of fetched jobs
+     */
+    List<FetchedJob> findByLocationStatus(LocationStatus locationStatus, Pageable pageable);
+
+    /**
+     * Counts jobs in a given location resolution state.
+     *
+     * @param locationStatus the state to count
+     * @return how many jobs are in that state
+     */
+    long countByLocationStatus(LocationStatus locationStatus);
 }
 
