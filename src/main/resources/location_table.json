@@ -4,7 +4,6 @@
   "entries": [
     {
       "raw": "New York, New York, USA",
-      "jobs": 91,
       "outputs": [
         {
           "raw": "New York, New York, USA",
@@ -16,7 +15,6 @@
     },
     {
       "raw": "Remote US",
-      "jobs": 90,
       "outputs": [
         {
           "raw": "Remote US",
@@ -28,7 +26,6 @@
     },
     {
       "raw": "Amsterdam",
-      "jobs": 63,
       "outputs": [
         {
           "raw": "Amsterdam",
@@ -40,7 +37,6 @@
     },
     {
       "raw": "Singapore",
-      "jobs": 63,
       "outputs": [
         {
           "raw": "Singapore",
@@ -52,7 +48,6 @@
     },
     {
       "raw": "Remote Canada",
-      "jobs": 63,
       "outputs": [
         {
           "raw": "Remote Canada",
@@ -64,7 +59,6 @@
     },
     {
       "raw": "United States",
-      "jobs": 56,
       "outputs": [
         {
           "raw": "United States",
@@ -76,7 +70,6 @@
     },
     {
       "raw": "San Francisco",
-      "jobs": 52,
       "outputs": [
         {
           "raw": "San Francisco",
@@ -88,7 +81,6 @@
     },
     {
       "raw": "Tokyo, Japan",
-      "jobs": 48,
       "outputs": [
         {
           "raw": "Tokyo, Japan",
@@ -100,7 +92,6 @@
     },
     {
       "raw": "Paris, France",
-      "jobs": 39,
       "outputs": [
         {
           "raw": "Paris, France",
@@ -112,7 +103,6 @@
     },
     {
       "raw": "Chicago",
-      "jobs": 36,
       "outputs": [
         {
           "raw": "Chicago",
@@ -124,7 +114,6 @@
     },
     {
       "raw": "Bengaluru",
-      "jobs": 33,
       "outputs": [
         {
           "raw": "Bengaluru",
@@ -136,7 +125,6 @@
     },
     {
       "raw": "Dublin",
-      "jobs": 33,
       "outputs": [
         {
           "raw": "Dublin",
@@ -148,7 +136,6 @@
     },
     {
       "raw": "London",
-      "jobs": 32,
       "outputs": [
         {
           "raw": "London",
@@ -160,7 +147,6 @@
     },
     {
       "raw": "New York, NY",
-      "jobs": 29,
       "outputs": [
         {
           "raw": "New York, NY",
@@ -172,7 +158,6 @@
     },
     {
       "raw": "New York",
-      "jobs": 28,
       "outputs": [
         {
           "raw": "New York",
@@ -184,7 +169,6 @@
     },
     {
       "raw": "Canada",
-      "jobs": 26,
       "outputs": [
         {
           "raw": "Canada",
@@ -196,7 +180,6 @@
     },
     {
       "raw": "Mexico City",
-      "jobs": 25,
       "outputs": [
         {
           "raw": "Mexico City",
@@ -208,7 +191,6 @@
     },
     {
       "raw": "N/A",
-      "jobs": 23,
       "outputs": [
         {
           "raw": "N/A",
@@ -220,7 +202,6 @@
     },
     {
       "raw": "Singapore, Singapore",
-      "jobs": 23,
       "outputs": [
         {
           "raw": "Singapore, Singapore",
@@ -232,7 +213,6 @@
     },
     {
       "raw": "Dublin, Ireland",
-      "jobs": 21,
       "outputs": [
         {
           "raw": "Dublin, Ireland",
@@ -244,7 +224,6 @@
     },
     {
       "raw": "Novato, California, United States",
-      "jobs": 21,
       "outputs": [
         {
           "raw": "Novato, California, United States",
@@ -256,7 +235,6 @@
     },
     {
       "raw": "Boston, Massachusetts, USA; New York, New York, USA",
-      "jobs": 21,
       "outputs": [
         {
           "raw": "Boston, Massachusetts, USA; New York, New York, USA",
@@ -274,7 +252,6 @@
     },
     {
       "raw": "Remote Poland",
-      "jobs": 20,
       "outputs": [
         {
           "raw": "Remote Poland",
@@ -286,7 +263,6 @@
     },
     {
       "raw": "Remote Spain",
-      "jobs": 19,
       "outputs": [
         {
           "raw": "Remote Spain",
@@ -298,7 +274,6 @@
     },
     {
       "raw": "Sao Paulo, Brazil",
-      "jobs": 18,
       "outputs": [
         {
           "raw": "Sao Paulo, Brazil",
@@ -310,7 +285,6 @@
     },
     {
       "raw": "Montréal, Quebec, Canada",
-      "jobs": 17,
       "outputs": [
         {
           "raw": "Montréal, Quebec, Canada",
@@ -322,7 +296,6 @@
     },
     {
       "raw": "United States, Remote",
-      "jobs": 17,
       "outputs": [
         {
           "raw": "United States, Remote",
@@ -334,7 +307,6 @@
     },
     {
       "raw": "Madrid, Spain",
-      "jobs": 15,
       "outputs": [
         {
           "raw": "Madrid, Spain",
@@ -346,7 +318,6 @@
     },
     {
       "raw": "Edinburgh, UK",
-      "jobs": 15,
       "outputs": [
         {
           "raw": "Edinburgh, UK",
@@ -358,7 +329,6 @@
     },
     {
       "raw": "US",
-      "jobs": 15,
       "outputs": [
         {
           "raw": "US",
@@ -370,7 +340,6 @@
     },
     {
       "raw": "Denver, Colorado, USA",
-      "jobs": 15,
       "outputs": [
         {
           "raw": "Denver, Colorado, USA",
@@ -382,7 +351,6 @@
     },
     {
       "raw": "Boston, Massachusetts, USA",
-      "jobs": 15,
       "outputs": [
         {
           "raw": "Boston, Massachusetts, USA",
@@ -394,7 +362,6 @@
     },
     {
       "raw": "Sydney, Australia",
-      "jobs": 14,
       "outputs": [
         {
           "raw": "Sydney, Australia",
@@ -406,7 +373,6 @@
     },
     {
       "raw": "Seoul, South Korea",
-      "jobs": 14,
       "outputs": [
         {
           "raw": "Seoul, South Korea",
@@ -418,7 +384,6 @@
     },
     {
       "raw": "Toronto",
-      "jobs": 14,
       "outputs": [
         {
           "raw": "Toronto",
@@ -430,7 +395,6 @@
     },
     {
       "raw": "Remote, USA",
-      "jobs": 14,
       "outputs": [
         {
           "raw": "Remote, USA",
@@ -442,7 +406,6 @@
     },
     {
       "raw": "Pune, India",
-      "jobs": 14,
       "outputs": [
         {
           "raw": "Pune, India",
@@ -454,7 +417,6 @@
     },
     {
       "raw": "London, United Kingdom",
-      "jobs": 13,
       "outputs": [
         {
           "raw": "London, United Kingdom",
@@ -466,7 +428,6 @@
     },
     {
       "raw": "Burnaby, British Columbia, Canada",
-      "jobs": 13,
       "outputs": [
         {
           "raw": "Burnaby, British Columbia, Canada",
@@ -478,7 +439,6 @@
     },
     {
       "raw": "Remote - USA",
-      "jobs": 11,
       "outputs": [
         {
           "raw": "Remote - USA",
@@ -490,7 +450,6 @@
     },
     {
       "raw": "San Francisco, CA",
-      "jobs": 11,
       "outputs": [
         {
           "raw": "San Francisco, CA",
@@ -502,7 +461,6 @@
     },
     {
       "raw": "State College, PA",
-      "jobs": 11,
       "outputs": [
         {
           "raw": "State College, PA",
@@ -514,7 +472,6 @@
     },
     {
       "raw": "Poland",
-      "jobs": 11,
       "outputs": [
         {
           "raw": "Poland",
@@ -526,7 +483,6 @@
     },
     {
       "raw": "US-Remote",
-      "jobs": 11,
       "outputs": [
         {
           "raw": "US-Remote",
@@ -538,7 +494,6 @@
     },
     {
       "raw": "Tokyo",
-      "jobs": 10,
       "outputs": [
         {
           "raw": "Tokyo",
@@ -550,7 +505,6 @@
     },
     {
       "raw": "Bangalore, India",
-      "jobs": 10,
       "outputs": [
         {
           "raw": "Bangalore, India",
@@ -562,7 +516,6 @@
     },
     {
       "raw": "Remote UK",
-      "jobs": 10,
       "outputs": [
         {
           "raw": "Remote UK",
@@ -574,7 +527,6 @@
     },
     {
       "raw": "Boston or Remote",
-      "jobs": 9,
       "outputs": [
         {
           "raw": "Boston or Remote",
@@ -592,7 +544,6 @@
     },
     {
       "raw": "Salt Lake City, UT",
-      "jobs": 9,
       "outputs": [
         {
           "raw": "Salt Lake City, UT",
@@ -604,7 +555,6 @@
     },
     {
       "raw": "London, UK",
-      "jobs": 9,
       "outputs": [
         {
           "raw": "London, UK",
@@ -616,7 +566,6 @@
     },
     {
       "raw": "Seattle",
-      "jobs": 9,
       "outputs": [
         {
           "raw": "Seattle",
@@ -628,7 +577,6 @@
     },
     {
       "raw": "Brazil",
-      "jobs": 8,
       "outputs": [
         {
           "raw": "Brazil",
@@ -640,7 +588,6 @@
     },
     {
       "raw": "Bengaluru, Karnataka, India",
-      "jobs": 8,
       "outputs": [
         {
           "raw": "Bengaluru, Karnataka, India",
@@ -652,7 +599,6 @@
     },
     {
       "raw": "State College, PA or Remote",
-      "jobs": 8,
       "outputs": [
         {
           "raw": "State College, PA or Remote",
@@ -670,7 +616,6 @@
     },
     {
       "raw": "San Francisco, California, USA",
-      "jobs": 8,
       "outputs": [
         {
           "raw": "San Francisco, California, USA",
@@ -682,7 +627,6 @@
     },
     {
       "raw": "Sydney",
-      "jobs": 7,
       "outputs": [
         {
           "raw": "Sydney",
@@ -694,7 +638,6 @@
     },
     {
       "raw": "Mexico City, Mexico",
-      "jobs": 7,
       "outputs": [
         {
           "raw": "Mexico City, Mexico",
@@ -706,7 +649,6 @@
     },
     {
       "raw": "Remote",
-      "jobs": 7,
       "outputs": [
         {
           "raw": "Remote",
@@ -718,7 +660,6 @@
     },
     {
       "raw": "Brighton, England, United Kingdom",
-      "jobs": 7,
       "outputs": [
         {
           "raw": "Brighton, England, United Kingdom",
@@ -730,7 +671,6 @@
     },
     {
       "raw": "Remote; State College, PA",
-      "jobs": 7,
       "outputs": [
         {
           "raw": "Remote; State College, PA",
@@ -748,7 +688,6 @@
     },
     {
       "raw": "Bangalore",
-      "jobs": 7,
       "outputs": [
         {
           "raw": "Bangalore",
@@ -760,7 +699,6 @@
     },
     {
       "raw": "Mexico",
-      "jobs": 6,
       "outputs": [
         {
           "raw": "Mexico",
@@ -772,7 +710,6 @@
     },
     {
       "raw": "San Francisco, United States",
-      "jobs": 6,
       "outputs": [
         {
           "raw": "San Francisco, United States",
@@ -784,7 +721,6 @@
     },
     {
       "raw": "San Mateo, California, United States",
-      "jobs": 6,
       "outputs": [
         {
           "raw": "San Mateo, California, United States",
@@ -796,7 +732,6 @@
     },
     {
       "raw": "Austin, Texas, United States",
-      "jobs": 6,
       "outputs": [
         {
           "raw": "Austin, Texas, United States",
@@ -808,7 +743,6 @@
     },
     {
       "raw": "LOCATION",
-      "jobs": 6,
       "outputs": [
         {
           "raw": "LOCATION",
@@ -820,7 +754,6 @@
     },
     {
       "raw": "San Francisco, Seattle",
-      "jobs": 6,
       "outputs": [
         {
           "raw": "San Francisco, Seattle",
@@ -838,7 +771,6 @@
     },
     {
       "raw": "Boston, Massachusetts, USA; Denver, Colorado, USA; New York, New York, USA; San Francisco, California, USA",
-      "jobs": 6,
       "outputs": [
         {
           "raw": "Boston, Massachusetts, USA; Denver, Colorado, USA; New York, New York, USA; San Francisco, California, USA",
@@ -868,7 +800,6 @@
     },
     {
       "raw": "Amsterdam, The Netherlands",
-      "jobs": 6,
       "outputs": [
         {
           "raw": "Amsterdam, The Netherlands",
@@ -880,7 +811,6 @@
     },
     {
       "raw": "China",
-      "jobs": 5,
       "outputs": [
         {
           "raw": "China",
@@ -892,7 +822,6 @@
     },
     {
       "raw": "USA",
-      "jobs": 5,
       "outputs": [
         {
           "raw": "USA",
@@ -904,7 +833,6 @@
     },
     {
       "raw": "San Francisco, California, United States",
-      "jobs": 5,
       "outputs": [
         {
           "raw": "San Francisco, California, United States",
@@ -916,7 +844,6 @@
     },
     {
       "raw": "Bangalore, Karnataka, India",
-      "jobs": 5,
       "outputs": [
         {
           "raw": "Bangalore, Karnataka, India",
@@ -928,7 +855,6 @@
     },
     {
       "raw": "Chicago, IL",
-      "jobs": 5,
       "outputs": [
         {
           "raw": "Chicago, IL",
@@ -940,7 +866,6 @@
     },
     {
       "raw": "South San Francisco, CA",
-      "jobs": 5,
       "outputs": [
         {
           "raw": "South San Francisco, CA",
@@ -952,7 +877,6 @@
     },
     {
       "raw": "Toronto, Canada",
-      "jobs": 5,
       "outputs": [
         {
           "raw": "Toronto, Canada",
@@ -964,7 +888,6 @@
     },
     {
       "raw": "Dublin, London",
-      "jobs": 5,
       "outputs": [
         {
           "raw": "Dublin, London",
@@ -982,7 +905,6 @@
     },
     {
       "raw": "US Remote",
-      "jobs": 5,
       "outputs": [
         {
           "raw": "US Remote",
@@ -994,7 +916,6 @@
     },
     {
       "raw": "US / Canada",
-      "jobs": 5,
       "outputs": [
         {
           "raw": "US / Canada",
@@ -1012,7 +933,6 @@
     },
     {
       "raw": "Amsterdam, The Netherlands; Dublin, Ireland",
-      "jobs": 5,
       "outputs": [
         {
           "raw": "Amsterdam, The Netherlands; Dublin, Ireland",
@@ -1030,7 +950,6 @@
     },
     {
       "raw": "São Paulo",
-      "jobs": 4,
       "outputs": [
         {
           "raw": "São Paulo",
@@ -1042,7 +961,6 @@
     },
     {
       "raw": "Sao Jose dos Campos",
-      "jobs": 4,
       "outputs": [
         {
           "raw": "Sao Jose dos Campos",
@@ -1054,7 +972,6 @@
     },
     {
       "raw": "Paris",
-      "jobs": 4,
       "outputs": [
         {
           "raw": "Paris",
@@ -1066,7 +983,6 @@
     },
     {
       "raw": "Berlin",
-      "jobs": 4,
       "outputs": [
         {
           "raw": "Berlin",
@@ -1078,7 +994,6 @@
     },
     {
       "raw": "Ireland",
-      "jobs": 4,
       "outputs": [
         {
           "raw": "Ireland",
@@ -1090,7 +1005,6 @@
     },
     {
       "raw": "Remote - US",
-      "jobs": 4,
       "outputs": [
         {
           "raw": "Remote - US",
@@ -1102,7 +1016,6 @@
     },
     {
       "raw": "London, England, United Kingdom",
-      "jobs": 4,
       "outputs": [
         {
           "raw": "London, England, United Kingdom",
@@ -1114,7 +1027,6 @@
     },
     {
       "raw": "Israel",
-      "jobs": 4,
       "outputs": [
         {
           "raw": "Israel",
@@ -1126,7 +1038,6 @@
     },
     {
       "raw": "NYC-Privy",
-      "jobs": 4,
       "outputs": [
         {
           "raw": "NYC-Privy",
@@ -1138,7 +1049,6 @@
     },
     {
       "raw": "Seattle, San Francisco",
-      "jobs": 4,
       "outputs": [
         {
           "raw": "Seattle, San Francisco",
@@ -1156,7 +1066,6 @@
     },
     {
       "raw": "London, Dublin",
-      "jobs": 4,
       "outputs": [
         {
           "raw": "London, Dublin",
@@ -1174,7 +1083,6 @@
     },
     {
       "raw": "Seattle, WA",
-      "jobs": 4,
       "outputs": [
         {
           "raw": "Seattle, WA",
@@ -1186,7 +1094,6 @@
     },
     {
       "raw": "NYC",
-      "jobs": 4,
       "outputs": [
         {
           "raw": "NYC",
@@ -1198,7 +1105,6 @@
     },
     {
       "raw": "New York, New York, USA; San Francisco, California, USA",
-      "jobs": 4,
       "outputs": [
         {
           "raw": "New York, New York, USA; San Francisco, California, USA",
@@ -1216,7 +1122,6 @@
     },
     {
       "raw": "Jakarta, Indonesia",
-      "jobs": 4,
       "outputs": [
         {
           "raw": "Jakarta, Indonesia",
@@ -1228,7 +1133,6 @@
     },
     {
       "raw": "Dublin, Ireland; Paris, France",
-      "jobs": 4,
       "outputs": [
         {
           "raw": "Dublin, Ireland; Paris, France",
@@ -1246,7 +1150,6 @@
     },
     {
       "raw": "District of Columbia, USA, Remote; Maryland, USA, Remote; Virginia, USA, Remote",
-      "jobs": 4,
       "outputs": [
         {
           "raw": "District of Columbia, USA, Remote; Maryland, USA, Remote; Virginia, USA, Remote",
@@ -1270,7 +1173,6 @@
     },
     {
       "raw": "Boston, Massachusetts, USA; Denver, Colorado, USA; New York, New York, USA",
-      "jobs": 4,
       "outputs": [
         {
           "raw": "Boston, Massachusetts, USA; Denver, Colorado, USA; New York, New York, USA",
@@ -1294,7 +1196,6 @@
     },
     {
       "raw": "Lisbon, Portugal",
-      "jobs": 4,
       "outputs": [
         {
           "raw": "Lisbon, Portugal",
@@ -1306,7 +1207,6 @@
     },
     {
       "raw": "Shanghai",
-      "jobs": 3,
       "outputs": [
         {
           "raw": "Shanghai",
@@ -1318,7 +1218,6 @@
     },
     {
       "raw": "Stockholm",
-      "jobs": 3,
       "outputs": [
         {
           "raw": "Stockholm",
@@ -1330,7 +1229,6 @@
     },
     {
       "raw": "Chicago; San Francisco",
-      "jobs": 3,
       "outputs": [
         {
           "raw": "Chicago; San Francisco",
@@ -1348,7 +1246,6 @@
     },
     {
       "raw": "Madrid",
-      "jobs": 3,
       "outputs": [
         {
           "raw": "Madrid",
@@ -1360,7 +1257,6 @@
     },
     {
       "raw": "New York; San Francisco",
-      "jobs": 3,
       "outputs": [
         {
           "raw": "New York; San Francisco",
@@ -1378,7 +1274,6 @@
     },
     {
       "raw": "Mumbai",
-      "jobs": 3,
       "outputs": [
         {
           "raw": "Mumbai",
@@ -1390,7 +1285,6 @@
     },
     {
       "raw": "Gurugram, India",
-      "jobs": 3,
       "outputs": [
         {
           "raw": "Gurugram, India",
@@ -1402,7 +1296,6 @@
     },
     {
       "raw": "Milan, Italy",
-      "jobs": 3,
       "outputs": [
         {
           "raw": "Milan, Italy",
@@ -1414,7 +1307,6 @@
     },
     {
       "raw": "California, United States",
-      "jobs": 3,
       "outputs": [
         {
           "raw": "California, United States",
@@ -1426,7 +1318,6 @@
     },
     {
       "raw": "New York, NY; Remote - US",
-      "jobs": 3,
       "outputs": [
         {
           "raw": "New York, NY; Remote - US",
@@ -1444,7 +1335,6 @@
     },
     {
       "raw": "San Francisco, CA; New York, NY",
-      "jobs": 3,
       "outputs": [
         {
           "raw": "San Francisco, CA; New York, NY",
@@ -1462,7 +1352,6 @@
     },
     {
       "raw": "Los Angeles, California, United States; Novato, California, United States",
-      "jobs": 3,
       "outputs": [
         {
           "raw": "Los Angeles, California, United States; Novato, California, United States",
@@ -1480,7 +1369,6 @@
     },
     {
       "raw": "Tokyo, Chiyoda, Japan",
-      "jobs": 3,
       "outputs": [
         {
           "raw": "Tokyo, Chiyoda, Japan",

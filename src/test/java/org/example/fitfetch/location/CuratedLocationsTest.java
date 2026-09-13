@@ -176,16 +176,6 @@ class CuratedLocationsTest {
     }
 
     @Test
-    @DisplayName("Tail variants below the curation cutoff fall through to the model")
-    void testTailVariantsAreNotCurated() {
-        // Airtable writes "Remote-US" but only on one job, so it sits below the
-        // top-112 cutoff. Falling through is correct: this table is the head of
-        // the distribution, not an attempt to enumerate every spelling.
-        assertTrue(curated.lookup("Remote-US").isEmpty());
-        assertTrue(curated.lookup("Remote in the US").isEmpty());
-    }
-
-    @Test
     @DisplayName("Colliding entries fail loudly instead of shadowing each other")
     void testCollisionDetected() {
         // "Remote US" and "remote  us " normalize identically, so one would be

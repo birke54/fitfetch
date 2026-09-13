@@ -19,13 +19,6 @@ import java.util.Optional;
  * Tier one of location resolution: a hand-curated exact-match table, held in
  * memory and consulted before anything that costs time or money.
  *
- * <p>The distribution of location strings is extremely head-heavy. Across 1,986
- * jobs from eleven Greenhouse boards there were 435 distinct labels, but 27 of
- * them covered half the jobs and 112 covered four fifths, while 59% of the
- * distinct labels appeared exactly once. Those are two different problems: a
- * small, stable head worth answering deterministically, and a long singleton
- * tail where a model earns its keep. This table is the head.
- *
  * <p>Curation also buys accuracy a model cannot match, because the entries
  * encode board context. {@code "Dublin"} means Ireland rather than Ohio here,
  * {@code "London"} means the United Kingdom rather than Ontario, and
@@ -74,6 +67,8 @@ public class CuratedLocations {
             bytes = in.readAllBytes();
         }
         this.byKey = index(new ObjectMapper().readTree(bytes), origin);
+        // TODO: Remove println statement
+        System.out.println("Curated location table found: " + this.byKey);
         LOGGER.info("Loaded {} curated location entries from {}", byKey.size(), tableJson.getFilename());
     }
 

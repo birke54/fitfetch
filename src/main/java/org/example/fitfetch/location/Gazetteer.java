@@ -10,9 +10,6 @@ import java.util.Set;
  * Resolves country, state and macro-region labels to stable codes, and rejects
  * labels that name no real place.
  *
- * <p>In an earlier design this was the parser. It is now three much smaller
- * jobs, because extraction moved to a model:
- *
  * <ol>
  *   <li><strong>Hallucination guard.</strong> A specifier typed as a country
  *       that resolves to no ISO code is rejected rather than geocoded, so a
@@ -43,8 +40,7 @@ public final class Gazetteer {
     private static final Map<String, String> COUNTRIES_BY_NAME = loadIsoCountries();
 
     /**
-     * Informal spellings the JDK does not supply. Every entry here was observed
-     * in live Greenhouse data, including the misspelling.
+     * Informal spellings the JDK does not supply.
      */
     private static final Map<String, String> COUNTRY_ALIASES = Map.ofEntries(
             Map.entry("us", US),
