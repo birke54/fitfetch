@@ -1,0 +1,1382 @@
+{
+  "version": 1,
+  "note": "Hand-curated exact-match table (tier 1). Keys are normalized from `raw` at load time.",
+  "entries": [
+    {
+      "raw": "New York, New York, USA",
+      "outputs": [
+        {
+          "raw": "New York, New York, USA",
+          "resolution": "PLACE",
+          "geocodeQuery": "New York, NY, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Remote US",
+      "outputs": [
+        {
+          "raw": "Remote US",
+          "resolution": "REMOTE_IN_US",
+          "geocodeQuery": "__ORIGIN__",
+          "regionCode": "US"
+        }
+      ]
+    },
+    {
+      "raw": "Amsterdam",
+      "outputs": [
+        {
+          "raw": "Amsterdam",
+          "resolution": "PLACE",
+          "geocodeQuery": "Amsterdam, Netherlands",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Singapore",
+      "outputs": [
+        {
+          "raw": "Singapore",
+          "resolution": "PLACE",
+          "geocodeQuery": "Singapore",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Remote Canada",
+      "outputs": [
+        {
+          "raw": "Remote Canada",
+          "resolution": "REMOTE_ELSEWHERE",
+          "geocodeQuery": "Canada",
+          "regionCode": "CA"
+        }
+      ]
+    },
+    {
+      "raw": "United States",
+      "outputs": [
+        {
+          "raw": "United States",
+          "resolution": "COUNTRY_US",
+          "geocodeQuery": "__ORIGIN__",
+          "regionCode": "US"
+        }
+      ]
+    },
+    {
+      "raw": "San Francisco",
+      "outputs": [
+        {
+          "raw": "San Francisco",
+          "resolution": "PLACE",
+          "geocodeQuery": "San Francisco, CA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Tokyo, Japan",
+      "outputs": [
+        {
+          "raw": "Tokyo, Japan",
+          "resolution": "PLACE",
+          "geocodeQuery": "Tokyo, Japan",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Paris, France",
+      "outputs": [
+        {
+          "raw": "Paris, France",
+          "resolution": "PLACE",
+          "geocodeQuery": "Paris, France",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Chicago",
+      "outputs": [
+        {
+          "raw": "Chicago",
+          "resolution": "PLACE",
+          "geocodeQuery": "Chicago, IL, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Bengaluru",
+      "outputs": [
+        {
+          "raw": "Bengaluru",
+          "resolution": "PLACE",
+          "geocodeQuery": "Bengaluru, India",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Dublin",
+      "outputs": [
+        {
+          "raw": "Dublin",
+          "resolution": "PLACE",
+          "geocodeQuery": "Dublin, Ireland",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "London",
+      "outputs": [
+        {
+          "raw": "London",
+          "resolution": "PLACE",
+          "geocodeQuery": "London, United Kingdom",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "New York, NY",
+      "outputs": [
+        {
+          "raw": "New York, NY",
+          "resolution": "PLACE",
+          "geocodeQuery": "New York, NY, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "New York",
+      "outputs": [
+        {
+          "raw": "New York",
+          "resolution": "PLACE",
+          "geocodeQuery": "New York, NY, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Canada",
+      "outputs": [
+        {
+          "raw": "Canada",
+          "resolution": "COUNTRY_OTHER",
+          "geocodeQuery": "Canada",
+          "regionCode": "CA"
+        }
+      ]
+    },
+    {
+      "raw": "Mexico City",
+      "outputs": [
+        {
+          "raw": "Mexico City",
+          "resolution": "PLACE",
+          "geocodeQuery": "Mexico City, Mexico",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "N/A",
+      "outputs": [
+        {
+          "raw": "N/A",
+          "resolution": "EMPTY_DEFAULT",
+          "geocodeQuery": "__ORIGIN__",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Singapore, Singapore",
+      "outputs": [
+        {
+          "raw": "Singapore, Singapore",
+          "resolution": "PLACE",
+          "geocodeQuery": "Singapore",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Dublin, Ireland",
+      "outputs": [
+        {
+          "raw": "Dublin, Ireland",
+          "resolution": "PLACE",
+          "geocodeQuery": "Dublin, Ireland",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Novato, California, United States",
+      "outputs": [
+        {
+          "raw": "Novato, California, United States",
+          "resolution": "PLACE",
+          "geocodeQuery": "Novato, CA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Boston, Massachusetts, USA; New York, New York, USA",
+      "outputs": [
+        {
+          "raw": "Boston, Massachusetts, USA; New York, New York, USA",
+          "resolution": "PLACE",
+          "geocodeQuery": "Boston, MA, USA",
+          "regionCode": null
+        },
+        {
+          "raw": "Boston, Massachusetts, USA; New York, New York, USA",
+          "resolution": "PLACE",
+          "geocodeQuery": "New York, NY, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Remote Poland",
+      "outputs": [
+        {
+          "raw": "Remote Poland",
+          "resolution": "REMOTE_ELSEWHERE",
+          "geocodeQuery": "Poland",
+          "regionCode": "PL"
+        }
+      ]
+    },
+    {
+      "raw": "Remote Spain",
+      "outputs": [
+        {
+          "raw": "Remote Spain",
+          "resolution": "REMOTE_ELSEWHERE",
+          "geocodeQuery": "Spain",
+          "regionCode": "ES"
+        }
+      ]
+    },
+    {
+      "raw": "Sao Paulo, Brazil",
+      "outputs": [
+        {
+          "raw": "Sao Paulo, Brazil",
+          "resolution": "PLACE",
+          "geocodeQuery": "São Paulo, Brazil",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Montréal, Quebec, Canada",
+      "outputs": [
+        {
+          "raw": "Montréal, Quebec, Canada",
+          "resolution": "PLACE",
+          "geocodeQuery": "Montréal, QC, Canada",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "United States, Remote",
+      "outputs": [
+        {
+          "raw": "United States, Remote",
+          "resolution": "REMOTE_IN_US",
+          "geocodeQuery": "__ORIGIN__",
+          "regionCode": "US"
+        }
+      ]
+    },
+    {
+      "raw": "Madrid, Spain",
+      "outputs": [
+        {
+          "raw": "Madrid, Spain",
+          "resolution": "PLACE",
+          "geocodeQuery": "Madrid, Spain",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Edinburgh, UK",
+      "outputs": [
+        {
+          "raw": "Edinburgh, UK",
+          "resolution": "PLACE",
+          "geocodeQuery": "Edinburgh, United Kingdom",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "US",
+      "outputs": [
+        {
+          "raw": "US",
+          "resolution": "COUNTRY_US",
+          "geocodeQuery": "__ORIGIN__",
+          "regionCode": "US"
+        }
+      ]
+    },
+    {
+      "raw": "Denver, Colorado, USA",
+      "outputs": [
+        {
+          "raw": "Denver, Colorado, USA",
+          "resolution": "PLACE",
+          "geocodeQuery": "Denver, CO, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Boston, Massachusetts, USA",
+      "outputs": [
+        {
+          "raw": "Boston, Massachusetts, USA",
+          "resolution": "PLACE",
+          "geocodeQuery": "Boston, MA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Sydney, Australia",
+      "outputs": [
+        {
+          "raw": "Sydney, Australia",
+          "resolution": "PLACE",
+          "geocodeQuery": "Sydney, NSW, Australia",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Seoul, South Korea",
+      "outputs": [
+        {
+          "raw": "Seoul, South Korea",
+          "resolution": "PLACE",
+          "geocodeQuery": "Seoul, South Korea",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Toronto",
+      "outputs": [
+        {
+          "raw": "Toronto",
+          "resolution": "PLACE",
+          "geocodeQuery": "Toronto, ON, Canada",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Remote, USA",
+      "outputs": [
+        {
+          "raw": "Remote, USA",
+          "resolution": "REMOTE_IN_US",
+          "geocodeQuery": "__ORIGIN__",
+          "regionCode": "US"
+        }
+      ]
+    },
+    {
+      "raw": "Pune, India",
+      "outputs": [
+        {
+          "raw": "Pune, India",
+          "resolution": "PLACE",
+          "geocodeQuery": "Pune, India",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "London, United Kingdom",
+      "outputs": [
+        {
+          "raw": "London, United Kingdom",
+          "resolution": "PLACE",
+          "geocodeQuery": "London, United Kingdom",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Burnaby, British Columbia, Canada",
+      "outputs": [
+        {
+          "raw": "Burnaby, British Columbia, Canada",
+          "resolution": "PLACE",
+          "geocodeQuery": "Burnaby, BC, Canada",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Remote - USA",
+      "outputs": [
+        {
+          "raw": "Remote - USA",
+          "resolution": "REMOTE_IN_US",
+          "geocodeQuery": "__ORIGIN__",
+          "regionCode": "US"
+        }
+      ]
+    },
+    {
+      "raw": "San Francisco, CA",
+      "outputs": [
+        {
+          "raw": "San Francisco, CA",
+          "resolution": "PLACE",
+          "geocodeQuery": "San Francisco, CA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "State College, PA",
+      "outputs": [
+        {
+          "raw": "State College, PA",
+          "resolution": "PLACE",
+          "geocodeQuery": "State College, PA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Poland",
+      "outputs": [
+        {
+          "raw": "Poland",
+          "resolution": "COUNTRY_OTHER",
+          "geocodeQuery": "Poland",
+          "regionCode": "PL"
+        }
+      ]
+    },
+    {
+      "raw": "US-Remote",
+      "outputs": [
+        {
+          "raw": "US-Remote",
+          "resolution": "REMOTE_IN_US",
+          "geocodeQuery": "__ORIGIN__",
+          "regionCode": "US"
+        }
+      ]
+    },
+    {
+      "raw": "Tokyo",
+      "outputs": [
+        {
+          "raw": "Tokyo",
+          "resolution": "PLACE",
+          "geocodeQuery": "Tokyo, Japan",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Bangalore, India",
+      "outputs": [
+        {
+          "raw": "Bangalore, India",
+          "resolution": "PLACE",
+          "geocodeQuery": "Bengaluru, India",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Remote UK",
+      "outputs": [
+        {
+          "raw": "Remote UK",
+          "resolution": "REMOTE_ELSEWHERE",
+          "geocodeQuery": "United Kingdom",
+          "regionCode": "GB"
+        }
+      ]
+    },
+    {
+      "raw": "Boston or Remote",
+      "outputs": [
+        {
+          "raw": "Boston or Remote",
+          "resolution": "PLACE",
+          "geocodeQuery": "Boston, MA, USA",
+          "regionCode": null
+        },
+        {
+          "raw": "Boston or Remote",
+          "resolution": "REMOTE_BARE",
+          "geocodeQuery": "__ORIGIN__",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Salt Lake City, UT",
+      "outputs": [
+        {
+          "raw": "Salt Lake City, UT",
+          "resolution": "PLACE",
+          "geocodeQuery": "Salt Lake City, UT, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "London, UK",
+      "outputs": [
+        {
+          "raw": "London, UK",
+          "resolution": "PLACE",
+          "geocodeQuery": "London, United Kingdom",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Seattle",
+      "outputs": [
+        {
+          "raw": "Seattle",
+          "resolution": "PLACE",
+          "geocodeQuery": "Seattle, WA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Brazil",
+      "outputs": [
+        {
+          "raw": "Brazil",
+          "resolution": "COUNTRY_OTHER",
+          "geocodeQuery": "Brazil",
+          "regionCode": "BR"
+        }
+      ]
+    },
+    {
+      "raw": "Bengaluru, Karnataka, India",
+      "outputs": [
+        {
+          "raw": "Bengaluru, Karnataka, India",
+          "resolution": "PLACE",
+          "geocodeQuery": "Bengaluru, Karnataka, India",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "State College, PA or Remote",
+      "outputs": [
+        {
+          "raw": "State College, PA or Remote",
+          "resolution": "PLACE",
+          "geocodeQuery": "State College, PA, USA",
+          "regionCode": null
+        },
+        {
+          "raw": "State College, PA or Remote",
+          "resolution": "REMOTE_BARE",
+          "geocodeQuery": "__ORIGIN__",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "San Francisco, California, USA",
+      "outputs": [
+        {
+          "raw": "San Francisco, California, USA",
+          "resolution": "PLACE",
+          "geocodeQuery": "San Francisco, CA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Sydney",
+      "outputs": [
+        {
+          "raw": "Sydney",
+          "resolution": "PLACE",
+          "geocodeQuery": "Sydney, NSW, Australia",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Mexico City, Mexico",
+      "outputs": [
+        {
+          "raw": "Mexico City, Mexico",
+          "resolution": "PLACE",
+          "geocodeQuery": "Mexico City, Mexico",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Remote",
+      "outputs": [
+        {
+          "raw": "Remote",
+          "resolution": "REMOTE_BARE",
+          "geocodeQuery": "__ORIGIN__",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Brighton, England, United Kingdom",
+      "outputs": [
+        {
+          "raw": "Brighton, England, United Kingdom",
+          "resolution": "PLACE",
+          "geocodeQuery": "Brighton, England, United Kingdom",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Remote; State College, PA",
+      "outputs": [
+        {
+          "raw": "Remote; State College, PA",
+          "resolution": "REMOTE_BARE",
+          "geocodeQuery": "__ORIGIN__",
+          "regionCode": null
+        },
+        {
+          "raw": "Remote; State College, PA",
+          "resolution": "PLACE",
+          "geocodeQuery": "State College, PA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Bangalore",
+      "outputs": [
+        {
+          "raw": "Bangalore",
+          "resolution": "PLACE",
+          "geocodeQuery": "Bengaluru, India",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Mexico",
+      "outputs": [
+        {
+          "raw": "Mexico",
+          "resolution": "COUNTRY_OTHER",
+          "geocodeQuery": "Mexico",
+          "regionCode": "MX"
+        }
+      ]
+    },
+    {
+      "raw": "San Francisco, United States",
+      "outputs": [
+        {
+          "raw": "San Francisco, United States",
+          "resolution": "PLACE",
+          "geocodeQuery": "San Francisco, CA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "San Mateo, California, United States",
+      "outputs": [
+        {
+          "raw": "San Mateo, California, United States",
+          "resolution": "PLACE",
+          "geocodeQuery": "San Mateo, CA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Austin, Texas, United States",
+      "outputs": [
+        {
+          "raw": "Austin, Texas, United States",
+          "resolution": "PLACE",
+          "geocodeQuery": "Austin, TX, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "LOCATION",
+      "outputs": [
+        {
+          "raw": "LOCATION",
+          "resolution": "EMPTY_DEFAULT",
+          "geocodeQuery": "__ORIGIN__",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "San Francisco, Seattle",
+      "outputs": [
+        {
+          "raw": "San Francisco, Seattle",
+          "resolution": "PLACE",
+          "geocodeQuery": "San Francisco, CA, USA",
+          "regionCode": null
+        },
+        {
+          "raw": "San Francisco, Seattle",
+          "resolution": "PLACE",
+          "geocodeQuery": "Seattle, WA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Boston, Massachusetts, USA; Denver, Colorado, USA; New York, New York, USA; San Francisco, California, USA",
+      "outputs": [
+        {
+          "raw": "Boston, Massachusetts, USA; Denver, Colorado, USA; New York, New York, USA; San Francisco, California, USA",
+          "resolution": "PLACE",
+          "geocodeQuery": "Boston, MA, USA",
+          "regionCode": null
+        },
+        {
+          "raw": "Boston, Massachusetts, USA; Denver, Colorado, USA; New York, New York, USA; San Francisco, California, USA",
+          "resolution": "PLACE",
+          "geocodeQuery": "Denver, CO, USA",
+          "regionCode": null
+        },
+        {
+          "raw": "Boston, Massachusetts, USA; Denver, Colorado, USA; New York, New York, USA; San Francisco, California, USA",
+          "resolution": "PLACE",
+          "geocodeQuery": "New York, NY, USA",
+          "regionCode": null
+        },
+        {
+          "raw": "Boston, Massachusetts, USA; Denver, Colorado, USA; New York, New York, USA; San Francisco, California, USA",
+          "resolution": "PLACE",
+          "geocodeQuery": "San Francisco, CA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Amsterdam, The Netherlands",
+      "outputs": [
+        {
+          "raw": "Amsterdam, The Netherlands",
+          "resolution": "PLACE",
+          "geocodeQuery": "Amsterdam, Netherlands",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "China",
+      "outputs": [
+        {
+          "raw": "China",
+          "resolution": "COUNTRY_OTHER",
+          "geocodeQuery": "China",
+          "regionCode": "CN"
+        }
+      ]
+    },
+    {
+      "raw": "USA",
+      "outputs": [
+        {
+          "raw": "USA",
+          "resolution": "COUNTRY_US",
+          "geocodeQuery": "__ORIGIN__",
+          "regionCode": "US"
+        }
+      ]
+    },
+    {
+      "raw": "San Francisco, California, United States",
+      "outputs": [
+        {
+          "raw": "San Francisco, California, United States",
+          "resolution": "PLACE",
+          "geocodeQuery": "San Francisco, CA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Bangalore, Karnataka, India",
+      "outputs": [
+        {
+          "raw": "Bangalore, Karnataka, India",
+          "resolution": "PLACE",
+          "geocodeQuery": "Bengaluru, Karnataka, India",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Chicago, IL",
+      "outputs": [
+        {
+          "raw": "Chicago, IL",
+          "resolution": "PLACE",
+          "geocodeQuery": "Chicago, IL, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "South San Francisco, CA",
+      "outputs": [
+        {
+          "raw": "South San Francisco, CA",
+          "resolution": "PLACE",
+          "geocodeQuery": "South San Francisco, CA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Toronto, Canada",
+      "outputs": [
+        {
+          "raw": "Toronto, Canada",
+          "resolution": "PLACE",
+          "geocodeQuery": "Toronto, ON, Canada",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Dublin, London",
+      "outputs": [
+        {
+          "raw": "Dublin, London",
+          "resolution": "PLACE",
+          "geocodeQuery": "Dublin, Ireland",
+          "regionCode": null
+        },
+        {
+          "raw": "Dublin, London",
+          "resolution": "PLACE",
+          "geocodeQuery": "London, United Kingdom",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "US Remote",
+      "outputs": [
+        {
+          "raw": "US Remote",
+          "resolution": "REMOTE_IN_US",
+          "geocodeQuery": "__ORIGIN__",
+          "regionCode": "US"
+        }
+      ]
+    },
+    {
+      "raw": "US / Canada",
+      "outputs": [
+        {
+          "raw": "US / Canada",
+          "resolution": "COUNTRY_US",
+          "geocodeQuery": "__ORIGIN__",
+          "regionCode": "US"
+        },
+        {
+          "raw": "US / Canada",
+          "resolution": "COUNTRY_OTHER",
+          "geocodeQuery": "Canada",
+          "regionCode": "CA"
+        }
+      ]
+    },
+    {
+      "raw": "Amsterdam, The Netherlands; Dublin, Ireland",
+      "outputs": [
+        {
+          "raw": "Amsterdam, The Netherlands; Dublin, Ireland",
+          "resolution": "PLACE",
+          "geocodeQuery": "Amsterdam, Netherlands",
+          "regionCode": null
+        },
+        {
+          "raw": "Amsterdam, The Netherlands; Dublin, Ireland",
+          "resolution": "PLACE",
+          "geocodeQuery": "Dublin, Ireland",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "São Paulo",
+      "outputs": [
+        {
+          "raw": "São Paulo",
+          "resolution": "PLACE",
+          "geocodeQuery": "São Paulo, Brazil",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Sao Jose dos Campos",
+      "outputs": [
+        {
+          "raw": "Sao Jose dos Campos",
+          "resolution": "PLACE",
+          "geocodeQuery": "São José dos Campos, Brazil",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Paris",
+      "outputs": [
+        {
+          "raw": "Paris",
+          "resolution": "PLACE",
+          "geocodeQuery": "Paris, France",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Berlin",
+      "outputs": [
+        {
+          "raw": "Berlin",
+          "resolution": "PLACE",
+          "geocodeQuery": "Berlin, Germany",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Ireland",
+      "outputs": [
+        {
+          "raw": "Ireland",
+          "resolution": "COUNTRY_OTHER",
+          "geocodeQuery": "Ireland",
+          "regionCode": "IE"
+        }
+      ]
+    },
+    {
+      "raw": "Remote - US",
+      "outputs": [
+        {
+          "raw": "Remote - US",
+          "resolution": "REMOTE_IN_US",
+          "geocodeQuery": "__ORIGIN__",
+          "regionCode": "US"
+        }
+      ]
+    },
+    {
+      "raw": "London, England, United Kingdom",
+      "outputs": [
+        {
+          "raw": "London, England, United Kingdom",
+          "resolution": "PLACE",
+          "geocodeQuery": "London, England, United Kingdom",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Israel",
+      "outputs": [
+        {
+          "raw": "Israel",
+          "resolution": "COUNTRY_OTHER",
+          "geocodeQuery": "Israel",
+          "regionCode": "IL"
+        }
+      ]
+    },
+    {
+      "raw": "NYC-Privy",
+      "outputs": [
+        {
+          "raw": "NYC-Privy",
+          "resolution": "PLACE",
+          "geocodeQuery": "New York, NY, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Seattle, San Francisco",
+      "outputs": [
+        {
+          "raw": "Seattle, San Francisco",
+          "resolution": "PLACE",
+          "geocodeQuery": "Seattle, WA, USA",
+          "regionCode": null
+        },
+        {
+          "raw": "Seattle, San Francisco",
+          "resolution": "PLACE",
+          "geocodeQuery": "San Francisco, CA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "London, Dublin",
+      "outputs": [
+        {
+          "raw": "London, Dublin",
+          "resolution": "PLACE",
+          "geocodeQuery": "London, United Kingdom",
+          "regionCode": null
+        },
+        {
+          "raw": "London, Dublin",
+          "resolution": "PLACE",
+          "geocodeQuery": "Dublin, Ireland",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Seattle, WA",
+      "outputs": [
+        {
+          "raw": "Seattle, WA",
+          "resolution": "PLACE",
+          "geocodeQuery": "Seattle, WA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "NYC",
+      "outputs": [
+        {
+          "raw": "NYC",
+          "resolution": "PLACE",
+          "geocodeQuery": "New York, NY, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "New York, New York, USA; San Francisco, California, USA",
+      "outputs": [
+        {
+          "raw": "New York, New York, USA; San Francisco, California, USA",
+          "resolution": "PLACE",
+          "geocodeQuery": "New York, NY, USA",
+          "regionCode": null
+        },
+        {
+          "raw": "New York, New York, USA; San Francisco, California, USA",
+          "resolution": "PLACE",
+          "geocodeQuery": "San Francisco, CA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Jakarta, Indonesia",
+      "outputs": [
+        {
+          "raw": "Jakarta, Indonesia",
+          "resolution": "PLACE",
+          "geocodeQuery": "Jakarta, Indonesia",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Dublin, Ireland; Paris, France",
+      "outputs": [
+        {
+          "raw": "Dublin, Ireland; Paris, France",
+          "resolution": "PLACE",
+          "geocodeQuery": "Dublin, Ireland",
+          "regionCode": null
+        },
+        {
+          "raw": "Dublin, Ireland; Paris, France",
+          "resolution": "PLACE",
+          "geocodeQuery": "Paris, France",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "District of Columbia, USA, Remote; Maryland, USA, Remote; Virginia, USA, Remote",
+      "outputs": [
+        {
+          "raw": "District of Columbia, USA, Remote; Maryland, USA, Remote; Virginia, USA, Remote",
+          "resolution": "REMOTE_ELSEWHERE",
+          "geocodeQuery": "District of Columbia, USA",
+          "regionCode": "US-DC"
+        },
+        {
+          "raw": "District of Columbia, USA, Remote; Maryland, USA, Remote; Virginia, USA, Remote",
+          "resolution": "REMOTE_ELSEWHERE",
+          "geocodeQuery": "Maryland, USA",
+          "regionCode": "US-MD"
+        },
+        {
+          "raw": "District of Columbia, USA, Remote; Maryland, USA, Remote; Virginia, USA, Remote",
+          "resolution": "REMOTE_ELSEWHERE",
+          "geocodeQuery": "Virginia, USA",
+          "regionCode": "US-VA"
+        }
+      ]
+    },
+    {
+      "raw": "Boston, Massachusetts, USA; Denver, Colorado, USA; New York, New York, USA",
+      "outputs": [
+        {
+          "raw": "Boston, Massachusetts, USA; Denver, Colorado, USA; New York, New York, USA",
+          "resolution": "PLACE",
+          "geocodeQuery": "Boston, MA, USA",
+          "regionCode": null
+        },
+        {
+          "raw": "Boston, Massachusetts, USA; Denver, Colorado, USA; New York, New York, USA",
+          "resolution": "PLACE",
+          "geocodeQuery": "Denver, CO, USA",
+          "regionCode": null
+        },
+        {
+          "raw": "Boston, Massachusetts, USA; Denver, Colorado, USA; New York, New York, USA",
+          "resolution": "PLACE",
+          "geocodeQuery": "New York, NY, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Lisbon, Portugal",
+      "outputs": [
+        {
+          "raw": "Lisbon, Portugal",
+          "resolution": "PLACE",
+          "geocodeQuery": "Lisbon, Portugal",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Shanghai",
+      "outputs": [
+        {
+          "raw": "Shanghai",
+          "resolution": "PLACE",
+          "geocodeQuery": "Shanghai, China",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Stockholm",
+      "outputs": [
+        {
+          "raw": "Stockholm",
+          "resolution": "PLACE",
+          "geocodeQuery": "Stockholm, Sweden",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Chicago; San Francisco",
+      "outputs": [
+        {
+          "raw": "Chicago; San Francisco",
+          "resolution": "PLACE",
+          "geocodeQuery": "Chicago, IL, USA",
+          "regionCode": null
+        },
+        {
+          "raw": "Chicago; San Francisco",
+          "resolution": "PLACE",
+          "geocodeQuery": "San Francisco, CA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Madrid",
+      "outputs": [
+        {
+          "raw": "Madrid",
+          "resolution": "PLACE",
+          "geocodeQuery": "Madrid, Spain",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "New York; San Francisco",
+      "outputs": [
+        {
+          "raw": "New York; San Francisco",
+          "resolution": "PLACE",
+          "geocodeQuery": "New York, NY, USA",
+          "regionCode": null
+        },
+        {
+          "raw": "New York; San Francisco",
+          "resolution": "PLACE",
+          "geocodeQuery": "San Francisco, CA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Mumbai",
+      "outputs": [
+        {
+          "raw": "Mumbai",
+          "resolution": "PLACE",
+          "geocodeQuery": "Mumbai, India",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Gurugram, India",
+      "outputs": [
+        {
+          "raw": "Gurugram, India",
+          "resolution": "PLACE",
+          "geocodeQuery": "Gurugram, India",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Milan, Italy",
+      "outputs": [
+        {
+          "raw": "Milan, Italy",
+          "resolution": "PLACE",
+          "geocodeQuery": "Milan, Italy",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "California, United States",
+      "outputs": [
+        {
+          "raw": "California, United States",
+          "resolution": "STATE_OTHER",
+          "geocodeQuery": "California, USA",
+          "regionCode": "US-CA"
+        }
+      ]
+    },
+    {
+      "raw": "New York, NY; Remote - US",
+      "outputs": [
+        {
+          "raw": "New York, NY; Remote - US",
+          "resolution": "PLACE",
+          "geocodeQuery": "New York, NY, USA",
+          "regionCode": null
+        },
+        {
+          "raw": "New York, NY; Remote - US",
+          "resolution": "REMOTE_IN_US",
+          "geocodeQuery": "__ORIGIN__",
+          "regionCode": "US"
+        }
+      ]
+    },
+    {
+      "raw": "San Francisco, CA; New York, NY",
+      "outputs": [
+        {
+          "raw": "San Francisco, CA; New York, NY",
+          "resolution": "PLACE",
+          "geocodeQuery": "San Francisco, CA, USA",
+          "regionCode": null
+        },
+        {
+          "raw": "San Francisco, CA; New York, NY",
+          "resolution": "PLACE",
+          "geocodeQuery": "New York, NY, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Los Angeles, California, United States; Novato, California, United States",
+      "outputs": [
+        {
+          "raw": "Los Angeles, California, United States; Novato, California, United States",
+          "resolution": "PLACE",
+          "geocodeQuery": "Los Angeles, CA, USA",
+          "regionCode": null
+        },
+        {
+          "raw": "Los Angeles, California, United States; Novato, California, United States",
+          "resolution": "PLACE",
+          "geocodeQuery": "Novato, CA, USA",
+          "regionCode": null
+        }
+      ]
+    },
+    {
+      "raw": "Tokyo, Chiyoda, Japan",
+      "outputs": [
+        {
+          "raw": "Tokyo, Chiyoda, Japan",
+          "resolution": "PLACE",
+          "geocodeQuery": "Tokyo, Chiyoda, Japan",
+          "regionCode": null
+        }
+      ]
+    }
+  ]
+}
