@@ -449,6 +449,95 @@ class LocationServiceTest {
         verify(jobLocations, never()).saveAll(anyList());
     }
 
+    // ------------------------------------------------------------- strikes
+
+    private void runs(int count) {
+        for (int i = 0; i < count; i++) {
+            service.resolvePendingLocations();
+        }
+    }
+
+    @Test
+    @DisplayName("A label that keeps failing is deferred after the strike limit, and the rest of the page is written")
+    void testRepeatFailureStrikesOut() {
+        // Without this, a label that fails on its own (not an outage) would abort
+        // the same page on every run and the cursor would never move past it.
+        FetchedJob poison = job("Poison");
+        FetchedJob fine = job("Remote US");
+        pageContains(poison, fine);
+        when(resolver.resolve("Poison")).thenThrow(new LocationExtractionException("HTTP 500"));
+        when(resolver.resolve("Remote US"))
+                .thenReturn(List.of(resolved("Remote US", Resolution.REMOTE_IN_US, POINT)));
+
+        runs(LocationService.STRIKE_LIMIT - 1);
+        verify(jobLocations, never()).saveAll(anyList());
+
+        service.resolvePendingLocations();
+
+        verify(fetchedJobs).saveAll(List.of(fine));
+        assertEquals(LocationStatus.RESOLVED, fine.getLocationStatus());
+        assertEquals(LocationStatus.PENDING, poison.getLocationStatus(), "deferred, not failed: it may be an outage");
+    }
+
+    @Test
+    @DisplayName("Only one struck-out label is retried per run, so an outage costs at most a few calls")
+    void testOneStruckOutLabelProbedPerRun() {
+        FetchedJob first = job("First");
+        FetchedJob second = job("Second");
+        FetchedJob fine = job("Remote US");
+        pageContains(first, second, fine);
+        when(resolver.resolve("First")).thenThrow(new LocationExtractionException("HTTP 500"));
+        when(resolver.resolve("Second")).thenThrow(new LocationExtractionException("HTTP 500"));
+        when(resolver.resolve("Remote US"))
+                .thenReturn(List.of(resolved("Remote US", Resolution.REMOTE_IN_US, POINT)));
+
+        // First strikes out on run 3; Second then collects its three strikes on
+        // runs 3 to 5, while First is retried once per run.
+        runs(2 * LocationService.STRIKE_LIMIT - 1);
+        clearInvocations(resolver);
+
+        service.resolvePendingLocations();
+
+        verify(resolver).resolve("First");
+        verify(resolver, never()).resolve("Second");
+        verify(resolver).resolve("Remote US");
+    }
+
+    @Test
+    @DisplayName("A struck-out label that resolves again is given a clean slate")
+    void testSuccessClearsStrikes() {
+        FetchedJob flaky = job("Flaky");
+        pageContains(flaky);
+        when(resolver.resolve("Flaky"))
+                .thenThrow(new LocationExtractionException("HTTP 500"))
+                .thenThrow(new LocationExtractionException("HTTP 500"))
+                .thenThrow(new LocationExtractionException("HTTP 500"))
+                .thenReturn(List.of(resolved("Flaky", Resolution.PLACE, POINT)))
+                .thenThrow(new LocationExtractionException("HTTP 500"));
+
+        runs(LocationService.STRIKE_LIMIT + 1);
+        verify(jobLocations).saveAll(anyList());
+        clearInvocations(jobLocations);
+
+        service.resolvePendingLocations();
+
+        // One failure after the success aborts the page again, as for any label.
+        verify(jobLocations, never()).saveAll(anyList());
+    }
+
+    @Test
+    @DisplayName("A denied geocoding key never strikes a label out, since it fails every label")
+    void testFatalGeocodingFailureNeverStrikesOut() {
+        FetchedJob job = job("Remote US");
+        pageContains(job);
+        when(resolver.resolve(anyString())).thenThrow(new GeocodingException("request denied", true));
+
+        runs(LocationService.STRIKE_LIMIT + 2);
+
+        verify(fetchedJobs, never()).saveAll(anyList());
+        verify(resolver, times(LocationService.STRIKE_LIMIT + 2)).resolve("Remote US");
+    }
+
     @Test
     @DisplayName("Resolution failure on one label abandons the page, including labels already done")
     void testOneFailureAbandonsWholePage() {
