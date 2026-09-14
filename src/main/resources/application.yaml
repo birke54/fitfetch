@@ -32,7 +32,7 @@ management:
       application: ${spring.application.name}
 
 app:
-  slug-ids: limited_slugs.json
+  slug-ids: slugs.json
   http:
     # Applied to every outbound call. The JDK client has no timeouts by
     # default, so without these one hung connection stalls a run indefinitely.
