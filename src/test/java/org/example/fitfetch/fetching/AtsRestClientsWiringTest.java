@@ -37,9 +37,9 @@ class AtsRestClientsWiringTest {
             assertThat(context).hasNotFailed();
 
             FetchLimits limits = context.getBean(FetchLimits.class);
-            assertThat(limits.forAts(AtsName.GREENHOUSE).requestsPerSecond()).isEqualTo(2.0);
+            assertThat(limits.forAts(AtsName.GREENHOUSE).requestsPerSecond()).isEqualTo(1.0);
             assertThat(limits.forAts(AtsName.GREENHOUSE).maxWait()).isEqualTo(Duration.ofMinutes(2));
-            assertThat(limits.forAts(AtsName.GREENHOUSE).maxConcurrent()).isEqualTo(4);
+            assertThat(limits.forAts(AtsName.GREENHOUSE).maxConcurrent()).isEqualTo(3);
 
             AtsRestClients clients = context.getBean(AtsRestClients.class);
             for (AtsName ats : AtsName.values()) {
