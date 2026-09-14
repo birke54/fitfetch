@@ -79,8 +79,8 @@ app:
     # without writing job_locations or changing any job's status, so model
     # answers and geocode queries can be checked first. Needs enable: true.
     # Switch it off to start writing; waiting jobs resolve from the caches.
-    warm-caches-only: true
-    schedule: "0 */10 * * * *"
+    warm-caches-only: false
+    schedule: "0 */5 * * * *"
     # One page per run: a backlog clears steadily instead of a single invocation
     # holding the model and the geocoding budget for as long as it takes.
     page-size: ${LOCATION_PAGE_SIZE}
