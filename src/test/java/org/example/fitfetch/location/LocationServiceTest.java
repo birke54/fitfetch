@@ -8,6 +8,7 @@ import org.example.fitfetch.ats.AtsName;
 import org.example.fitfetch.domain.FetchedJob;
 import org.example.fitfetch.domain.JobLocation;
 import org.example.fitfetch.domain.LocationStatus;
+import org.example.fitfetch.domain.NormalizeStatus;
 import org.example.fitfetch.fetching.FetchedJobsRepository;
 import org.example.fitfetch.fetching.records.GreenhouseJobEntry;
 import org.example.fitfetch.fetching.records.GreenhouseSubRecords.Location;
@@ -112,7 +113,7 @@ class LocationServiceTest {
                 "Co", null, "en", null, "jd",
                 locationName == null ? null : new Location(locationName),
                 List.of(), List.of(), List.of(), "co");
-        FetchedJob fetched = new FetchedJob(AtsName.GREENHOUSE, String.valueOf(nextId), "co", entry, false);
+        FetchedJob fetched = new FetchedJob(AtsName.GREENHOUSE, String.valueOf(nextId), "co", entry);
         fetched.setId(nextId++);
         return fetched;
     }
@@ -351,6 +352,35 @@ class LocationServiceTest {
         JobLocation row = savedRows().getFirst();
         assertEquals(Resolution.UNDEFINED, row.getResolution());
         assertFalse(row.followsOrigin());
+    }
+
+    @Test
+    @DisplayName("Rewriting a job's locations requeues it for normalization if it was out of range")
+    void testRewriteRequeuesOutOfRangeJob() {
+        // OUT_OF_RANGE judged the old locations; the new ones may be in range.
+        FetchedJob job = job("Boston");
+        job.setNormalizeStatus(NormalizeStatus.OUT_OF_RANGE);
+        pageContains(job);
+        when(resolver.resolve(anyString()))
+                .thenReturn(List.of(resolved("Boston", Resolution.PLACE, POINT)));
+
+        service.resolveOnePage();
+
+        assertEquals(NormalizeStatus.PENDING, job.getNormalizeStatus());
+    }
+
+    @Test
+    @DisplayName("Rewriting a job's locations leaves an existing normalization alone")
+    void testRewriteKeepsNormalizedJob() {
+        FetchedJob job = job("Boston");
+        job.setNormalizeStatus(NormalizeStatus.NORMALIZED);
+        pageContains(job);
+        when(resolver.resolve(anyString()))
+                .thenReturn(List.of(resolved("Boston", Resolution.PLACE, POINT)));
+
+        service.resolveOnePage();
+
+        assertEquals(NormalizeStatus.NORMALIZED, job.getNormalizeStatus());
     }
 
     @Test

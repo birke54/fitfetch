@@ -30,25 +30,35 @@ class RadiusSearchServiceTest {
     }
 
     @Test
-    @DisplayName("Searches around the configured origin's current coordinates, with the box that encloses the radius")
+    @DisplayName("The circle is centred on the configured origin's current coordinates, with its enclosing box")
+    void testAroundOrigin() {
+        when(geocoder.geocode(ORIGIN)).thenReturn(SEATTLE);
+
+        OriginRadius radius = service.around(50);
+
+        assertEquals(47.7231d, radius.latitude());
+        assertEquals(-122.2967d, radius.longitude());
+        assertEquals(50, radius.miles());
+        assertEquals(BoundingBox.around(47.7231d, -122.2967d, 50), radius.box());
+    }
+
+    @Test
+    @DisplayName("A search runs the radius query around the origin")
     void testSearchesAroundOrigin() {
         when(geocoder.geocode(ORIGIN)).thenReturn(SEATTLE);
         List<FetchedJob> jobs = List.of(mock(FetchedJob.class));
-        BoundingBox box = BoundingBox.around(47.7231d, -122.2967d, 50);
-        when(repository.findWithinRadiusOfOrigin(47.7231d, -122.2967d, 50,
-                box.minLatitude(), box.maxLatitude(), box.minLongitude(), box.maxLongitude(),
-                BoundingBox.EARTH_RADIUS_MILES)).thenReturn(jobs);
+        when(repository.findWithinRadius(OriginRadius.of(47.7231d, -122.2967d, 50))).thenReturn(jobs);
 
         assertSame(jobs, service.findWithinMiles(50));
     }
 
     @Test
-    @DisplayName("The origin is looked up on every search, so a reconfigured or refreshed origin is picked up")
+    @DisplayName("The origin is looked up every time, so a reconfigured or refreshed origin is picked up")
     void testOriginLookedUpEachTime() {
         when(geocoder.geocode(ORIGIN)).thenReturn(SEATTLE);
 
         service.findWithinMiles(50);
-        service.findWithinMiles(25);
+        service.around(25);
 
         verify(geocoder, times(2)).geocode(ORIGIN);
     }
@@ -69,7 +79,6 @@ class RadiusSearchServiceTest {
         when(geocoder.geocode(ORIGIN)).thenThrow(new GeocodingDisabledException(ORIGIN));
 
         assertThrows(GeocodingException.class, () -> service.findWithinMiles(50));
-        verify(repository, never()).findWithinRadiusOfOrigin(anyDouble(), anyDouble(), anyDouble(),
-                anyDouble(), anyDouble(), anyDouble(), anyDouble(), anyDouble());
+        verify(repository, never()).findWithinRadius(any());
     }
 }

@@ -3,8 +3,10 @@ package org.example.fitfetch.fetching;
 import org.example.fitfetch.ats.AtsName;
 import org.example.fitfetch.domain.FetchedJob;
 import org.example.fitfetch.domain.LocationStatus;
+import org.example.fitfetch.domain.NormalizeStatus;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -16,13 +18,14 @@ import java.util.Set;
  * Spring Data JPA repository for {@link FetchedJob} rows in the
  * {@code fetched_jobs} table.
  *
- * <p>Beyond the standard {@link JpaRepository} CRUD operations, the derived
- * queries here support the two main flows: de-duplicating jobs during fetching
- * (by returning the set of already-known job IDs) and paging over rows that
- * still need normalization.
+ * <p>Beyond the standard {@link JpaRepository} CRUD operations, the queries
+ * here support de-duplicating jobs during fetching (by returning the set of
+ * already-known job IDs) and paging the location pass over pending jobs. The
+ * radius queries, which the search and the normalization pass share, come from
+ * {@link RadiusQueries}.
  */
 @Repository
-public interface FetchedJobsRepository extends JpaRepository<FetchedJob,Long> {
+public interface FetchedJobsRepository extends JpaRepository<FetchedJob,Long>, RadiusQueries {
 
     /**
      * Returns every {@link FetchedJob#getJobId() job ID} already stored for the
@@ -51,16 +54,6 @@ public interface FetchedJobsRepository extends JpaRepository<FetchedJob,Long> {
      */
     @Query("select f.jobId from FetchedJob f where f.atsName = :atsName and f.jobId in :jobIds")
     Set<String> findJobIdsByAtsNameAndJobIdIn(@Param("atsName") AtsName atsName, @Param("jobIds") Set<String> jobIds);
-
-    /**
-     * Finds fetched jobs by their normalization state, one page at a time.
-     *
-     * @param isNormalized {@code false} to retrieve jobs still awaiting
-     *                     normalization, {@code true} for already-normalized ones
-     * @param pageable     paging and sort specification
-     * @return the matching page of fetched jobs
-     */
-    List<FetchedJob> findByIsNormalized(boolean isNormalized, Pageable pageable);
 
     /**
      * Finds fetched jobs in a location resolution state with an id above a
@@ -95,69 +88,26 @@ public interface FetchedJobsRepository extends JpaRepository<FetchedJob,Long> {
     long countByLocationStatus(LocationStatus locationStatus);
 
     /**
-     * Finds every job with at least one location within a radius of the search
-     * origin.
+     * Counts jobs in a given normalization state.
      *
-     * <p>A job matches through either arm of the union. A row that
-     * {@code follows_origin} matches outright, whatever coordinate it was stored
-     * with, because it stands for "wherever the origin is". Any other row
-     * matches if its great-circle distance from the origin is within the radius;
-     * the bounding box in front of that check is what lets
-     * {@code idx_job_locations_lat_lon} narrow the rows first. {@code UNDEFINED}
-     * rows have no coordinates and never follow the origin, so they match
-     * neither arm.
-     *
-     * <p>The distance is the haversine formula, in the {@code asin} form because
-     * the {@code acos} form loses precision at short range. {@code least} keeps
-     * rounding from pushing its argument past 1, where {@code asin} is
-     * undefined.
-     *
-     * <p>{@code IN} rather than a join, so a job with several matching
-     * locations is returned once.
-     *
-     * <p>Call through {@code RadiusSearchService}, which geocodes the origin and
-     * derives the box; the parameters are only meaningful together.
-     *
-     * @param latitude     origin latitude, decimal degrees
-     * @param longitude    origin longitude, decimal degrees
-     * @param miles        search radius
-     * @param minLatitude  bounding box enclosing the radius, from
-     *                     {@code BoundingBox.around}
-     * @param maxLatitude  bounding box
-     * @param minLongitude bounding box
-     * @param maxLongitude bounding box
-     * @param earthRadius  {@code BoundingBox.EARTH_RADIUS_MILES}, so the box and
-     *                     the distance check share one sphere
-     * @return the matching jobs, ordered by id
+     * @param normalizeStatus the state to count
+     * @return how many jobs are in that state
      */
-    @Query(nativeQuery = true, value = """
-            SELECT fj.*
-            FROM fetched_jobs fj
-            WHERE fj.id IN (
-                SELECT jl.fetched_job_id
-                FROM job_locations jl
-                WHERE jl.follows_origin
-                UNION ALL
-                SELECT jl.fetched_job_id
-                FROM job_locations jl
-                WHERE NOT jl.follows_origin
-                  AND jl.latitude BETWEEN :minLatitude AND :maxLatitude
-                  AND jl.longitude BETWEEN :minLongitude AND :maxLongitude
-                  AND 2 * :earthRadius * asin(least(1, sqrt(
-                          power(sin(radians(jl.latitude - :latitude) / 2), 2)
-                          + cos(radians(:latitude)) * cos(radians(jl.latitude))
-                            * power(sin(radians(jl.longitude - :longitude) / 2), 2)
-                      ))) <= :miles
-            )
-            ORDER BY fj.id
-            """)
-    List<FetchedJob> findWithinRadiusOfOrigin(@Param("latitude") double latitude,
-                                              @Param("longitude") double longitude,
-                                              @Param("miles") double miles,
-                                              @Param("minLatitude") double minLatitude,
-                                              @Param("maxLatitude") double maxLatitude,
-                                              @Param("minLongitude") double minLongitude,
-                                              @Param("maxLongitude") double maxLongitude,
-                                              @Param("earthRadius") double earthRadius);
+    long countByNormalizeStatus(NormalizeStatus normalizeStatus);
+
+    /**
+     * Sets one job's normalization state, and nothing else.
+     *
+     * <p>An update rather than saving the entity: saving writes every column
+     * from the copy loaded at the start of the run, which would put back a
+     * location state the location pass had changed since.
+     *
+     * @param id              the job to update
+     * @param normalizeStatus the state to set
+     * @return how many rows were updated
+     */
+    @Modifying
+    @Query("update FetchedJob f set f.normalizeStatus = :status where f.id = :id")
+    int updateNormalizeStatus(@Param("id") Long id, @Param("status") NormalizeStatus normalizeStatus);
 }
 

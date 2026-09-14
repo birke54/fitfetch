@@ -3,7 +3,7 @@ package org.example.fitfetch.domain;
 /**
  * How far a fetched job has got through location resolution.
  *
- * <p>Separate from {@code isNormalized} because the two passes fail in different
+ * <p>Separate from {@link NormalizeStatus} because the two passes fail in different
  * ways. Normalization is pure and local, so its failures are bugs that retrying
  * cannot fix. Location resolution depends on a local model and an external
  * geocoding API, whose failures are transient and where retrying is exactly the

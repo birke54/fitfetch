@@ -20,9 +20,9 @@ import java.time.OffsetDateTime;
  * constraint); the ATS name/job ID pairing is what {@code GreenhouseAts}
  * checks to avoid re-ingesting a job, and what {@link JobLocation} points at
  * with its foreign key. The full provider
- * payload is kept verbatim in {@link #getJobData() jobData} as a JSON column,
- * and {@link #isNormalized()} tracks whether that payload has since been mapped
- * into the normalized job model.
+ * payload is kept verbatim in {@link #getJobData() jobData} as a JSON column.
+ * {@link #getLocationStatus()} and {@link #getNormalizeStatus()} track how far
+ * the job has got through the two passes that read that payload.
  *
  * <p>{@code fetchedAt} and {@code createdAt} are populated by Hibernate on
  * insert and are not updatable.
@@ -38,7 +38,8 @@ import java.time.OffsetDateTime;
                 columnNames = {"ats_name", "job_id", "slug"}
         ),
         indexes = {
-                @Index(name = "idx_is_normalized", columnList = "is_normalized"),
+                @Index(name = "idx_fetched_jobs_normalize_status",
+                        columnList = "normalize_status, location_status, id"),
         }
 
 )
@@ -62,22 +63,27 @@ public class FetchedJob {
     @Column(name = "job_data", nullable = false)
     private AtsJobEntry jobData;
 
-    @Column(name="is_normalized", nullable = false)
-    @ColumnDefault("false")
-    private boolean isNormalized;
-
     /**
      * How far this job has got through location resolution.
      *
-     * <p>Tracked separately from {@link #isNormalized} because the two passes
-     * are siblings rather than stages: location resolution reads
-     * {@code job_data->'location'} and needs nothing normalization produces, and
-     * the two fail in ways that call for opposite responses.
+     * <p>Tracked separately from {@link #normalizeStatus} because the two passes
+     * fail in ways that call for opposite responses: location resolution depends
+     * on services whose failures are transient, while a model answer that
+     * cannot be used will be the same answer next time.
      */
     @Enumerated(EnumType.STRING)
     @Column(name = "location_status", nullable = false, length = 16)
     @ColumnDefault("'PENDING'")
     private LocationStatus locationStatus = LocationStatus.PENDING;
+
+    /**
+     * How far this job has got through normalization, which waits for location
+     * resolution: only a job located within the search radius is normalized.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "normalize_status", nullable = false, length = 16)
+    @ColumnDefault("'PENDING'")
+    private NormalizeStatus normalizeStatus = NormalizeStatus.PENDING;
 
     @CreationTimestamp
     @Column(name = "fetched_at", nullable = false, updatable = false)
@@ -98,15 +104,12 @@ public class FetchedJob {
      *                     that provider
      * @param slug         the ATS board slug the job was fetched from
      * @param jobData      the raw provider payload, stored as JSON
-     * @param isNormalized whether {@code jobData} has already been mapped into
-     *                     the normalized job model
      */
-    public FetchedJob(AtsName atsName, String jobId, String slug, AtsJobEntry jobData, boolean isNormalized) {
+    public FetchedJob(AtsName atsName, String jobId, String slug, AtsJobEntry jobData) {
         this.atsName = atsName;
         this.jobId = jobId;
         this.slug = slug;
         this.jobData = jobData;
-        this.isNormalized = isNormalized;
     }
 
     /** @return the generated primary key, or {@code null} before persistence */
@@ -169,11 +172,15 @@ public class FetchedJob {
         this.locationStatus = locationStatus;
     }
 
-    /** @return {@code true} once {@link #getJobData()} has been normalized */
-    public boolean isNormalized() { return isNormalized; }
+    /** @return how far this job has got through normalization */
+    public NormalizeStatus getNormalizeStatus() {
+        return normalizeStatus;
+    }
 
-    /** @param isNormalized the normalization flag to set */
-    public void setIsNormalized(boolean isNormalized) { this.isNormalized = isNormalized; }
+    /** @param normalizeStatus the normalization state to set */
+    public void setNormalizeStatus(NormalizeStatus normalizeStatus) {
+        this.normalizeStatus = normalizeStatus;
+    }
 
     /** @return when the job was fetched; set by Hibernate on insert */
     public OffsetDateTime getFetchedAt() {

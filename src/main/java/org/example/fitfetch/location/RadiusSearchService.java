@@ -21,7 +21,7 @@ import java.util.List;
  * anywhere else: a remote-US role is not "within 50 miles of Portland" just
  * because the user can take it from Seattle.
  *
- * @see FetchedJobsRepository#findWithinRadiusOfOrigin
+ * @see org.example.fitfetch.fetching.RadiusQueries
  */
 @Service
 public class RadiusSearchService {
@@ -53,15 +53,23 @@ public class RadiusSearchService {
      *                               fails, or lookups are disabled
      */
     public List<FetchedJob> findWithinMiles(double miles) {
+        return fetchedJobsRepository.findWithinRadius(around(miles));
+    }
+
+    /**
+     * @param miles the radius; must be positive and finite
+     * @return a circle of that radius around the origin as configured now, for
+     *         the queries in {@link org.example.fitfetch.fetching.RadiusQueries}
+     * @throws IllegalStateException if the configured origin does not geocode
+     * @throws GeocodingException    if the origin is not cached and the lookup
+     *                               fails, or lookups are disabled
+     */
+    public OriginRadius around(double miles) {
         GeocodeOutcome center = geocoder.geocode(origin);
         if (!center.status().hasCoordinates()) {
             throw new IllegalStateException("The search origin '" + origin + "' does not geocode ("
                     + center.status() + "); check app.location.default-origin");
         }
-        BoundingBox box = BoundingBox.around(center.latitude(), center.longitude(), miles);
-        return fetchedJobsRepository.findWithinRadiusOfOrigin(
-                center.latitude(), center.longitude(), miles,
-                box.minLatitude(), box.maxLatitude(), box.minLongitude(), box.maxLongitude(),
-                BoundingBox.EARTH_RADIUS_MILES);
+        return OriginRadius.of(center.latitude(), center.longitude(), miles);
     }
 }
