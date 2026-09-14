@@ -26,12 +26,18 @@ import java.util.Objects;
  *                     ({@code "US"}, {@code "GB"}, {@code "US-WA"}); {@code null}
  *                     when the region is not known without geocoding. Display
  *                     and debugging only &mdash; never matching
+ * @param followsOrigin whether {@code geocodeQuery} is the search origin by
+ *                     policy rather than a place the posting named. Such a
+ *                     location sits wherever the origin is configured to be,
+ *                     so a radius search matches it without reading its stored
+ *                     coordinate, and reconfiguring the origin cannot strand it
  */
 public record LocationInput(
         String raw,
         Resolution resolution,
         String geocodeQuery,
-        String regionCode
+        String regionCode,
+        boolean followsOrigin
 ) {
 
     /** Placeholder for the configured search origin, substituted at load time. */
@@ -50,6 +56,22 @@ public record LocationInput(
                             + (resolution.hasCoordinates() ? "present" : "absent")
                             + ", but was " + (hasQuery ? "'" + geocodeQuery + "'" : "absent"));
         }
+        // Mirrors ck_job_locations_follows_origin_located.
+        if (followsOrigin && !resolution.hasCoordinates()) {
+            throw new IllegalArgumentException("resolution " + resolution + " cannot follow the origin");
+        }
+    }
+
+    /**
+     * A location that geocodes as itself rather than following the origin.
+     *
+     * @param raw          the verbatim element
+     * @param resolution   why {@code geocodeQuery} is what it is
+     * @param geocodeQuery the string to geocode
+     * @param regionCode   ISO 3166 region, or {@code null}
+     */
+    public LocationInput(String raw, Resolution resolution, String geocodeQuery, String regionCode) {
+        this(raw, resolution, geocodeQuery, regionCode, false);
     }
 
     /**
@@ -76,9 +98,10 @@ public record LocationInput(
      * invalidating cached interpretations.
      *
      * @param origin the configured search origin
-     * @return this input, or a copy with the token substituted
+     * @return this input, or a copy with the token substituted and
+     *         {@link #followsOrigin()} set
      */
     public LocationInput withOrigin(String origin) {
-        return isOriginToken() ? new LocationInput(raw, resolution, origin, regionCode) : this;
+        return isOriginToken() ? new LocationInput(raw, resolution, origin, regionCode, true) : this;
     }
 }

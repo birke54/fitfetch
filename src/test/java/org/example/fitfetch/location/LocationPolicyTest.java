@@ -25,6 +25,7 @@ class LocationPolicyTest {
 
         assertEquals(Resolution.PLACE, result.resolution());
         assertEquals("Bangalore, India", result.geocodeQuery());
+        assertFalse(result.followsOrigin());
     }
 
     // ---------------------------------------------------------------- rule 2
@@ -36,6 +37,7 @@ class LocationPolicyTest {
 
         assertEquals(Resolution.REMOTE_BARE, result.resolution());
         assertEquals(ORIGIN, result.geocodeQuery());
+        assertTrue(result.followsOrigin());
     }
 
     // ------------------------------------------------------------ rules 3/3b
@@ -49,6 +51,7 @@ class LocationPolicyTest {
         assertEquals(Resolution.REMOTE_IN_US, result.resolution());
         assertEquals(ORIGIN, result.geocodeQuery());
         assertEquals("US", result.regionCode());
+        assertTrue(result.followsOrigin());
     }
 
     @Test
@@ -59,6 +62,7 @@ class LocationPolicyTest {
         assertEquals(Resolution.REMOTE_ELSEWHERE, result.resolution());
         assertEquals("Canada", result.geocodeQuery());
         assertEquals("CA", result.regionCode());
+        assertFalse(result.followsOrigin());
     }
 
     @Test
@@ -77,6 +81,7 @@ class LocationPolicyTest {
 
         assertEquals(Resolution.REMOTE_REGION, result.resolution());
         assertEquals("EMEA", result.geocodeQuery());
+        assertFalse(result.followsOrigin());
     }
 
     // ---------------------------------------------------------------- rule 4
@@ -88,6 +93,7 @@ class LocationPolicyTest {
 
         assertEquals(Resolution.EMPTY_DEFAULT, result.resolution());
         assertEquals(ORIGIN, result.geocodeQuery());
+        assertTrue(result.followsOrigin());
     }
 
     // ---------------------------------------------------------------- rule 5
@@ -100,6 +106,7 @@ class LocationPolicyTest {
         assertEquals(Resolution.UNDEFINED, result.resolution());
         assertNull(result.geocodeQuery());
         assertFalse(result.resolution().hasCoordinates());
+        assertFalse(result.followsOrigin());
     }
 
     @Test
@@ -129,6 +136,7 @@ class LocationPolicyTest {
         assertEquals(Resolution.COUNTRY_US, result.resolution());
         assertEquals(ORIGIN, result.geocodeQuery());
         assertEquals("US", result.regionCode());
+        assertTrue(result.followsOrigin());
     }
 
     @Test
@@ -151,6 +159,9 @@ class LocationPolicyTest {
         assertEquals(Resolution.PLACE, result.resolution());
         assertEquals(ORIGIN, result.geocodeQuery());
         assertEquals("US-WA", result.regionCode());
+        // A PLACE row, so the flag is the only thing that tells it apart from a
+        // genuine city once the origin has moved.
+        assertTrue(result.followsOrigin());
     }
 
     @Test
@@ -161,6 +172,7 @@ class LocationPolicyTest {
         assertEquals(Resolution.STATE_OTHER, result.resolution());
         assertEquals("California", result.geocodeQuery());
         assertEquals("US-CA", result.regionCode());
+        assertFalse(result.followsOrigin());
     }
 
     // ---------------------------------------------------------------- rule 7
@@ -176,6 +188,7 @@ class LocationPolicyTest {
         assertEquals(Resolution.REMOTE_IN_US, result.resolution());
         assertEquals(ORIGIN, result.geocodeQuery());
         assertEquals("US-WA", result.regionCode());
+        assertTrue(result.followsOrigin());
     }
 
     @Test
@@ -186,6 +199,7 @@ class LocationPolicyTest {
         assertEquals(Resolution.REMOTE_ELSEWHERE, result.resolution());
         assertEquals("Connecticut", result.geocodeQuery());
         assertEquals("US-CT", result.regionCode());
+        assertFalse(result.followsOrigin());
     }
 
     @Test
@@ -210,6 +224,7 @@ class LocationPolicyTest {
 
         assertEquals(Resolution.REMOTE_BARE, result.resolution());
         assertEquals(ORIGIN, result.geocodeQuery());
+        assertTrue(result.followsOrigin());
     }
 
     @Test
@@ -233,8 +248,18 @@ class LocationPolicyTest {
                 // The coordinate invariant the database also enforces.
                 assertEquals(result.resolution().hasCoordinates(), result.geocodeQuery() != null,
                         kind + "/" + type + " violated the coordinate invariant");
+                // Exactly the inputs sent to the origin are flagged to follow it.
+                assertEquals(ORIGIN.equals(result.geocodeQuery()), result.followsOrigin(),
+                        kind + "/" + type + " flagged followsOrigin inconsistently");
             }
         }
+    }
+
+    @Test
+    @DisplayName("An input without coordinates cannot follow the origin")
+    void testUndefinedCannotFollowOrigin() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new LocationInput("???", Resolution.UNDEFINED, null, null, true));
     }
 
     @Test
