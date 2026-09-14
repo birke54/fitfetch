@@ -93,5 +93,71 @@ public interface FetchedJobsRepository extends JpaRepository<FetchedJob,Long> {
      * @return how many jobs are in that state
      */
     long countByLocationStatus(LocationStatus locationStatus);
+
+    /**
+     * Finds every job with at least one location within a radius of the search
+     * origin.
+     *
+     * <p>A job matches through either arm of the union. A row that
+     * {@code follows_origin} matches outright, whatever coordinate it was stored
+     * with, because it stands for "wherever the origin is". Any other row
+     * matches if its great-circle distance from the origin is within the radius;
+     * the bounding box in front of that check is what lets
+     * {@code idx_job_locations_lat_lon} narrow the rows first. {@code UNDEFINED}
+     * rows have no coordinates and never follow the origin, so they match
+     * neither arm.
+     *
+     * <p>The distance is the haversine formula, in the {@code asin} form because
+     * the {@code acos} form loses precision at short range. {@code least} keeps
+     * rounding from pushing its argument past 1, where {@code asin} is
+     * undefined.
+     *
+     * <p>{@code IN} rather than a join, so a job with several matching
+     * locations is returned once.
+     *
+     * <p>Call through {@code RadiusSearchService}, which geocodes the origin and
+     * derives the box; the parameters are only meaningful together.
+     *
+     * @param latitude     origin latitude, decimal degrees
+     * @param longitude    origin longitude, decimal degrees
+     * @param miles        search radius
+     * @param minLatitude  bounding box enclosing the radius, from
+     *                     {@code BoundingBox.around}
+     * @param maxLatitude  bounding box
+     * @param minLongitude bounding box
+     * @param maxLongitude bounding box
+     * @param earthRadius  {@code BoundingBox.EARTH_RADIUS_MILES}, so the box and
+     *                     the distance check share one sphere
+     * @return the matching jobs, ordered by id
+     */
+    @Query(nativeQuery = true, value = """
+            SELECT fj.*
+            FROM fetched_jobs fj
+            WHERE fj.id IN (
+                SELECT jl.fetched_job_id
+                FROM job_locations jl
+                WHERE jl.follows_origin
+                UNION ALL
+                SELECT jl.fetched_job_id
+                FROM job_locations jl
+                WHERE NOT jl.follows_origin
+                  AND jl.latitude BETWEEN :minLatitude AND :maxLatitude
+                  AND jl.longitude BETWEEN :minLongitude AND :maxLongitude
+                  AND 2 * :earthRadius * asin(least(1, sqrt(
+                          power(sin(radians(jl.latitude - :latitude) / 2), 2)
+                          + cos(radians(:latitude)) * cos(radians(jl.latitude))
+                            * power(sin(radians(jl.longitude - :longitude) / 2), 2)
+                      ))) <= :miles
+            )
+            ORDER BY fj.id
+            """)
+    List<FetchedJob> findWithinRadiusOfOrigin(@Param("latitude") double latitude,
+                                              @Param("longitude") double longitude,
+                                              @Param("miles") double miles,
+                                              @Param("minLatitude") double minLatitude,
+                                              @Param("maxLatitude") double maxLatitude,
+                                              @Param("minLongitude") double minLongitude,
+                                              @Param("maxLongitude") double maxLongitude,
+                                              @Param("earthRadius") double earthRadius);
 }
 
