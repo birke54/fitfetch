@@ -62,6 +62,7 @@ class RadiusQueriesImpl implements RadiusQueries {
             FROM fetched_jobs fj
             WHERE fj.normalize_status = 'PENDING'
               AND fj.location_status = 'RESOLVED'
+              AND fj.id > :afterId
               AND fj.id IN (%s)
             ORDER BY fj.id
             LIMIT :pageSize
@@ -96,9 +97,12 @@ class RadiusQueriesImpl implements RadiusQueries {
 
     @Override
     @SuppressWarnings("unchecked")
-    public List<FetchedJob> findPendingNormalizationWithinRadius(OriginRadius radius, int limit) {
+    public List<FetchedJob> findPendingNormalizationWithinRadius(OriginRadius radius, long afterId, int limit) {
         Query query = entityManager.createNativeQuery(FIND_PENDING_NORMALIZATION, FetchedJob.class);
-        return bind(query, radius).setParameter("pageSize", limit).getResultList();
+        return bind(query, radius)
+                .setParameter("afterId", afterId)
+                .setParameter("pageSize", limit)
+                .getResultList();
     }
 
     @Override

@@ -77,14 +77,15 @@ class RadiusQueriesImplTest {
     }
 
     @Test
-    @DisplayName("The normalization page binds every parameter, the page size included")
+    @DisplayName("The normalization page binds every parameter, the cursor and page size included")
     void testFindPendingNormalizationBindsEveryParameter() {
         when(query.getResultList()).thenReturn(List.of());
 
-        queries.findPendingNormalizationWithinRadius(SEATTLE, 5);
+        queries.findPendingNormalizationWithinRadius(SEATTLE, 42L, 5);
 
         verify(entityManager).createNativeQuery(RadiusQueriesImpl.FIND_PENDING_NORMALIZATION, FetchedJob.class);
         assertEquals(parametersIn(RadiusQueriesImpl.FIND_PENDING_NORMALIZATION), bound.keySet());
+        assertEquals(42L, bound.get("afterId"));
         assertEquals(5, bound.get("pageSize"));
     }
 

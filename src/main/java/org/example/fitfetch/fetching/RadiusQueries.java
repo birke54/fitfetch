@@ -34,11 +34,17 @@ public interface RadiusQueries {
      * between that sweep and this read would otherwise be normalized without
      * ever being checked.
      *
-     * @param radius the circle around the origin
-     * @param limit  page size
+     * <p>Pages by id, like the location pass, because a job that keeps failing
+     * is set aside and stays pending. Always reading from the front would hand
+     * the pass those same jobs forever once a page filled up with them.
+     *
+     * @param radius  the circle around the origin
+     * @param afterId only jobs with an id strictly greater than this; {@code 0}
+     *                for the start of the table
+     * @param limit   page size
      * @return up to {@code limit} jobs, ordered by id
      */
-    List<FetchedJob> findPendingNormalizationWithinRadius(OriginRadius radius, int limit);
+    List<FetchedJob> findPendingNormalizationWithinRadius(OriginRadius radius, long afterId, int limit);
 
     /**
      * Marks every pending, located job with no location within the radius as

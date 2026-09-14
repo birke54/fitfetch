@@ -83,7 +83,22 @@ class NormalizeServiceTest {
     }
 
     private void pageContains(FetchedJob... jobs) {
-        when(fetchedJobs.findPendingNormalizationWithinRadius(RADIUS, 5)).thenReturn(List.of(jobs));
+        when(fetchedJobs.findPendingNormalizationWithinRadius(eq(RADIUS), anyLong(), eq(5)))
+                .thenReturn(List.of(jobs));
+    }
+
+    private void pageAfter(long afterId, FetchedJob... jobs) {
+        when(fetchedJobs.findPendingNormalizationWithinRadius(RADIUS, afterId, 5)).thenReturn(List.of(jobs));
+    }
+
+    private void runs(int count) {
+        for (int i = 0; i < count; i++) {
+            service.normalizePendingJobs();
+        }
+    }
+
+    private static SignalExtractionException outage() {
+        return new SignalExtractionException("Ollama unreachable", null);
     }
 
     // ------------------------------------------------------------- disabled
@@ -107,7 +122,7 @@ class NormalizeServiceTest {
 
         InOrder order = inOrder(fetchedJobs);
         order.verify(fetchedJobs).markOutOfRangeForNormalization(RADIUS);
-        order.verify(fetchedJobs).findPendingNormalizationWithinRadius(RADIUS, 5);
+        order.verify(fetchedJobs).findPendingNormalizationWithinRadius(RADIUS, 0L, 5);
         verifyNoInteractions(extractor);
     }
 
@@ -249,13 +264,128 @@ class NormalizeServiceTest {
         FetchedJob third = job("Third");
         pageContains(first, second, third);
         when(extractor.extract("First")).thenReturn(Optional.of(ANSWER));
-        when(extractor.extract("Second")).thenThrow(new SignalExtractionException("Ollama unreachable", null));
+        when(extractor.extract("Second")).thenThrow(outage());
 
         assertDoesNotThrow(() -> service.normalizePendingJobs());
 
         verify(fetchedJobs).updateNormalizeStatus(first.getId(), NormalizeStatus.NORMALIZED);
         verify(fetchedJobs, never()).updateNormalizeStatus(eq(second.getId()), any());
         verify(extractor, never()).extract("Third");
+    }
+
+    // -------------------------------------------------------------- paging
+
+    @Test
+    @DisplayName("The pass pages past the jobs it has seen and wraps to the start at the end")
+    void testCursorAdvancesAndWraps() {
+        // Always reading the first page would hand the pass the same set-aside
+        // jobs forever once a page filled up with them.
+        FetchedJob first = job("First");
+        FetchedJob second = job("Second");
+        pageAfter(0L, first, second);
+        pageAfter(second.getId());
+        when(extractor.extract(anyString())).thenReturn(Optional.of(ANSWER));
+
+        service.normalizeOnePage();
+        service.normalizeOnePage();
+
+        InOrder order = inOrder(fetchedJobs);
+        order.verify(fetchedJobs).findPendingNormalizationWithinRadius(RADIUS, 0L, 5);
+        order.verify(fetchedJobs).findPendingNormalizationWithinRadius(RADIUS, second.getId(), 5);
+        order.verify(fetchedJobs).findPendingNormalizationWithinRadius(RADIUS, 0L, 5);
+    }
+
+    @Test
+    @DisplayName("A stopped run does not move the cursor, so the next run starts from the same place")
+    void testStoppedRunRetriedFromSameCursor() {
+        pageContains(job("Knows Java"));
+        when(extractor.extract(anyString())).thenThrow(outage());
+
+        runs(2);
+
+        verify(fetchedJobs, times(2)).findPendingNormalizationWithinRadius(RADIUS, 0L, 5);
+    }
+
+    // -------------------------------------------------------------- strikes
+
+    @Test
+    @DisplayName("A job that keeps failing is set aside after the strike limit, and the rest of the page is normalized")
+    void testRepeatFailureStrikesOut() {
+        // Without this, a job that fails on its own (not an outage) would stop
+        // every run at the same place and nothing behind it would be normalized.
+        FetchedJob poison = job("Poison");
+        FetchedJob fine = job("Knows Java");
+        pageContains(poison, fine);
+        when(extractor.extract("Poison")).thenThrow(outage());
+        when(extractor.extract("Knows Java")).thenReturn(Optional.of(ANSWER));
+
+        runs(NormalizeService.STRIKE_LIMIT - 1);
+        verify(extractor, never()).extract("Knows Java");
+
+        service.normalizePendingJobs();
+
+        verify(fetchedJobs).updateNormalizeStatus(fine.getId(), NormalizeStatus.NORMALIZED);
+        verify(fetchedJobs, never()).updateNormalizeStatus(eq(poison.getId()), any());
+    }
+
+    @Test
+    @DisplayName("Only one struck-out job is retried per run, so an outage costs at most a few calls")
+    void testOneStruckOutJobProbedPerRun() {
+        FetchedJob first = job("First");
+        FetchedJob second = job("Second");
+        FetchedJob fine = job("Knows Java");
+        pageContains(first, second, fine);
+        when(extractor.extract("First")).thenThrow(outage());
+        when(extractor.extract("Second")).thenThrow(outage());
+        when(extractor.extract("Knows Java")).thenReturn(Optional.of(ANSWER));
+
+        // First strikes out on run 2; Second collects its strikes on runs 2 and
+        // 3, while First is retried once per run.
+        runs(2 * NormalizeService.STRIKE_LIMIT - 1);
+        clearInvocations(extractor);
+
+        service.normalizePendingJobs();
+
+        verify(extractor).extract("First");
+        verify(extractor, never()).extract("Second");
+        verify(extractor).extract("Knows Java");
+    }
+
+    @Test
+    @DisplayName("A struck-out job that gets an answer is given a clean slate")
+    void testSuccessClearsStrikes() {
+        FetchedJob flaky = job("Flaky");
+        FetchedJob fine = job("Knows Java");
+        pageContains(flaky, fine);
+        when(extractor.extract("Flaky"))
+                .thenThrow(outage())
+                .thenThrow(outage())
+                .thenReturn(Optional.of(ANSWER))
+                .thenThrow(outage());
+        when(extractor.extract("Knows Java")).thenReturn(Optional.of(ANSWER));
+
+        // Run 1 stops on Flaky, run 2 sets it aside, run 3 retries it and succeeds.
+        runs(NormalizeService.STRIKE_LIMIT + 1);
+        verify(fetchedJobs).updateNormalizeStatus(flaky.getId(), NormalizeStatus.NORMALIZED);
+        clearInvocations(extractor);
+
+        service.normalizePendingJobs();
+
+        // One failure after the success stops the run again, as for any job.
+        verify(extractor).extract("Flaky");
+        verify(extractor, never()).extract("Knows Java");
+    }
+
+    @Test
+    @DisplayName("A job with an unusable answer is failed, not struck, since retrying cannot help")
+    void testNoAnswerIsNotAStrike() {
+        FetchedJob job = job("Knows Java");
+        pageContains(job);
+        when(extractor.extract(anyString())).thenReturn(Optional.empty());
+
+        service.normalizeOnePage();
+
+        verify(fetchedJobs).updateNormalizeStatus(job.getId(), NormalizeStatus.FAILED);
     }
 
     @Test
