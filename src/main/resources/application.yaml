@@ -50,10 +50,10 @@ app:
       defaults:
         # Requests are spaced evenly: 2 per second is one every 500 ms. A board
         # that pages its results costs a request per page.
-        requests-per-second: 2
+        requests-per-second: 4
         # Slugs fetched at once. Lets slow responses overlap so the rate above
         # is actually reached; beyond that, extra slugs just queue for it.
-        max-concurrent: 4
+        max-concurrent: 8
         # A 429 pauses every request to that ATS: for as long as its Retry-After
         # asks, or else for a backoff that starts here and doubles with each 429
         # in a row, up to max-backoff.
