@@ -32,7 +32,7 @@ management:
       application: ${spring.application.name}
 
 app:
-  slug-ids: limited_slugs.json
+  slug-ids: slugs.json
   http:
     # Applied to every outbound call. The JDK client has no timeouts by
     # default, so without these one hung connection stalls a run indefinitely.
@@ -44,6 +44,29 @@ app:
     enable: true
     schedule: ${FETCH_CRON_SCHEDULE}
     read-slugs-list-in-parallel: false
+    # Per-ATS fetch limits. Every ATS gets the defaults unless it has an entry
+    # under ats, which need only set what differs.
+    limits:
+      defaults:
+        # Requests are spaced evenly: 2 per second is one every 500 ms. A board
+        # that pages its results costs a request per page.
+        requests-per-second: 4
+        # Slugs fetched at once. Lets slow responses overlap so the rate above
+        # is actually reached; beyond that, extra slugs just queue for it.
+        max-concurrent: 8
+        # A 429 pauses every request to that ATS: for as long as its Retry-After
+        # asks, or else for a backoff that starts here and doubles with each 429
+        # in a row, up to max-backoff.
+        initial-backoff: PT5S
+        max-backoff: PT5M
+        # The longest a request waits for its turn. A pause longer than this ends
+        # that ATS's fetch cycle early, keeping what was fetched, instead of
+        # holding up the whole run.
+        max-wait: PT2M
+      # An override, keyed by ATS name:
+      # ats:
+      #   greenhouse:
+      #     requests-per-second: 5
   normalize:
     enable: false
     schedule: "0 0 * * * *"

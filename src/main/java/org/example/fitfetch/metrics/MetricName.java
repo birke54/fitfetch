@@ -15,7 +15,14 @@ public enum MetricName {
     /** A slug fetch failed with an HTTP client or server error ({@code fetching.error.count}). */
     SLUG_FETCH_ERROR_COUNT("fetching.error.count"),
     /** A slug fetch returned a {@code null} or bodyless response ({@code fetching.null.response.count}). */
-    SLUG_FETCH_NULL_RESPONSE_COUNT("fetching.null.response.count");
+    SLUG_FETCH_NULL_RESPONSE_COUNT("fetching.null.response.count"),
+    /** An ATS answered {@code 429 Too Many Requests}, pausing requests to it ({@code fetching.throttled.count}). */
+    FETCH_THROTTLED_COUNT("fetching.throttled.count"),
+    /**
+     * An ATS's fetch cycle ended early because it asked for a pause longer than
+     * {@code max-wait} ({@code fetching.stopped.count}).
+     */
+    FETCH_STOPPED_COUNT("fetching.stopped.count");
 
     private final String metricName;
 

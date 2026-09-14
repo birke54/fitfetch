@@ -1,10 +1,12 @@
 package org.example.fitfetch.fetching;
 
+import org.example.fitfetch.ats.AtsName;
 import org.example.fitfetch.fetching.records.GreenhouseJobEntry;
 import org.example.fitfetch.fetching.records.GreenhouseResponse;
 import org.example.fitfetch.fetching.records.AtsResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -27,6 +29,15 @@ public class GreenhouseFetch implements Fetch<GreenhouseJobEntry> {
     private static final Logger logger = LoggerFactory.getLogger(GreenhouseFetch.class);
     private static final String BASEURL = "https://boards-api.greenhouse.io/v1/boards/";
     private final RestClient restClient;
+
+    /**
+     * @param restClients the per-ATS clients; Greenhouse's is rate-limited to
+     *                    Greenhouse's own limits
+     */
+    @Autowired
+    public GreenhouseFetch(AtsRestClients restClients) {
+        this(restClients.forAts(AtsName.GREENHOUSE));
+    }
 
     /**
      * @param restClient the HTTP client used to call the Greenhouse API
