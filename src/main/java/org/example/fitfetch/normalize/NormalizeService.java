@@ -1,6 +1,7 @@
 package org.example.fitfetch.normalize;
 
 import org.example.fitfetch.domain.FetchedJob;
+import org.example.fitfetch.domain.LocationStatus;
 import org.example.fitfetch.domain.NormalizeStatus;
 import org.example.fitfetch.domain.NormalizedJob;
 import org.example.fitfetch.fetching.FetchedJobsRepository;
@@ -241,8 +242,11 @@ public class NormalizeService {
         if (setAside > 0) {
             LOGGER.info("Set aside {} repeatedly failing jobs; they stay pending", setAside);
         }
+        // Counted after the out-of-range sweep, so every pending job with a
+        // resolved location is one in range that is still to be normalized.
         LOGGER.info("Normalized {} of {} jobs, {} still pending", normalized, page.size(),
-                fetchedJobsRepository.countByNormalizeStatus(NormalizeStatus.PENDING));
+                fetchedJobsRepository.countByNormalizeStatusAndLocationStatus(
+                        NormalizeStatus.PENDING, LocationStatus.RESOLVED));
         return normalized;
     }
 

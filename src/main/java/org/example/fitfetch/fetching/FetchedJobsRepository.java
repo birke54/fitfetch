@@ -88,12 +88,17 @@ public interface FetchedJobsRepository extends JpaRepository<FetchedJob,Long>, R
     long countByLocationStatus(LocationStatus locationStatus);
 
     /**
-     * Counts jobs in a given normalization state.
+     * Counts jobs in a given normalization state and location resolution state.
      *
-     * @param normalizeStatus the state to count
-     * @return how many jobs are in that state
+     * <p>Counting {@code PENDING} normalization with {@code RESOLVED} locations
+     * leaves out jobs still waiting on the location pass, including the
+     * {@code FAILED} ones that wait until they are curated.
+     *
+     * @param normalizeStatus the normalization state to count
+     * @param locationStatus  the location resolution state to count
+     * @return how many jobs are in both states
      */
-    long countByNormalizeStatus(NormalizeStatus normalizeStatus);
+    long countByNormalizeStatusAndLocationStatus(NormalizeStatus normalizeStatus, LocationStatus locationStatus);
 
     /**
      * Sets one job's normalization state, and nothing else.
