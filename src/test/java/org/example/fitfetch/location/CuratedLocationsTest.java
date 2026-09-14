@@ -51,6 +51,7 @@ class CuratedLocationsTest {
         assertEquals(1, inputs.size());
         assertEquals(Resolution.valueOf(resolution), inputs.getFirst().resolution());
         assertEquals(query, inputs.getFirst().geocodeQuery());
+        assertFalse(inputs.getFirst().followsOrigin());
     }
 
     @ParameterizedTest(name = "[{index}] \"{0}\" -> origin")
@@ -73,6 +74,7 @@ class CuratedLocationsTest {
         assertEquals(Resolution.valueOf(resolution), input.resolution());
         assertEquals(ORIGIN, input.geocodeQuery());
         assertFalse(input.isOriginToken(), "the origin token must be substituted at load time");
+        assertTrue(input.followsOrigin(), "substituting the token marks the input as following the origin");
     }
 
     @Test

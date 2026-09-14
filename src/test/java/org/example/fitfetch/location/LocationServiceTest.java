@@ -270,6 +270,52 @@ class LocationServiceTest {
     }
 
     @Test
+    @DisplayName("A location redirected to the origin is written as following it")
+    void testOriginRowFollowsOrigin() {
+        FetchedJob job = job("Remote US");
+        pageContains(job);
+        when(resolver.resolve(anyString())).thenReturn(List.of(new ResolvedLocation(
+                new LocationInput("Remote US", Resolution.REMOTE_IN_US, ORIGIN, "US", true),
+                POINT, SourceTier.CURATED, true)));
+
+        service.resolveOnePage();
+
+        assertTrue(savedRows().getFirst().followsOrigin());
+    }
+
+    @Test
+    @DisplayName("A genuine place is not written as following the origin")
+    void testPlaceRowDoesNotFollowOrigin() {
+        FetchedJob job = job("Boston");
+        pageContains(job);
+        when(resolver.resolve(anyString()))
+                .thenReturn(List.of(resolved("Boston", Resolution.PLACE, POINT)));
+
+        service.resolveOnePage();
+
+        assertFalse(savedRows().getFirst().followsOrigin());
+    }
+
+    @Test
+    @DisplayName("An origin that fails to geocode leaves an UNDEFINED row that does not follow it")
+    void testUnlocatableOriginDropsFlag() {
+        // ck_job_locations_follows_origin_located: a flagged row without
+        // coordinates would fail the insert, and would match every search if it
+        // did not.
+        FetchedJob job = job("Remote US");
+        pageContains(job);
+        when(resolver.resolve(anyString())).thenReturn(List.of(new ResolvedLocation(
+                new LocationInput("Remote US", Resolution.REMOTE_IN_US, ORIGIN, "US", true),
+                GeocodeOutcome.empty(GeocodeStatus.ZERO_RESULTS), SourceTier.CURATED, true)));
+
+        service.resolveOnePage();
+
+        JobLocation row = savedRows().getFirst();
+        assertEquals(Resolution.UNDEFINED, row.getResolution());
+        assertFalse(row.followsOrigin());
+    }
+
+    @Test
     @DisplayName("Locations colliding on element and resolution are written once")
     void testDuplicateRowsCollapsed() {
         // uq_job_locations_job_raw_resolution would otherwise fail the page.
