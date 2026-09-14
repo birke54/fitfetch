@@ -68,6 +68,13 @@ public sealed interface AtsJobEntry permits GreenhouseJobEntry {
     String locationName();
 
     /**
+     * @return the job title, which decides whether the job is kept at all (see
+     *         {@link org.example.fitfetch.utilities.TitleFilter}); may be
+     *         {@code null} if the provider supplied none
+     */
+    String title();
+
+    /**
      * Returns a copy of this entry with {@link #slug()} set to the given value.
      *
      * <p>The board slug is a fetch-time parameter, not part of the provider's
