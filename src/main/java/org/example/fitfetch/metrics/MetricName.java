@@ -99,7 +99,13 @@ public enum MetricName {
      * ({@code location.pass.last.success.seconds}). Starts at the time the app
      * started, so its age is how long the pass has gone without a successful run.
      */
-    LOCATION_PASS_LAST_SUCCESS_SECONDS("location.pass.last.success.seconds");
+    LOCATION_PASS_LAST_SUCCESS_SECONDS("location.pass.last.success.seconds"),
+    /**
+     * Texts that needed a vector, tagged with the {@code result}: {@code cached}
+     * if the {@code embeddings} table had it, {@code embedded} if the model was
+     * called ({@code embedding.inputs.count}).
+     */
+    EMBEDDING_INPUTS_COUNT("embedding.inputs.count");
 
     private final String metricName;
 
