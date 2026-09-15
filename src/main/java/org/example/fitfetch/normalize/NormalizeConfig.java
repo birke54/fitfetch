@@ -1,5 +1,6 @@
 package org.example.fitfetch.normalize;
 
+import io.micrometer.observation.ObservationRegistry;
 import org.example.fitfetch.fetching.RestClientConfig;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -25,6 +26,7 @@ public class NormalizeConfig {
      * @param connectTimeout {@code app.http.connect-timeout}
      * @param readTimeout    {@code app.normalize.llm.read-timeout}
      * @param contextLength  {@code app.normalize.llm.context-length}
+     * @param observationRegistry where each request to Ollama is observed
      * @return the signal extractor
      */
     @Bean
@@ -33,8 +35,10 @@ public class NormalizeConfig {
             @Value("${app.normalize.llm.model}") String model,
             @Value("${app.http.connect-timeout}") Duration connectTimeout,
             @Value("${app.normalize.llm.read-timeout}") Duration readTimeout,
-            @Value("${app.normalize.llm.context-length}") int contextLength) {
-        return new OllamaSignalExtractor(RestClientConfig.withTimeouts(connectTimeout, readTimeout),
+            @Value("${app.normalize.llm.context-length}") int contextLength,
+            ObservationRegistry observationRegistry) {
+        return new OllamaSignalExtractor(
+                RestClientConfig.withTimeouts(connectTimeout, readTimeout, observationRegistry),
                 baseUrl, model, contextLength);
     }
 }
