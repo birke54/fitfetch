@@ -2,8 +2,11 @@ package org.example.fitfetch.metrics;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
+import jakarta.persistence.Tuple;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -49,5 +52,24 @@ public class MetricService {
                         .map(entry -> Tag.of(entry.getKey().key(), entry.getValue()))
                         .toList()
         ).increment();
+    }
+
+    public void recordCounter(MetricName metricName) {
+        meterRegistry.counter(
+                metricName.metricName(),
+                new ArrayList<>()
+        ).increment();
+    }
+
+    public void recordCounterByIncrement(MetricName metricName, Map<TagName, String> tags, int increment) {
+        if (tags == null) {
+            tags = Map.of();
+        }
+        meterRegistry.counter(
+                metricName.metricName(),
+                tags.entrySet().stream()
+                        .map(entry -> Tag.of(entry.getKey().key(), entry.getValue()))
+                        .toList()
+        ).increment(increment);
     }
 }

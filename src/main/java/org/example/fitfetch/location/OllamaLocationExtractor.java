@@ -4,6 +4,9 @@ import org.example.fitfetch.location.records.ExtractionPayload;
 import org.example.fitfetch.location.records.OllamaGenerateRequest;
 import org.example.fitfetch.location.records.OllamaGenerateResponse;
 import org.example.fitfetch.location.records.OllamaOptions;
+import org.example.fitfetch.metrics.MetricName;
+import org.example.fitfetch.metrics.MetricService;
+import org.example.fitfetch.metrics.TagName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -15,6 +18,7 @@ import tools.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -53,6 +57,7 @@ public class OllamaLocationExtractor implements LocationExtractor {
     private final RestClient restClient;
     private final String baseUrl;
     private final String model;
+    private final MetricService metricService;
     private final OllamaOptions options;
 
     /**
@@ -63,9 +68,10 @@ public class OllamaLocationExtractor implements LocationExtractor {
      *                   {@code http://localhost:11434}; a trailing slash is
      *                   tolerated
      * @param model      the model tag, for example {@code llama3.1:8b}
+     * @param metricService where failed calls are counted
      */
-    public OllamaLocationExtractor(RestClient restClient, String baseUrl, String model) {
-        this(restClient, baseUrl, model, OllamaOptions.deterministic());
+    public OllamaLocationExtractor(RestClient restClient, String baseUrl, String model, MetricService metricService) {
+        this(restClient, baseUrl, model, OllamaOptions.deterministic(), metricService);
     }
 
     /**
@@ -74,11 +80,13 @@ public class OllamaLocationExtractor implements LocationExtractor {
      * @param model      the model tag
      * @param options    sampling options; pin these unless you have a reason not
      *                   to, since cached interpretations must be reproducible
+     * @param metricService where failed calls are counted
      */
-    public OllamaLocationExtractor(RestClient restClient, String baseUrl, String model, OllamaOptions options) {
+    public OllamaLocationExtractor(RestClient restClient, String baseUrl, String model, OllamaOptions options, MetricService metricService) {
         this.restClient = Objects.requireNonNull(restClient, "restClient");
         this.model = requireText(model, "model");
         this.options = Objects.requireNonNull(options, "options");
+        this.metricService = Objects.requireNonNull(metricService, "metricService");
         String trimmed = requireText(baseUrl, "baseUrl");
         this.baseUrl = trimmed.endsWith("/") ? trimmed.substring(0, trimmed.length() - 1) : trimmed;
     }
@@ -113,6 +121,7 @@ public class OllamaLocationExtractor implements LocationExtractor {
             // input rather than a malfunction, so it is cached; the label shows
             // up in the curation worklist to be dealt with there.
             LOGGER.debug("Model found no locations in '{}'", rawLocationName);
+            recordFailure("no_locations");
             return ExtractionResult.unparseable(rawLocationName);
         }
         return ExtractionResult.of(locations);
@@ -137,18 +146,21 @@ public class OllamaLocationExtractor implements LocationExtractor {
                     .retrieve()
                     .body(OllamaGenerateResponse.class);
         } catch (RestClientException e) {
+            recordFailure("transport");
             throw new LocationExtractionException(
                     "Ollama request failed for location '" + rawLocationName + "'", e);
         }
 
         if (response == null || response.response() == null || response.response().isBlank()) {
             LOGGER.warn("Ollama returned an empty body for '{}'", rawLocationName);
+            recordFailure("empty_body");
             return null;
         }
         if ("length".equals(response.doneReason())) {
             // Truncated output can still parse as valid JSON while having lost
             // entries off the end, which is worse than failing outright.
             LOGGER.warn("Ollama truncated its answer for '{}'", rawLocationName);
+            recordFailure("truncated");
             return null;
         }
 
@@ -156,8 +168,14 @@ public class OllamaLocationExtractor implements LocationExtractor {
             return MAPPER.readValue(response.response(), ExtractionPayload.class);
         } catch (JacksonException e) {
             LOGGER.warn("Could not parse model output for '{}': {}", rawLocationName, e.getMessage());
+            recordFailure("unparseable_json");
             return null;
         }
+    }
+
+    private void recordFailure(String reason) {
+        metricService.recordCounter(MetricName.LOCATION_LLM_EXTRACTION_FAILURE_COUNT,
+                Map.of(TagName.REASON, reason));
     }
 
     private static List<ExtractedLocation> toLocations(ExtractionPayload payload, String rawLocationName) {

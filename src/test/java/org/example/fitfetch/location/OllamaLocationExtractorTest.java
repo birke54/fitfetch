@@ -1,5 +1,8 @@
 package org.example.fitfetch.location;
 
+import org.example.fitfetch.metrics.MetricName;
+import org.example.fitfetch.metrics.MetricService;
+import org.example.fitfetch.metrics.TagName;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -10,8 +13,15 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.client.ExpectedCount.twice;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.*;
@@ -23,13 +33,20 @@ class OllamaLocationExtractorTest {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private MockRestServiceServer mockServer;
+    private MetricService metricService;
     private OllamaLocationExtractor extractor;
 
     @BeforeEach
     void setUp() {
         RestClient.Builder builder = RestClient.builder();
         mockServer = MockRestServiceServer.bindTo(builder).build();
-        extractor = new OllamaLocationExtractor(builder.build(), BASE_URL, "llama3.1:8b");
+        metricService = mock(MetricService.class);
+        extractor = new OllamaLocationExtractor(builder.build(), BASE_URL, "llama3.1:8b", metricService);
+    }
+
+    private void verifyFailures(String reason, int count) {
+        verify(metricService, times(count)).recordCounter(
+                MetricName.LOCATION_LLM_EXTRACTION_FAILURE_COUNT, Map.of(TagName.REASON, reason));
     }
 
     /** Wraps a payload the way Ollama does: the answer is a JSON string field. */
@@ -66,6 +83,8 @@ class OllamaLocationExtractorTest {
         assertEquals("Bangalore, India", only.specifier());
         assertEquals(SpecifierType.CITY, only.specifierType());
         mockServer.verify();
+        verify(metricService, never()).recordCounter(
+                eq(MetricName.LOCATION_LLM_EXTRACTION_FAILURE_COUNT), anyMap());
     }
 
     @Test
@@ -178,6 +197,7 @@ class OllamaLocationExtractorTest {
         assertFalse(result.cacheable(), "a model having a bad moment must not be cached");
         assertEquals(LocationKind.UNPARSEABLE, result.locations().getFirst().kind());
         mockServer.verify();
+        verifyFailures("unparseable_json", 2);
     }
 
     @Test
@@ -197,6 +217,7 @@ class OllamaLocationExtractorTest {
         assertTrue(result.cacheable());
         assertEquals("Lisbon, Portugal", result.locations().getFirst().specifier());
         mockServer.verify();
+        verifyFailures("unparseable_json", 1);
     }
 
     @Test
@@ -215,6 +236,7 @@ class OllamaLocationExtractorTest {
 
         assertFalse(result.cacheable());
         mockServer.verify();
+        verifyFailures("truncated", 2);
     }
 
     @Test
@@ -229,6 +251,7 @@ class OllamaLocationExtractorTest {
         assertTrue(result.cacheable(), "a well-formed 'nothing found' is an answer about the input");
         assertEquals(LocationKind.UNPARSEABLE, result.locations().getFirst().kind());
         assertEquals("!!!", result.locations().getFirst().raw());
+        verifyFailures("no_locations", 1);
     }
 
     @Test
@@ -267,6 +290,7 @@ class OllamaLocationExtractorTest {
         LocationExtractionException error = assertThrows(LocationExtractionException.class,
                 () -> extractor.extract("Remote, Canada"));
         assertTrue(error.getMessage().contains("Remote, Canada"));
+        verifyFailures("transport", 1);
     }
 
     @Test
@@ -290,6 +314,7 @@ class OllamaLocationExtractorTest {
 
         assertFalse(extractor.extract("Remote").cacheable());
         mockServer.verify();
+        verifyFailures("empty_body", 2);
     }
 
     // ---------------------------------------------------------- construction
@@ -299,7 +324,8 @@ class OllamaLocationExtractorTest {
     void testTrailingSlashTolerated() {
         RestClient.Builder builder = RestClient.builder();
         MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
-        LocationExtractor tolerant = new OllamaLocationExtractor(builder.build(), BASE_URL + "/", "llama3.1:8b");
+        LocationExtractor tolerant = new OllamaLocationExtractor(
+                builder.build(), BASE_URL + "/", "llama3.1:8b", metricService);
 
         server.expect(requestTo(GENERATE)).andRespond(withSuccess(ollamaBody("""
                 {"analysis":"x","locations":[
@@ -315,9 +341,14 @@ class OllamaLocationExtractorTest {
     void testBlankConfigRejected() {
         RestClient client = RestClient.builder().build();
 
-        assertThrows(IllegalArgumentException.class, () -> new OllamaLocationExtractor(client, "", "m"));
-        assertThrows(IllegalArgumentException.class, () -> new OllamaLocationExtractor(client, BASE_URL, " "));
-        assertThrows(NullPointerException.class, () -> new OllamaLocationExtractor(null, BASE_URL, "m"));
+        assertThrows(IllegalArgumentException.class,
+                () -> new OllamaLocationExtractor(client, "", "m", metricService));
+        assertThrows(IllegalArgumentException.class,
+                () -> new OllamaLocationExtractor(client, BASE_URL, " ", metricService));
+        assertThrows(NullPointerException.class,
+                () -> new OllamaLocationExtractor(null, BASE_URL, "m", metricService));
+        assertThrows(NullPointerException.class,
+                () -> new OllamaLocationExtractor(client, BASE_URL, "m", null));
     }
 
     // ------------------------------------------------ end-to-end with policy

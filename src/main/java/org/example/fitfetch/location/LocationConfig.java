@@ -1,6 +1,7 @@
 package org.example.fitfetch.location;
 
 import org.example.fitfetch.fetching.RestClientConfig;
+import org.example.fitfetch.metrics.MetricService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -80,12 +81,14 @@ public class LocationConfig {
      * @param readTimeout     {@code app.location.llm.read-timeout}
      * @param hitGranularity  how stale a row's last-read timestamp must be
      *                        before it is worth rewriting
+     * @param metricService   where failed model calls are counted
      * @return the cached extractor
      */
     @Bean
     public LocationExtractor locationExtractor(
             LocationInterpretationRepository repository,
             Clock clock,
+            MetricService metricService,
             @Value("${app.location.llm.base-url}") String baseUrl,
             @Value("${app.location.llm.model}") String model,
             @Value("${app.http.connect-timeout}") Duration connectTimeout,
@@ -93,7 +96,7 @@ public class LocationConfig {
             @Value("${app.location.cache.last-hit-granularity}") Duration hitGranularity) {
         RestClient ollamaClient = RestClientConfig.withTimeouts(connectTimeout, readTimeout);
         return new CachingLocationExtractor(
-                new OllamaLocationExtractor(ollamaClient, baseUrl, model),
+                new OllamaLocationExtractor(ollamaClient, baseUrl, model, metricService),
                 repository, model, OllamaPrompt.VERSION, hitGranularity, clock);
     }
 

@@ -4,6 +4,8 @@ import org.example.fitfetch.domain.FetchedJob;
 import org.example.fitfetch.domain.JobLocation;
 import org.example.fitfetch.domain.LocationStatus;
 import org.example.fitfetch.fetching.FetchedJobsRepository;
+import org.example.fitfetch.metrics.MetricName;
+import org.example.fitfetch.metrics.MetricService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -51,6 +53,7 @@ public class LocationService {
     private final LocationResolver resolver;
     private final TransactionTemplate transactionTemplate;
     private final Clock clock;
+    private final MetricService metricService;
     private final boolean enabled;
     private final int pageSize;
 
@@ -109,6 +112,7 @@ public class LocationService {
                            LocationResolver resolver,
                            TransactionTemplate transactionTemplate,
                            Clock clock,
+                           MetricService metricService,
                            @Value("${app.location.enable}") boolean enabled,
                            @Value("${app.location.page-size}") int pageSize,
                            @Value("${app.location.warm-caches-only}") boolean warmCachesOnly) {
@@ -117,6 +121,7 @@ public class LocationService {
         this.resolver = resolver;
         this.transactionTemplate = transactionTemplate;
         this.clock = clock;
+        this.metricService = metricService;
         this.enabled = enabled;
         this.pageSize = pageSize;
         this.warmCachesOnly = warmCachesOnly;
