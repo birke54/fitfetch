@@ -124,14 +124,22 @@ public class LocationResolver {
     /**
      * Checks the locations against the label and counts the result, once per
      * check, at the same point the label is counted as resolved.
+     *
+     * <p>A failure here is logged and goes no further. The audit only reports on
+     * an answer that is already complete; if it threw, the pass would mark the
+     * label's jobs FAILED over a bug in the reporting.
      */
     private void audit(String raw, List<LocationInput> inputs, String tier) {
-        LabelAudit audit = LabelAudit.of(raw, inputs);
-        recordAudit("coverage", audit.covered(), tier);
-        recordAudit("verbatim", audit.verbatim(), tier);
-        if (!audit.covered() || !audit.verbatim()) {
-            LOGGER.warn("Locations for '{}' ({}) do not account for the label: words left out {}, "
-                    + "raws not in the label {}", raw, tier, audit.uncoveredWords(), audit.unmatchedRaws());
+        try {
+            LabelAudit audit = LabelAudit.of(raw, inputs);
+            recordAudit("coverage", audit.covered(), tier);
+            recordAudit("verbatim", audit.verbatim(), tier);
+            if (!audit.covered() || !audit.verbatim()) {
+                LOGGER.warn("Locations for '{}' ({}) do not account for the label: words left out {}, "
+                        + "raws not in the label {}", raw, tier, audit.uncoveredWords(), audit.unmatchedRaws());
+            }
+        } catch (RuntimeException e) {
+            LOGGER.warn("Could not audit the locations for '{}'", raw, e);
         }
     }
 

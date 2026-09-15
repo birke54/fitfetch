@@ -174,6 +174,19 @@ class LocationResolverTest {
         verifyAudited("verbatim", "fail", "llm");
     }
 
+    @Test
+    @DisplayName("An audit that throws does not fail the label it reports on")
+    void testAuditFailureDoesNotFailResolution() {
+        doThrow(new IllegalStateException("registry closed"))
+                .when(metricService).recordCounter(eq(MetricName.LOCATION_LABELS_AUDITED_COUNT), anyMap());
+
+        List<ResolvedLocation> resolved = resolver.resolve("Remote US");
+
+        assertEquals(1, resolved.size());
+        assertTrue(resolved.getFirst().isMatchable());
+        verifyResolvedBy("curated");
+    }
+
     private void verifyAudited(String check, String result, String tier) {
         verify(metricService).recordCounter(MetricName.LOCATION_LABELS_AUDITED_COUNT,
                 Map.of(TagName.CHECK, check, TagName.RESULT, result, TagName.TIER, tier));
