@@ -6,6 +6,7 @@ import org.example.fitfetch.domain.LocationStatus;
 import org.example.fitfetch.fetching.FetchedJobsRepository;
 import org.example.fitfetch.metrics.MetricName;
 import org.example.fitfetch.metrics.MetricService;
+import org.example.fitfetch.metrics.TagName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -153,16 +154,24 @@ public class LocationService {
                 // A denied key or disabled billing. Retrying would burn whatever
                 // budget remains against a call that cannot succeed.
                 LOGGER.error("Halting location pass: {}", e.getMessage());
+                recordStopped("geocoding_fatal");
             } else {
                 LOGGER.warn("Location pass stopped early, will retry: {}", e.getMessage());
+                recordStopped("geocoding_retryable");
             }
         } catch (LocationExtractionException e) {
             LOGGER.warn("Location pass stopped early, model unavailable: {}", e.getMessage());
+            recordStopped("model_unavailable");
         } catch (RuntimeException e) {
             // Most likely the database itself. The page stays pending and the
             // cursor does not move, so the next run retries it.
             LOGGER.error("Location pass failed, will retry", e);
+            recordStopped("error");
         }
+    }
+
+    private void recordStopped(String reason) {
+        metricService.recordCounter(MetricName.LOCATION_PASS_STOPPED_COUNT, Map.of(TagName.REASON, reason));
     }
 
     /**

@@ -117,6 +117,7 @@ public class LocationConfig {
      * @param apiKey          the Google Maps Platform API key, possibly blank
      * @param coordinateTtl   how long coordinates stay usable before a refresh
      * @param hitGranularity  read-statistics write coarsening
+     * @param metricService   where cache results and Google requests are recorded
      * @return the cached geocoder
      */
     @Bean
@@ -124,6 +125,7 @@ public class LocationConfig {
             RestClient restClient,
             GeocodeCacheRepository repository,
             Clock clock,
+            MetricService metricService,
             @Value("${app.location.geocoding.enabled}") boolean enabled,
             @Value("${app.location.geocoding.api-key:}") String apiKey,
             @Value("${app.location.geocoding.coordinate-ttl}") Duration coordinateTtl,
@@ -137,13 +139,14 @@ public class LocationConfig {
         }
 
         Geocoder delegate = canLookUp
-                ? new GoogleGeocoder(restClient, apiKey)
+                ? new GoogleGeocoder(restClient, apiKey, metricService)
                 : query -> {
                     throw new GeocodingException(
                             "Geocoding is not configured; '" + query + "' cannot be resolved", true);
                 };
 
-        return new CachingGeocoder(delegate, repository, coordinateTtl, hitGranularity, canLookUp, clock);
+        return new CachingGeocoder(delegate, repository, coordinateTtl, hitGranularity, canLookUp, clock,
+                metricService);
     }
 
     /**

@@ -1,12 +1,16 @@
 package org.example.fitfetch.location;
 
 import org.example.fitfetch.domain.GeocodeCacheEntry;
+import org.example.fitfetch.metrics.MetricName;
+import org.example.fitfetch.metrics.MetricService;
+import org.example.fitfetch.metrics.TagName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Clock;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -46,6 +50,7 @@ public class CachingGeocoder implements Geocoder {
     private final Duration hitGranularity;
     private final boolean lookupEnabled;
     private final Clock clock;
+    private final MetricService metricService;
 
     /**
      * @param delegate       the geocoder to fall through to on a miss
@@ -62,19 +67,22 @@ public class CachingGeocoder implements Geocoder {
      *                       before any budget is committed. A miss in this mode
      *                       throws {@link GeocodingDisabledException}
      * @param clock          time source; injectable so expiry is testable
+     * @param metricService  where each lookup's cache result is counted
      */
     public CachingGeocoder(Geocoder delegate,
                            GeocodeCacheRepository repository,
                            Duration coordinateTtl,
                            Duration hitGranularity,
                            boolean lookupEnabled,
-                           Clock clock) {
+                           Clock clock,
+                           MetricService metricService) {
         this.delegate = Objects.requireNonNull(delegate, "delegate");
         this.repository = Objects.requireNonNull(repository, "repository");
         this.coordinateTtl = Objects.requireNonNull(coordinateTtl, "coordinateTtl");
         this.hitGranularity = Objects.requireNonNull(hitGranularity, "hitGranularity");
         this.lookupEnabled = lookupEnabled;
         this.clock = Objects.requireNonNull(clock, "clock");
+        this.metricService = Objects.requireNonNull(metricService, "metricService");
     }
 
     @Override
@@ -92,9 +100,13 @@ public class CachingGeocoder implements Geocoder {
             // refreshed, and a place that has not moved beats no answer at all.
             if (!lookupEnabled || !entry.isStale(coordinateTtl, now)) {
                 recordHit(entry, now);
+                recordResult("hit");
                 return entry.toOutcome();
             }
             LOGGER.debug("Refreshing stale coordinates for '{}'", query);
+            recordResult("stale_refresh");
+        } else {
+            recordResult(lookupEnabled ? "miss" : "disabled_miss");
         }
 
         if (!lookupEnabled) {
@@ -118,6 +130,10 @@ public class CachingGeocoder implements Geocoder {
             repository.save(entry);
         }
         return outcome;
+    }
+
+    private void recordResult(String result) {
+        metricService.recordCounter(MetricName.LOCATION_GEOCODE_CACHE_COUNT, Map.of(TagName.RESULT, result));
     }
 
     private void recordHit(GeocodeCacheEntry entry, OffsetDateTime now) {

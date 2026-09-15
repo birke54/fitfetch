@@ -1,5 +1,8 @@
 package org.example.fitfetch.location;
 
+import org.example.fitfetch.metrics.MetricName;
+import org.example.fitfetch.metrics.MetricService;
+import org.example.fitfetch.metrics.TagName;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -9,7 +12,15 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
+import java.time.Duration;
+import java.util.Locale;
+import java.util.Map;
+
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestToUriTemplate;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.*;
@@ -20,13 +31,20 @@ class GoogleGeocoderTest {
     private static final String API_KEY = "test-key-123";
 
     private MockRestServiceServer mockServer;
+    private MetricService metricService;
     private Geocoder geocoder;
 
     @BeforeEach
     void setUp() {
         RestClient.Builder builder = RestClient.builder();
         mockServer = MockRestServiceServer.bindTo(builder).build();
-        geocoder = new GoogleGeocoder(builder.build(), API_KEY, BASE_URL);
+        metricService = mock(MetricService.class);
+        geocoder = new GoogleGeocoder(builder.build(), API_KEY, BASE_URL, metricService);
+    }
+
+    private void verifyRequest(String status) {
+        verify(metricService).recordTimer(eq(MetricName.LOCATION_GEOCODE_REQUEST),
+                eq(Map.of(TagName.STATUS, status)), any(Duration.class));
     }
 
     private void respond(String body) {
@@ -62,6 +80,7 @@ class GoogleGeocoderTest {
         assertEquals("ROOFTOP", outcome.locationType());
         assertFalse(outcome.partialMatch());
         mockServer.verify();
+        verifyRequest("ok");
     }
 
     @Test
@@ -114,6 +133,7 @@ class GoogleGeocoderTest {
         assertNull(outcome.latitude());
         assertNull(outcome.longitude());
         assertFalse(outcome.status().hasCoordinates());
+        verifyRequest("zero_results");
     }
 
     @Test
@@ -124,6 +144,7 @@ class GoogleGeocoderTest {
                 """);
 
         assertEquals(GeocodeStatus.INVALID_REQUEST, geocoder.geocode("???").status());
+        verifyRequest("invalid_request");
     }
 
     @Test
@@ -132,6 +153,7 @@ class GoogleGeocoderTest {
         respondStatus("OK");
 
         assertEquals(GeocodeStatus.ZERO_RESULTS, geocoder.geocode("Nowhere").status());
+        verifyRequest("ok_no_coordinates");
     }
 
     @Test
@@ -142,6 +164,7 @@ class GoogleGeocoderTest {
                 """);
 
         assertEquals(GeocodeStatus.ZERO_RESULTS, geocoder.geocode("X").status());
+        verifyRequest("ok_no_coordinates");
     }
 
     // ---------------------------------------------------- transient failures
@@ -160,6 +183,7 @@ class GoogleGeocoderTest {
         assertTrue(error.isRetryable());
         assertFalse(error.isFatal());
         assertTrue(error.getMessage().contains("Seattle, WA"));
+        verifyRequest(status.toLowerCase(Locale.ROOT));
     }
 
     @Test
@@ -175,6 +199,7 @@ class GoogleGeocoderTest {
 
         assertTrue(error.isFatal());
         assertFalse(error.isRetryable());
+        verifyRequest("request_denied");
     }
 
     @Test
@@ -183,6 +208,8 @@ class GoogleGeocoderTest {
         respondStatus("SOMETHING_NEW");
 
         assertThrows(GeocodingException.class, () -> geocoder.geocode("Seattle, WA"));
+        // One shared tag, so a new status cannot add a series of its own.
+        verifyRequest("unrecognised");
     }
 
     @Test
@@ -194,6 +221,7 @@ class GoogleGeocoderTest {
         GeocodingException error = assertThrows(GeocodingException.class,
                 () -> geocoder.geocode("Seattle, WA"));
         assertTrue(error.isRetryable());
+        verifyRequest("transport");
     }
 
     @Test
@@ -202,6 +230,7 @@ class GoogleGeocoderTest {
         respond("{\"results\":[]}");
 
         assertThrows(GeocodingException.class, () -> geocoder.geocode("Seattle, WA"));
+        verifyRequest("no_status");
     }
 
     // --------------------------------------------------------- request shape
@@ -258,10 +287,11 @@ class GoogleGeocoderTest {
     void testValidation() {
         RestClient client = RestClient.builder().build();
 
-        assertThrows(IllegalArgumentException.class, () -> new GoogleGeocoder(client, ""));
-        assertThrows(IllegalArgumentException.class, () -> new GoogleGeocoder(client, null));
-        assertThrows(IllegalArgumentException.class, () -> new GoogleGeocoder(client, "k", " "));
-        assertThrows(NullPointerException.class, () -> new GoogleGeocoder(null, "k"));
+        assertThrows(IllegalArgumentException.class, () -> new GoogleGeocoder(client, "", metricService));
+        assertThrows(IllegalArgumentException.class, () -> new GoogleGeocoder(client, null, metricService));
+        assertThrows(IllegalArgumentException.class, () -> new GoogleGeocoder(client, "k", " ", metricService));
+        assertThrows(NullPointerException.class, () -> new GoogleGeocoder(null, "k", metricService));
+        assertThrows(NullPointerException.class, () -> new GoogleGeocoder(client, "k", null));
         assertThrows(IllegalArgumentException.class, () -> geocoder.geocode(" "));
         assertThrows(IllegalArgumentException.class, () -> geocoder.geocode(null));
     }
@@ -271,7 +301,7 @@ class GoogleGeocoderTest {
     void testTrailingSlashTolerated() {
         RestClient.Builder builder = RestClient.builder();
         MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
-        Geocoder tolerant = new GoogleGeocoder(builder.build(), API_KEY, BASE_URL + "/");
+        Geocoder tolerant = new GoogleGeocoder(builder.build(), API_KEY, BASE_URL + "/", metricService);
 
         server.expect(requestTo(org.hamcrest.Matchers.startsWith(BASE_URL + "/maps/api/geocode/json")))
                 .andRespond(withSuccess(SEATTLE_OK, MediaType.APPLICATION_JSON));
