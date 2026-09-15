@@ -140,6 +140,58 @@ class LocationResolverTest {
         assertEquals(ORIGIN, resolved.get(1).input().geocodeQuery());
     }
 
+    // ----------------------------------------------------------------- audit
+
+    @Test
+    @DisplayName("A curated label is audited and passes both checks")
+    void testCuratedLabelAudited() {
+        resolver.resolve("Boston or Remote");
+
+        verifyAudited("coverage", "pass", "curated");
+        verifyAudited("verbatim", "pass", "curated");
+    }
+
+    @Test
+    @DisplayName("A model answer that leaves out an element fails coverage")
+    void testDroppedElementAudited() {
+        extractorReturns(new ExtractedLocation("Oslo", LocationKind.PLACE,
+                "Oslo, Norway", SpecifierType.CITY));
+
+        resolver.resolve("Oslo; Stavanger");
+
+        verifyAudited("coverage", "fail", "llm");
+        verifyAudited("verbatim", "pass", "llm");
+    }
+
+    @Test
+    @DisplayName("A model answer whose raw is not from the label fails verbatim")
+    void testRewrittenRawAudited() {
+        extractorReturns(new ExtractedLocation("Oslo, Norway", LocationKind.PLACE,
+                "Oslo, Norway", SpecifierType.CITY));
+
+        resolver.resolve("Oslo");
+
+        verifyAudited("verbatim", "fail", "llm");
+    }
+
+    @Test
+    @DisplayName("An audit that throws does not fail the label it reports on")
+    void testAuditFailureDoesNotFailResolution() {
+        doThrow(new IllegalStateException("registry closed"))
+                .when(metricService).recordCounter(eq(MetricName.LOCATION_LABELS_AUDITED_COUNT), anyMap());
+
+        List<ResolvedLocation> resolved = resolver.resolve("Remote US");
+
+        assertEquals(1, resolved.size());
+        assertTrue(resolved.getFirst().isMatchable());
+        verifyResolvedBy("curated");
+    }
+
+    private void verifyAudited(String check, String result, String tier) {
+        verify(metricService).recordCounter(MetricName.LOCATION_LABELS_AUDITED_COUNT,
+                Map.of(TagName.CHECK, check, TagName.RESULT, result, TagName.TIER, tier));
+    }
+
     // ------------------------------------------------------------- geocoding
 
     @Test
@@ -195,6 +247,19 @@ class LocationResolverTest {
         extractorReturns(many);
 
         assertEquals(3, capped.resolve("fifteen states").size());
+    }
+
+    @Test
+    @DisplayName("Capping a long label is not reported as the model leaving part of it out")
+    void testCapNotReportedAsDropped() throws IOException {
+        LocationResolver capped = newResolver(2);
+        extractorReturns(
+                new ExtractedLocation("Oslo", LocationKind.PLACE, "Oslo, Norway", SpecifierType.CITY),
+                new ExtractedLocation("Bergen", LocationKind.PLACE, "Bergen, Norway", SpecifierType.CITY),
+                new ExtractedLocation("Trondheim", LocationKind.PLACE, "Trondheim, Norway", SpecifierType.CITY));
+
+        assertEquals(2, capped.resolve("Oslo; Bergen; Trondheim").size());
+        verifyAudited("coverage", "pass", "llm");
     }
 
     @Test

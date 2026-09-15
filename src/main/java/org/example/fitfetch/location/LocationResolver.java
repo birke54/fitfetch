@@ -54,7 +54,8 @@ public class LocationResolver {
      * @param policy             the rules that turn an extraction into a
      *                           resolved location
      * @param geocoder           the geocoding chain, cache included
-     * @param metricService      where each resolved label's tier is counted
+     * @param metricService      where each resolved label's tier and audit are
+     *                           counted
      * @param maxLocationsPerJob a sanity cap on fan-out. One real posting
      *                           enumerates remote eligibility across fifteen
      *                           states; the cap stops a pathological label from
@@ -112,9 +113,41 @@ public class LocationResolver {
         }
         // Counted only once every location is geocoded: a label that fails here
         // is retried, and would otherwise be counted again on the next pass.
-        metricService.recordCounter(MetricName.LOCATION_LABELS_RESOLVED_COUNT,
-                Map.of(TagName.TIER, resolved.tier().name().toLowerCase(Locale.ROOT)));
+        String tier = resolved.tier().name().toLowerCase(Locale.ROOT);
+        metricService.recordCounter(MetricName.LOCATION_LABELS_RESOLVED_COUNT, Map.of(TagName.TIER, tier));
+        // Every input, not the capped list: capping a long label is policy, and
+        // must not be reported as the model leaving part of it out.
+        audit(raw, resolved.inputs(), tier);
         return out;
+    }
+
+    /**
+     * Checks the locations against the label and counts the result, once per
+     * check, at the same point the label is counted as resolved.
+     *
+     * <p>A failure here is logged and goes no further. The audit only reports on
+     * an answer that is already complete; if it threw, the pass would mark the
+     * label's jobs FAILED over a bug in the reporting.
+     */
+    private void audit(String raw, List<LocationInput> inputs, String tier) {
+        try {
+            LabelAudit audit = LabelAudit.of(raw, inputs);
+            recordAudit("coverage", audit.covered(), tier);
+            recordAudit("verbatim", audit.verbatim(), tier);
+            if (!audit.covered() || !audit.verbatim()) {
+                LOGGER.warn("Locations for '{}' ({}) do not account for the label: words left out {}, "
+                        + "raws not in the label {}", raw, tier, audit.uncoveredWords(), audit.unmatchedRaws());
+            }
+        } catch (RuntimeException e) {
+            LOGGER.warn("Could not audit the locations for '{}'", raw, e);
+        }
+    }
+
+    private void recordAudit(String check, boolean passed, String tier) {
+        metricService.recordCounter(MetricName.LOCATION_LABELS_AUDITED_COUNT, Map.of(
+                TagName.CHECK, check,
+                TagName.RESULT, passed ? "pass" : "fail",
+                TagName.TIER, tier));
     }
 
     private Resolved resolveInputs(String raw) {

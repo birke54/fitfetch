@@ -67,6 +67,16 @@ public enum MetricName {
      */
     LOCATION_LABELS_RESOLVED_COUNT("location.labels.resolved.count"),
     /**
+     * A resolved label checked against the raws of its locations, tagged with
+     * the {@code check}, its {@code result} ({@code pass} or {@code fail}) and
+     * the {@code tier} that answered it ({@code location.labels.audited.count}).
+     * {@code coverage} passes when every word of the label is in some raw, and
+     * {@code verbatim} when every raw is text from the label. Each label is
+     * counted once per check wherever it is counted as resolved, so the two
+     * give a failure rate per tier.
+     */
+    LOCATION_LABELS_AUDITED_COUNT("location.labels.audited.count"),
+    /**
      * Jobs whose locations were written, tagged with the {@code status} they
      * were written with ({@code location.jobs.written.count}).
      */
