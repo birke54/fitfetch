@@ -138,6 +138,14 @@ app:
     # re-embeds every job.
     query-prefix: "search_query: "
     document-prefix: "search_document: "
+  match:
+    # Off by default. Scores embedded jobs against the candidate profile into
+    # job_matches, so it needs a profile and the embedding pass. Scoring is
+    # local arithmetic, so a page can be large; a changed profile rescores
+    # every job a page at a time.
+    enable: false
+    schedule: "0 */10 * * * *"
+    page-size: 100
   location:
     # On, but in warm-up only (below): with geocoding on, this fills the
     # interpretation and geocode caches and nothing else. The pass is a no-op

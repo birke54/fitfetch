@@ -103,7 +103,7 @@ public class EmbeddingService {
      * Embeds the profile's bullets unless the vectors held are already for this
      * profile version and these settings.
      */
-    void embedProfile() {
+    public void embedProfile() {
         LoadedProfile loaded = profileSource.current().orElse(null);
         if (loaded == null || profileEmbeddings.isCurrent(loaded.sha256(), settings.key())) {
             return;

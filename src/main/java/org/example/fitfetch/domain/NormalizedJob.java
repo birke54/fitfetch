@@ -207,6 +207,12 @@ public class NormalizedJob {
         return normalizedAt;
     }
 
+    /** @return this row's extraction as the value normalization produced */
+    public NormalizedData toData() {
+        return new NormalizedData(seniority, track, employmentType, minYearsExperience, getRequirements(),
+                domains, signals);
+    }
+
     /** @return what embedded this row's signals, or {@code null} if nothing has */
     public String getEmbeddedWith() {
         return embeddedWith;
