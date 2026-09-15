@@ -8,6 +8,7 @@ import org.example.fitfetch.normalize.NormalizedData;
 import org.example.fitfetch.normalize.Signal;
 import org.example.fitfetch.normalize.SignalClassification;
 import org.example.fitfetch.profile.CandidateProfile;
+import org.example.fitfetch.skills.SkillCanonicalizer;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -16,6 +17,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -41,16 +43,25 @@ import java.util.stream.Collectors;
  *       against the job's minimum.</li>
  * </ul>
  *
+ * <p>Only skills the table knows, or the profile lists, count in either part.
+ * The model fills a signal's skills with phrases from its own text ("bounded
+ * suppression", "exit codes", "written and verbal communication"), and counting
+ * those, which no profile ever matches, would lower every job's skill match and
+ * push jobs with wordier answers down the ranking. Each one is kept in the
+ * match's reasons, so real skills the table lacks can be added to it. Skills
+ * also go through the table as they are read, so an alias added later reaches
+ * jobs normalized before it.
+ *
  * <p>Every number here is a first guess, to be tuned against jobs labeled good
  * or bad by hand. {@link #VERSION} goes up with any change, so every job is
  * scored again under the new rules.
  *
- * <p>Pure: no state, no I/O. Instances are safe to share.
+ * <p>No I/O, and the table is immutable. Instances are safe to share.
  */
 public class MatchScorer {
 
     /** Version of the scoring rules; increment on any change to them. */
-    public static final int VERSION = 2;
+    public static final int VERSION = 3;
 
     /**
      * Below this cosine similarity a bullet says nothing about a signal; at
@@ -72,6 +83,16 @@ public class MatchScorer {
     /** Bullets kept per signal: enough to tailor a resume from, few enough to store. */
     static final int BEST_BULLETS = 3;
 
+    private final SkillCanonicalizer skills;
+
+    /**
+     * @param skills the skill table: what it knows, plus what the profile
+     *               lists, is what counts as a skill here
+     */
+    public MatchScorer(SkillCanonicalizer skills) {
+        this.skills = Objects.requireNonNull(skills, "skills");
+    }
+
     /**
      * @param job           what normalization extracted from the job
      * @param signalVectors one vector per signal, in the job's signal order
@@ -86,7 +107,7 @@ public class MatchScorer {
                     + " signals");
         }
         Map<String, Integer> yearsBySkill = new HashMap<>();
-        profile.skills().forEach(skill -> yearsBySkill.put(key(skill.name()), skill.years()));
+        profile.skills().forEach(skill -> yearsBySkill.put(key(skills.canonical(skill.name())), skill.years()));
 
         List<SignalMatch> signals = new ArrayList<>(job.signals().size());
         double weighted = 0;
@@ -112,8 +133,8 @@ public class MatchScorer {
                 new ScoreParts(requirementCoverage, skillMatch, levelFit, domainAdjustment), signals);
     }
 
-    private static SignalMatch matchSignal(int index, Signal signal, float[] vector,
-                                           Map<String, float[]> bulletVectors, Map<String, Integer> yearsBySkill) {
+    private SignalMatch matchSignal(int index, Signal signal, float[] vector,
+                                    Map<String, float[]> bulletVectors, Map<String, Integer> yearsBySkill) {
         List<BulletMatch> ranked = new ArrayList<>(bulletVectors.size());
         bulletVectors.forEach((id, bullet) -> ranked.add(new BulletMatch(id, Vectors.cosine(vector, bullet))));
         ranked.sort(Comparator.comparingDouble(BulletMatch::similarity).reversed()
@@ -123,32 +144,49 @@ public class MatchScorer {
 
         List<String> matched = new ArrayList<>();
         List<String> missing = new ArrayList<>();
-        for (String skill : signal.skills()) {
-            if (heldLongEnough(skill, signal, yearsBySkill)) {
+        List<String> ignored = new ArrayList<>();
+        for (String skill : skills.canonicalAll(signal.skills())) {
+            if (!recognized(skill, yearsBySkill)) {
+                ignored.add(skill);
+            } else if (heldLongEnough(skill, signal, yearsBySkill)) {
                 matched.add(skill);
             } else {
                 missing.add(skill);
             }
         }
-        int needed = signal.skills().size();
+        int needed = matched.size() + missing.size();
         int met = matched.size();
 
         // The alternatives are one skill between them: any one held meets it.
+        List<String> alternatives = new ArrayList<>();
+        for (String skill : skills.canonicalAll(signal.anyOfSkills())) {
+            (recognized(skill, yearsBySkill) ? alternatives : ignored).add(skill);
+        }
         List<String> missingAlternatives = List.of();
-        if (!signal.anyOfSkills().isEmpty()) {
-            List<String> held = signal.anyOfSkills().stream()
+        if (!alternatives.isEmpty()) {
+            List<String> held = alternatives.stream()
                     .filter(skill -> heldLongEnough(skill, signal, yearsBySkill)).toList();
             matched.addAll(held);
             needed++;
             if (held.isEmpty()) {
-                missingAlternatives = signal.anyOfSkills();
+                missingAlternatives = alternatives;
             } else {
                 met++;
             }
         }
         double bySkills = needed == 0 ? 0 : (double) met / needed;
         return new SignalMatch(index, signal.classification(), Math.max(semantic, bySkills),
-                new ArrayList<>(best), matched, missing, missingAlternatives);
+                new ArrayList<>(best), matched, missing, missingAlternatives, ignored);
+    }
+
+    /**
+     * @return whether this is a skill at all: one the table knows, or one the
+     *         profile lists. The model fills signals with phrases from their
+     *         text ("bounded suppression", "exit codes"), which no profile ever
+     *         matches, and counting them would lower every job's skill match
+     */
+    private boolean recognized(String skill, Map<String, Integer> yearsBySkill) {
+        return skills.isKnown(skill) || yearsBySkill.containsKey(key(skill));
     }
 
     private static boolean heldLongEnough(String skill, Signal signal, Map<String, Integer> yearsBySkill) {
@@ -183,15 +221,16 @@ public class MatchScorer {
      *         one skill, held if any of them is. Years are judged per signal, in
      *         coverage
      */
-    private static double skillMatch(NormalizedData job, Map<String, Integer> yearsBySkill) {
+    private double skillMatch(NormalizedData job, Map<String, Integer> yearsBySkill) {
         Set<String> required = new LinkedHashSet<>();
         Set<Set<String>> alternatives = new LinkedHashSet<>();
         for (Signal signal : job.signals()) {
             if (signal.classification() == SignalClassification.REQUIRED_SKILL
                     || signal.classification() == SignalClassification.REQUIRED_QUALIFICATION) {
-                signal.skills().forEach(skill -> required.add(key(skill)));
-                if (!signal.anyOfSkills().isEmpty()) {
-                    alternatives.add(signal.anyOfSkills().stream().map(MatchScorer::key).collect(Collectors.toSet()));
+                recognizedKeys(signal.skills(), yearsBySkill).forEach(required::add);
+                Set<String> group = recognizedKeys(signal.anyOfSkills(), yearsBySkill);
+                if (!group.isEmpty()) {
+                    alternatives.add(group);
                 }
             }
         }
@@ -202,6 +241,14 @@ public class MatchScorer {
         long held = required.stream().filter(yearsBySkill::containsKey).count()
                 + alternatives.stream().filter(group -> group.stream().anyMatch(yearsBySkill::containsKey)).count();
         return (double) held / total;
+    }
+
+    /** @return the keys of the skills among these that count as skills at all */
+    private Set<String> recognizedKeys(List<String> named, Map<String, Integer> yearsBySkill) {
+        return skills.canonicalAll(named).stream()
+                .filter(skill -> recognized(skill, yearsBySkill))
+                .map(MatchScorer::key)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     /** @return the average of seniority fit and years fit */

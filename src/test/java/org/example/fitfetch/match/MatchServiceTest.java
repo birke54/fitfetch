@@ -89,7 +89,8 @@ class MatchServiceTest {
             return null;
         }).when(template).executeWithoutResult(any());
         return new MatchService(matches, cache, SETTINGS, embeddingService, source, profileEmbeddings,
-                new MatchScorer(), template, metricService, Clock.fixed(NOW, ZoneOffset.UTC), enabled, 100);
+                new MatchScorer(SkillCanonicalizer.none()), template, metricService,
+                Clock.fixed(NOW, ZoneOffset.UTC), enabled, 100);
     }
 
     private NormalizedJob job(String... signals) {
