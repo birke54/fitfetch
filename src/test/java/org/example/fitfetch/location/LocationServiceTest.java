@@ -8,6 +8,7 @@ import org.example.fitfetch.ats.AtsName;
 import org.example.fitfetch.domain.FetchedJob;
 import org.example.fitfetch.domain.JobLocation;
 import org.example.fitfetch.domain.LocationStatus;
+import org.example.fitfetch.domain.NormalizeStatus;
 import org.example.fitfetch.fetching.FetchedJobsRepository;
 import org.example.fitfetch.fetching.records.GreenhouseJobEntry;
 import org.example.fitfetch.fetching.records.GreenhouseSubRecords.Location;
@@ -112,7 +113,7 @@ class LocationServiceTest {
                 "Co", null, "en", null, "jd",
                 locationName == null ? null : new Location(locationName),
                 List.of(), List.of(), List.of(), "co");
-        FetchedJob fetched = new FetchedJob(AtsName.GREENHOUSE, String.valueOf(nextId), "co", entry, false);
+        FetchedJob fetched = new FetchedJob(AtsName.GREENHOUSE, String.valueOf(nextId), "co", entry);
         fetched.setId(nextId++);
         return fetched;
     }
@@ -305,6 +306,81 @@ class LocationServiceTest {
         assertEquals("Atlantis, GA", row.getGeocodeQuery(), "the worklist shows what was looked up");
         assertNull(row.getLatitude());
         assertEquals(LocationStatus.FAILED, job.getLocationStatus());
+    }
+
+    @Test
+    @DisplayName("A location redirected to the origin is written as following it")
+    void testOriginRowFollowsOrigin() {
+        FetchedJob job = job("Remote US");
+        pageContains(job);
+        when(resolver.resolve(anyString())).thenReturn(List.of(new ResolvedLocation(
+                new LocationInput("Remote US", Resolution.REMOTE_IN_US, ORIGIN, "US", true),
+                POINT, SourceTier.CURATED, true)));
+
+        service.resolveOnePage();
+
+        assertTrue(savedRows().getFirst().followsOrigin());
+    }
+
+    @Test
+    @DisplayName("A genuine place is not written as following the origin")
+    void testPlaceRowDoesNotFollowOrigin() {
+        FetchedJob job = job("Boston");
+        pageContains(job);
+        when(resolver.resolve(anyString()))
+                .thenReturn(List.of(resolved("Boston", Resolution.PLACE, POINT)));
+
+        service.resolveOnePage();
+
+        assertFalse(savedRows().getFirst().followsOrigin());
+    }
+
+    @Test
+    @DisplayName("An origin that fails to geocode leaves an UNDEFINED row that does not follow it")
+    void testUnlocatableOriginDropsFlag() {
+        // ck_job_locations_follows_origin_located: a flagged row without
+        // coordinates would fail the insert, and would match every search if it
+        // did not.
+        FetchedJob job = job("Remote US");
+        pageContains(job);
+        when(resolver.resolve(anyString())).thenReturn(List.of(new ResolvedLocation(
+                new LocationInput("Remote US", Resolution.REMOTE_IN_US, ORIGIN, "US", true),
+                GeocodeOutcome.empty(GeocodeStatus.ZERO_RESULTS), SourceTier.CURATED, true)));
+
+        service.resolveOnePage();
+
+        JobLocation row = savedRows().getFirst();
+        assertEquals(Resolution.UNDEFINED, row.getResolution());
+        assertFalse(row.followsOrigin());
+    }
+
+    @Test
+    @DisplayName("Rewriting a job's locations requeues it for normalization if it was out of range")
+    void testRewriteRequeuesOutOfRangeJob() {
+        // OUT_OF_RANGE judged the old locations; the new ones may be in range.
+        FetchedJob job = job("Boston");
+        job.setNormalizeStatus(NormalizeStatus.OUT_OF_RANGE);
+        pageContains(job);
+        when(resolver.resolve(anyString()))
+                .thenReturn(List.of(resolved("Boston", Resolution.PLACE, POINT)));
+
+        service.resolveOnePage();
+
+        assertEquals(NormalizeStatus.PENDING, job.getNormalizeStatus());
+    }
+
+    @Test
+    @DisplayName("Rewriting a job's locations leaves an existing normalization alone")
+    void testRewriteKeepsNormalizedJob() {
+        FetchedJob job = job("Boston");
+        job.setNormalizeStatus(NormalizeStatus.NORMALIZED);
+        pageContains(job);
+        when(resolver.resolve(anyString()))
+                .thenReturn(List.of(resolved("Boston", Resolution.PLACE, POINT)));
+
+        service.resolveOnePage();
+
+        assertEquals(NormalizeStatus.NORMALIZED, job.getNormalizeStatus());
     }
 
     @Test

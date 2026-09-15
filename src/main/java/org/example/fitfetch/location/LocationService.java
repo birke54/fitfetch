@@ -3,6 +3,7 @@ package org.example.fitfetch.location;
 import org.example.fitfetch.domain.FetchedJob;
 import org.example.fitfetch.domain.JobLocation;
 import org.example.fitfetch.domain.LocationStatus;
+import org.example.fitfetch.domain.NormalizeStatus;
 import org.example.fitfetch.fetching.FetchedJobsRepository;
 import org.example.fitfetch.metrics.MetricName;
 import org.example.fitfetch.metrics.MetricService;
@@ -453,6 +454,11 @@ public class LocationService {
             // through the pass forever.
             boolean anyMatchable = resolved.stream().anyMatch(ResolvedLocation::isMatchable);
             job.setLocationStatus(anyMatchable ? LocationStatus.RESOLVED : LocationStatus.FAILED);
+            // Being out of range was a verdict on the locations just replaced.
+            // Requeued, the normalization pass judges the new ones.
+            if (job.getNormalizeStatus() == NormalizeStatus.OUT_OF_RANGE) {
+                job.setNormalizeStatus(NormalizeStatus.PENDING);
+            }
         }
 
         jobLocationRepository.saveAll(toSave);

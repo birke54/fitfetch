@@ -37,6 +37,11 @@ import java.time.OffsetDateTime;
  * location data are indistinguishable by position alone &mdash; but rendering
  * the first as "Seattle, WA" would be a lie to the reader.
  *
+ * <p>Those same rows are marked {@link #followsOrigin()}, and that flag, not the
+ * coordinate, is what a radius search reads for them. Their coordinate is the
+ * origin as it was configured when the row was written; the flag places them at
+ * the origin as it is configured now.
+ *
  * @see org.example.fitfetch.location.LocationService
  */
 @Entity
@@ -91,6 +96,14 @@ public class JobLocation {
     @Column(name = "region_code", length = 8)
     private String regionCode;
 
+    /**
+     * Whether this row sits at the search origin by policy rather than by
+     * geography. Never set on a row without coordinates, which
+     * {@code ck_job_locations_follows_origin_located} also enforces.
+     */
+    @Column(name = "follows_origin", nullable = false)
+    private boolean followsOrigin;
+
     /** Drives display ordering only ("Seattle, WA + 2 more"), never filtering. */
     @Column(name = "is_primary", nullable = false)
     private boolean primary;
@@ -130,6 +143,9 @@ public class JobLocation {
         this.resolution = located ? input.resolution() : Resolution.UNDEFINED;
         this.geocodeQuery = input.geocodeQuery();
         this.regionCode = input.regionCode();
+        // An origin that failed to geocode leaves an UNDEFINED row, which must
+        // match nothing, so the flag is dropped along with the resolution.
+        this.followsOrigin = located && input.followsOrigin();
         this.sourceTier = sourceTier;
         this.primary = primary;
         this.createdAt = now;
@@ -198,6 +214,14 @@ public class JobLocation {
     /** @return ISO 3166-1 alpha-2, or 3166-2 for a subdivision */
     public String getRegionCode() {
         return regionCode;
+    }
+
+    /**
+     * @return {@code true} if this row is at the search origin by policy, and so
+     *         matches a radius search around whatever origin is configured
+     */
+    public boolean followsOrigin() {
+        return followsOrigin;
     }
 
     /** @return whether this is the location to lead with in display */

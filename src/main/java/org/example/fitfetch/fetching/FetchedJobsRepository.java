@@ -3,8 +3,10 @@ package org.example.fitfetch.fetching;
 import org.example.fitfetch.ats.AtsName;
 import org.example.fitfetch.domain.FetchedJob;
 import org.example.fitfetch.domain.LocationStatus;
+import org.example.fitfetch.domain.NormalizeStatus;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -16,13 +18,14 @@ import java.util.Set;
  * Spring Data JPA repository for {@link FetchedJob} rows in the
  * {@code fetched_jobs} table.
  *
- * <p>Beyond the standard {@link JpaRepository} CRUD operations, the derived
- * queries here support the two main flows: de-duplicating jobs during fetching
- * (by returning the set of already-known job IDs) and paging over rows that
- * still need normalization.
+ * <p>Beyond the standard {@link JpaRepository} CRUD operations, the queries
+ * here support de-duplicating jobs during fetching (by returning the set of
+ * already-known job IDs) and paging the location pass over pending jobs. The
+ * radius queries, which the search and the normalization pass share, come from
+ * {@link RadiusQueries}.
  */
 @Repository
-public interface FetchedJobsRepository extends JpaRepository<FetchedJob,Long> {
+public interface FetchedJobsRepository extends JpaRepository<FetchedJob,Long>, RadiusQueries {
 
     /**
      * Returns every {@link FetchedJob#getJobId() job ID} already stored for the
@@ -51,16 +54,6 @@ public interface FetchedJobsRepository extends JpaRepository<FetchedJob,Long> {
      */
     @Query("select f.jobId from FetchedJob f where f.atsName = :atsName and f.jobId in :jobIds")
     Set<String> findJobIdsByAtsNameAndJobIdIn(@Param("atsName") AtsName atsName, @Param("jobIds") Set<String> jobIds);
-
-    /**
-     * Finds fetched jobs by their normalization state, one page at a time.
-     *
-     * @param isNormalized {@code false} to retrieve jobs still awaiting
-     *                     normalization, {@code true} for already-normalized ones
-     * @param pageable     paging and sort specification
-     * @return the matching page of fetched jobs
-     */
-    List<FetchedJob> findByIsNormalized(boolean isNormalized, Pageable pageable);
 
     /**
      * Finds fetched jobs in a location resolution state with an id above a
@@ -93,5 +86,33 @@ public interface FetchedJobsRepository extends JpaRepository<FetchedJob,Long> {
      * @return how many jobs are in that state
      */
     long countByLocationStatus(LocationStatus locationStatus);
+
+    /**
+     * Counts jobs in a given normalization state and location resolution state.
+     *
+     * <p>Counting {@code PENDING} normalization with {@code RESOLVED} locations
+     * leaves out jobs still waiting on the location pass, including the
+     * {@code FAILED} ones that wait until they are curated.
+     *
+     * @param normalizeStatus the normalization state to count
+     * @param locationStatus  the location resolution state to count
+     * @return how many jobs are in both states
+     */
+    long countByNormalizeStatusAndLocationStatus(NormalizeStatus normalizeStatus, LocationStatus locationStatus);
+
+    /**
+     * Sets one job's normalization state, and nothing else.
+     *
+     * <p>An update rather than saving the entity: saving writes every column
+     * from the copy loaded at the start of the run, which would put back a
+     * location state the location pass had changed since.
+     *
+     * @param id              the job to update
+     * @param normalizeStatus the state to set
+     * @return how many rows were updated
+     */
+    @Modifying
+    @Query("update FetchedJob f set f.normalizeStatus = :status where f.id = :id")
+    int updateNormalizeStatus(@Param("id") Long id, @Param("status") NormalizeStatus normalizeStatus);
 }
 

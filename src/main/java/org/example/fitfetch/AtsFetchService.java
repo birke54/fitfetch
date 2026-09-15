@@ -149,9 +149,9 @@ public class AtsFetchService {
      * <p>The provider is resolved from the board class via
      * {@link AtsName#fromBoardClass(Class)}; incoming IDs are checked in a
      * single {@link FetchedJobsRepository#findJobIdsByAtsNameAndJobIdIn} query,
-     * and jobs not already present are saved as {@link FetchedJob} rows with
-     * {@code isNormalized == false}. A no-op when every incoming job already
-     * exists.
+     * and jobs not already present are saved as {@link FetchedJob} rows, pending
+     * both location resolution and normalization. A no-op when every incoming
+     * job already exists.
      *
      * <p>The lookup and the insert are not one transaction, and need not be.
      * {@code saveAll} is atomic on its own, and nothing else inserts jobs between
@@ -182,8 +182,7 @@ public class AtsFetchService {
                         atsName,
                         job.id().toString(),
                         job.slug(),
-                        job,
-                        false))
+                        job))
                 .toList();
 
         if (!toSave.isEmpty()) {

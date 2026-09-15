@@ -82,8 +82,30 @@ app:
       #   greenhouse:
       #     requests-per-second: 5
   normalize:
+    # Off by default: each job costs one model call over its whole description.
+    # Start small with environment variables, e.g. APP_NORMALIZE_ENABLE=true,
+    # APP_NORMALIZE_PAGESIZE=2 and APP_NORMALIZE_SCHEDULE="0 */10 * * * *",
+    # then raise them once the answers in normalized_jobs and the Ollama
+    # timings (http.client.requests) look right.
     enable: false
     schedule: "0 0 * * * *"
+    # Jobs per run. Each is one model call over a whole description, far slower
+    # than a location label.
+    page-size: 5
+    # Only jobs with a location this close to app.location.default-origin are
+    # normalized; the rest are marked OUT_OF_RANGE once and never sent to the
+    # model. After widening this, requeue them (see NormalizeStatus.OUT_OF_RANGE).
+    radius-miles: 50
+    llm:
+      base-url: ${OLLAMA_BASE_URL}
+      # Its own setting so a larger model can read descriptions while the
+      # location labels keep a small one; the same model unless set.
+      model: ${OLLAMA_NORMALIZE_MODEL:${OLLAMA_MODEL}}
+      read-timeout: PT3M
+      # Must hold the instructions, the longest description and the answer.
+      # Ollama's default is far smaller and truncates silently; a prompt that
+      # fills the window is detected and the job marked FAILED.
+      context-length: 8192
   location:
     # On, but in warm-up only (below): with geocoding on, this fills the
     # interpretation and geocode caches and nothing else. The pass is a no-op

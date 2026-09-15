@@ -37,6 +37,10 @@ import java.util.Optional;
  * Pradesh, so those rows fall outside any sane radius &mdash; which is the right
  * outcome, since work authorization makes the roles unavailable anyway.
  *
+ * <p>Every input redirected to the origin is marked
+ * {@link LocationInput#followsOrigin()}, so a radius search can place it at
+ * whatever origin is configured then rather than the one geocoded now.
+ *
  * <p>Instances are immutable and safe to share.
  */
 public final class LocationPolicy {
@@ -75,9 +79,9 @@ public final class LocationPolicy {
         String raw = extracted.raw() == null ? "" : extracted.raw();
 
         return switch (extracted.kind()) {
-            case SENTINEL -> new LocationInput(raw, Resolution.EMPTY_DEFAULT, origin, null);
+            case SENTINEL -> atOrigin(raw, Resolution.EMPTY_DEFAULT, null);
             case UNPARSEABLE -> LocationInput.undefined(raw);
-            case REMOTE_BARE -> new LocationInput(raw, Resolution.REMOTE_BARE, origin, null);
+            case REMOTE_BARE -> atOrigin(raw, Resolution.REMOTE_BARE, null);
             case REMOTE_SPECIFIER -> remoteWithSpecifier(raw, extracted);
             case PLACE -> barePlace(raw, extracted);
         };
@@ -88,7 +92,7 @@ public final class LocationPolicy {
         if (!extracted.hasSpecifier() || extracted.specifierType() == null) {
             // A remote marker whose qualifier the extractor could not pin down is
             // still a remote job; degrade to rule 2 rather than discarding it.
-            return new LocationInput(raw, Resolution.REMOTE_BARE, origin, null);
+            return atOrigin(raw, Resolution.REMOTE_BARE, null);
         }
         String specifier = extracted.specifier();
 
@@ -99,7 +103,7 @@ public final class LocationPolicy {
                     yield LocationInput.undefined(raw);           // rule 5: hallucination guard
                 }
                 yield Gazetteer.US.equals(code.get())
-                        ? new LocationInput(raw, Resolution.REMOTE_IN_US, origin, Gazetteer.US)
+                        ? atOrigin(raw, Resolution.REMOTE_IN_US, Gazetteer.US)
                         : new LocationInput(raw, Resolution.REMOTE_ELSEWHERE, specifier, code.get());
             }
             case MACRO_REGION ->
@@ -110,7 +114,7 @@ public final class LocationPolicy {
                     yield LocationInput.undefined(raw);
                 }
                 yield Gazetteer.isHomeState(specifier, homeState)
-                        ? new LocationInput(raw, Resolution.REMOTE_IN_US, origin, state.get())
+                        ? atOrigin(raw, Resolution.REMOTE_IN_US, state.get())
                         : new LocationInput(raw, Resolution.REMOTE_ELSEWHERE, specifier, state.get());
             }
             case CITY, ADDRESS ->
@@ -132,7 +136,7 @@ public final class LocationPolicy {
                     yield LocationInput.undefined(raw);
                 }
                 yield Gazetteer.US.equals(code.get())
-                        ? new LocationInput(raw, Resolution.COUNTRY_US, origin, Gazetteer.US)
+                        ? atOrigin(raw, Resolution.COUNTRY_US, Gazetteer.US)
                         : new LocationInput(raw, Resolution.COUNTRY_OTHER, specifier, code.get());
             }
             case STATE -> {
@@ -144,7 +148,7 @@ public final class LocationPolicy {
                 // already is, so it belongs in range rather than at the state
                 // centroid, which sits 100 miles from Seattle for Washington.
                 yield Gazetteer.isHomeState(specifier, homeState)
-                        ? new LocationInput(raw, Resolution.PLACE, origin, state.get())
+                        ? atOrigin(raw, Resolution.PLACE, state.get())
                         : new LocationInput(raw, Resolution.STATE_OTHER, specifier, state.get());
             }
             // A bare macro-region is treated as rules 6 and 6b treat a bare
@@ -154,5 +158,10 @@ public final class LocationPolicy {
             case CITY, ADDRESS ->
                     new LocationInput(raw, Resolution.PLACE, specifier, null);
         };
+    }
+
+    /** An input redirected to the origin, flagged so it follows a reconfigured one. */
+    private LocationInput atOrigin(String raw, Resolution resolution, String regionCode) {
+        return new LocationInput(raw, resolution, origin, regionCode, true);
     }
 }
