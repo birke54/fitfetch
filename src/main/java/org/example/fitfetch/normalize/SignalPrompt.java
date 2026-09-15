@@ -33,7 +33,7 @@ public final class SignalPrompt {
      * job's existing row. Rows from an older version can be found by
      * {@code prompt_version}.
      */
-    public static final int VERSION = 3;
+    public static final int VERSION = 4;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -73,8 +73,12 @@ public final class SignalPrompt {
             - If a bullet contains multiple distinct requirements, split it into separate signals.
             - Deduplicate signals expressing the same requirement; keep the most specific phrasing.
             - If an item is not explicitly marked as preferred, optional, "a plus", or "nice to have", classify it as required.
-            - skills: every specific technology, language, tool, platform, and methodology the signal names, other than alternatives (see any_of_skills), each by its common canonical name ("PostgreSQL" not "Postgres", "Kubernetes" not "k8s", "Go" not "Golang"). Empty if it names none.
-            - any_of_skills: when the signal offers alternatives and any one of them is enough ("at least one of AWS, Azure, or GCP", "Java or Go"), list every alternative here, by the same canonical names, and leave them out of skills. Examples introduced by "e.g." or "such as" are not alternatives; they stay in skills. If a signal offers two separate sets of alternatives, split it into two signals. Empty if it offers none.
+            - skills: the things the signal names that a resume would list as a skill: technologies, languages, frameworks, tools, platforms, protocols, and named techniques or concepts ("Kubernetes", "BGP", "subnetting", "RAG", "event-driven architecture"). Each by its common canonical name ("PostgreSQL" not "Postgres", "Kubernetes" not "k8s", "Go" not "Golang").
+              - Only what this signal's own text names. Never copy skills from other parts of the posting.
+              - Name each separately: "TypeScript/Node" is two skills, TypeScript and Node.js. A name that is one thing, like "CI/CD" or "TCP/IP", stays whole.
+              - Leave out general practices and qualities ("programming", "testing", "debugging", "performance", "security", "reliability", "maintainability", "communication", "collaboration", "mentoring"), vague phrases ("modern backend languages", "cloud native technologies"), and team or department names ("Infrastructure", "Data").
+              - Leave out alternatives (see any_of_skills). Empty if it names none.
+            - any_of_skills: when the signal offers alternatives and any one of them is enough ("at least one of AWS, Azure, or GCP", "Java or Go"), list every alternative here, by the same canonical names, and leave them out of skills. Examples introduced by "e.g." or "such as" are not alternatives; they stay in skills. If the alternatives are open-ended ("Go, or any other modern language", "LangGraph, LangChain, or a comparable framework"), the named ones are only examples of an open choice, so leave them out of both lists. If a signal offers two separate sets of alternatives, split it into two signals. Empty if it offers none.
             - min_years: the years of experience the signal itself asks for, as an integer; 0 if it states none.
 
             Classify each signal's section as exactly one of: core responsibilities, required skills, preferred/nice-to-have skills, required qualifications, preferred/nice-to-have qualifications.
