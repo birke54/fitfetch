@@ -2,9 +2,11 @@ package org.example.fitfetch.metrics;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
+import io.micrometer.core.instrument.Timer;
 import jakarta.persistence.Tuple;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -71,5 +73,31 @@ public class MetricService {
                         .map(entry -> Tag.of(entry.getKey().key(), entry.getValue()))
                         .toList()
         ).increment(increment);
+    }
+
+    /**
+     * Records one timing against the timer identified by {@code metricName},
+     * attaching the given tags.
+     *
+     * <p>The timer publishes a percentile histogram, so latency percentiles can
+     * be computed in Prometheus across instances and time ranges. Its count
+     * doubles as a counter of the timed operation.
+     *
+     * @param metricName the timer to record against
+     * @param tags       tag name/value pairs to attach; may be {@code null} or
+     *                   empty for an untagged timer
+     * @param duration   how long the operation took
+     */
+    public void recordTimer(MetricName metricName, Map<TagName, String> tags, Duration duration) {
+        if (tags == null) {
+            tags = Map.of();
+        }
+        Timer.builder(metricName.metricName())
+                .tags(tags.entrySet().stream()
+                        .map(entry -> Tag.of(entry.getKey().key(), entry.getValue()))
+                        .toList())
+                .publishPercentileHistogram()
+                .register(meterRegistry)
+                .record(duration);
     }
 }

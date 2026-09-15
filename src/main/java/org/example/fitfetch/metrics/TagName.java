@@ -16,7 +16,11 @@ public enum TagName {
     /** The ATS provider a metric relates to ({@code ats}). */
     ATS("ats"),
     /** The company board identifier a metric relates to ({@code slug}). */
-    SLUG("slug");
+    SLUG("slug"),
+    /** The status an external service answered with ({@code status}). */
+    STATUS("status"),
+    /** How a lookup was answered, e.g. from the cache or not ({@code result}). */
+    RESULT("result");
 
     private final String key;
 

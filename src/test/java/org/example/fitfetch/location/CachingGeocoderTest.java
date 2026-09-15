@@ -1,6 +1,9 @@
 package org.example.fitfetch.location;
 
 import org.example.fitfetch.domain.GeocodeCacheEntry;
+import org.example.fitfetch.metrics.MetricName;
+import org.example.fitfetch.metrics.MetricService;
+import org.example.fitfetch.metrics.TagName;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -11,6 +14,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -30,17 +34,24 @@ class CachingGeocoderTest {
 
     private Geocoder delegate;
     private GeocodeCacheRepository repository;
+    private MetricService metricService;
     private CachingGeocoder geocoder;
 
     @BeforeEach
     void setUp() {
         delegate = mock(Geocoder.class);
         repository = mock(GeocodeCacheRepository.class);
+        metricService = mock(MetricService.class);
         geocoder = newGeocoder(true, Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     private CachingGeocoder newGeocoder(boolean lookupEnabled, Clock clock) {
-        return new CachingGeocoder(delegate, repository, TTL, DAY, lookupEnabled, clock);
+        return new CachingGeocoder(delegate, repository, TTL, DAY, lookupEnabled, clock, metricService);
+    }
+
+    private void verifyResult(String result) {
+        verify(metricService).recordCounter(
+                MetricName.LOCATION_GEOCODE_CACHE_COUNT, Map.of(TagName.RESULT, result));
     }
 
     private GeocodeCacheEntry entry(GeocodeOutcome outcome, Instant at) {
@@ -65,6 +76,7 @@ class CachingGeocoderTest {
         verify(repository).save(saved.capture());
         assertEquals("seattle, wa", saved.getValue().getQueryKey());
         assertEquals("ChIJseattle", saved.getValue().getPlaceId());
+        verifyResult("miss");
     }
 
     @Test
@@ -77,6 +89,7 @@ class CachingGeocoderTest {
         assertEquals(GeocodeStatus.OK, outcome.status());
         assertEquals(-122.2967d, outcome.longitude());
         verify(delegate, never()).geocode(anyString());
+        verifyResult("hit");
     }
 
     @Test
@@ -144,6 +157,7 @@ class CachingGeocoderTest {
         verify(delegate).geocode("Seattle, WA");
         verify(repository).save(stale);
         assertEquals(OffsetDateTime.ofInstant(NOW, ZoneOffset.UTC), stale.getRefreshedAt());
+        verifyResult("stale_refresh");
     }
 
     @Test
@@ -213,6 +227,7 @@ class CachingGeocoderTest {
         // Critically, nothing is written: enabling lookups later must resolve
         // this properly rather than find a poisoned negative entry.
         verify(repository, never()).save(any());
+        verifyResult("disabled_miss");
     }
 
     @Test
@@ -225,6 +240,7 @@ class CachingGeocoderTest {
 
         assertEquals(GeocodeStatus.OK, cacheOnly.geocode("Seattle, WA").status());
         verify(delegate, never()).geocode(anyString());
+        verifyResult("hit");
     }
 
     @Test

@@ -10,7 +10,9 @@ import org.example.fitfetch.domain.LocationStatus;
 import org.example.fitfetch.fetching.FetchedJobsRepository;
 import org.example.fitfetch.fetching.records.GreenhouseJobEntry;
 import org.example.fitfetch.fetching.records.GreenhouseSubRecords.Location;
+import org.example.fitfetch.metrics.MetricName;
 import org.example.fitfetch.metrics.MetricService;
+import org.example.fitfetch.metrics.TagName;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,6 +28,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -42,6 +45,7 @@ class LocationServiceTest {
     private FetchedJobsRepository fetchedJobs;
     private JobLocationRepository jobLocations;
     private LocationResolver resolver;
+    private MetricService metricService;
     private LocationService service;
 
     private long nextId = 1L;
@@ -51,7 +55,13 @@ class LocationServiceTest {
         fetchedJobs = mock(FetchedJobsRepository.class);
         jobLocations = mock(JobLocationRepository.class);
         resolver = mock(LocationResolver.class);
+        metricService = mock(MetricService.class);
         service = newService(true);
+    }
+
+    private void verifyStopped(String reason) {
+        verify(metricService).recordCounter(
+                MetricName.LOCATION_PASS_STOPPED_COUNT, Map.of(TagName.REASON, reason));
     }
 
     private LocationService newService(boolean enabled) {
@@ -68,7 +78,7 @@ class LocationServiceTest {
         }).when(template).executeWithoutResult(any());
 
         return new LocationService(fetchedJobs, jobLocations, resolver, template,
-                Clock.fixed(NOW, ZoneOffset.UTC), mock(MetricService.class), enabled, 200, warmCachesOnly);
+                Clock.fixed(NOW, ZoneOffset.UTC), metricService, enabled, 200, warmCachesOnly);
     }
 
     private FetchedJob job(String locationName) {
@@ -432,6 +442,7 @@ class LocationServiceTest {
         verify(jobLocations, never()).saveAll(anyList());
         verify(fetchedJobs, never()).saveAll(anyList());
         assertEquals(LocationStatus.PENDING, job.getLocationStatus());
+        verifyStopped("model_unavailable");
     }
 
     @Test
@@ -444,6 +455,7 @@ class LocationServiceTest {
         service.resolvePendingLocations();
 
         verify(jobLocations, never()).saveAll(anyList());
+        verifyStopped("geocoding_retryable");
     }
 
     @Test
@@ -456,6 +468,17 @@ class LocationServiceTest {
 
         assertDoesNotThrow(() -> service.resolvePendingLocations());
         verify(jobLocations, never()).saveAll(anyList());
+        verifyStopped("geocoding_fatal");
+    }
+
+    @Test
+    @DisplayName("A failure outside resolution is counted as an error")
+    void testUnexpectedFailureCounted() {
+        when(fetchedJobs.findByLocationStatusAndIdGreaterThan(any(), anyLong(), any(Pageable.class)))
+                .thenThrow(new DataAccessResourceFailureException("down"));
+
+        assertDoesNotThrow(() -> service.resolvePendingLocations());
+        verifyStopped("error");
     }
 
     // ------------------------------------------------------------- warm-up

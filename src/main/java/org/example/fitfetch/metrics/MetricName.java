@@ -28,7 +28,23 @@ public enum MetricName {
      * {@code reason} ({@code location.llm.extraction.failure.count}). Counted per
      * call, so a label whose output is unusable twice counts twice.
      */
-    LOCATION_LLM_EXTRACTION_FAILURE_COUNT("location.llm.extraction.failure.count");
+    LOCATION_LLM_EXTRACTION_FAILURE_COUNT("location.llm.extraction.failure.count"),
+    /**
+     * A request to the Google Geocoding API, timed and tagged with its
+     * {@code status} ({@code location.geocode.request}). A timer, so its count
+     * is the number of requests: what Google bills for.
+     */
+    LOCATION_GEOCODE_REQUEST("location.geocode.request"),
+    /**
+     * A geocode lookup answered from the cache or not, tagged with the
+     * {@code result} ({@code location.geocode.cache.count}).
+     */
+    LOCATION_GEOCODE_CACHE_COUNT("location.geocode.cache.count"),
+    /**
+     * A location pass stopped before writing its page, tagged with the
+     * {@code reason} ({@code location.pass.stopped.count}).
+     */
+    LOCATION_PASS_STOPPED_COUNT("location.pass.stopped.count");
 
     private final String metricName;
 

@@ -1,6 +1,9 @@
 package org.example.fitfetch.location;
 
 import org.example.fitfetch.location.records.GoogleGeocodeResponse;
+import org.example.fitfetch.metrics.MetricName;
+import org.example.fitfetch.metrics.MetricService;
+import org.example.fitfetch.metrics.TagName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -9,7 +12,10 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.time.Duration;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -49,23 +55,27 @@ public class GoogleGeocoder implements Geocoder {
     private final RestClient restClient;
     private final String baseUrl;
     private final String apiKey;
+    private final MetricService metricService;
 
     /**
-     * @param restClient the HTTP client; configure timeouts on it, since a hung
-     *                   lookup must fail the pass rather than block it
-     * @param apiKey     the Google Maps Platform API key
+     * @param restClient    the HTTP client; configure timeouts on it, since a hung
+     *                      lookup must fail the pass rather than block it
+     * @param apiKey        the Google Maps Platform API key
+     * @param metricService where each request is timed
      */
-    public GoogleGeocoder(RestClient restClient, String apiKey) {
-        this(restClient, apiKey, DEFAULT_BASE_URL);
+    public GoogleGeocoder(RestClient restClient, String apiKey, MetricService metricService) {
+        this(restClient, apiKey, DEFAULT_BASE_URL, metricService);
     }
 
     /**
-     * @param restClient the HTTP client
-     * @param apiKey     the Google Maps Platform API key
-     * @param baseUrl    API base URL; overridable so tests can point elsewhere
+     * @param restClient    the HTTP client
+     * @param apiKey        the Google Maps Platform API key
+     * @param baseUrl       API base URL; overridable so tests can point elsewhere
+     * @param metricService where each request is timed
      */
-    public GoogleGeocoder(RestClient restClient, String apiKey, String baseUrl) {
+    public GoogleGeocoder(RestClient restClient, String apiKey, String baseUrl, MetricService metricService) {
         this.restClient = Objects.requireNonNull(restClient, "restClient");
+        this.metricService = Objects.requireNonNull(metricService, "metricService");
         if (apiKey == null || apiKey.isBlank()) {
             throw new IllegalArgumentException("apiKey must not be blank");
         }
@@ -83,6 +93,7 @@ public class GoogleGeocoder implements Geocoder {
             throw new IllegalArgumentException("query must not be blank");
         }
 
+        long start = System.nanoTime();
         GoogleGeocodeResponse response;
         try {
             response = restClient.get()
@@ -91,11 +102,31 @@ public class GoogleGeocoder implements Geocoder {
                     .retrieve()
                     .body(GoogleGeocodeResponse.class);
         } catch (RestClientException e) {
+            recordRequest("transport", Duration.ofNanos(System.nanoTime() - start));
             // Deliberately reports the query, never the URI: the URI carries the
             // API key, and exception messages end up in logs.
             throw new GeocodingException("Geocoding transport failed for '" + query + "'", false, e);
         }
+        Duration elapsed = Duration.ofNanos(System.nanoTime() - start);
 
+        GeocodeOutcome outcome;
+        try {
+            outcome = interpret(response, query);
+        } catch (GeocodingException e) {
+            recordRequest(statusTag(response), elapsed);
+            throw e;
+        }
+        // An OK carrying no usable result is reported as ZERO_RESULTS; the tag
+        // keeps it apart from Google actually finding nothing.
+        boolean okWithoutCoordinates = "OK".equals(response.status()) && !outcome.status().hasCoordinates();
+        recordRequest(okWithoutCoordinates ? "ok_no_coordinates" : statusTag(response), elapsed);
+        return outcome;
+    }
+
+    /**
+     * Maps a response to an outcome, or to the exception its status calls for.
+     */
+    private static GeocodeOutcome interpret(GoogleGeocodeResponse response, String query) {
         if (response == null || response.status() == null) {
             throw new GeocodingException("Geocoding returned no status for '" + query + "'", false);
         }
@@ -121,6 +152,25 @@ public class GoogleGeocoder implements Geocoder {
                     "Geocoding returned unrecognised status '" + response.status()
                             + "' for '" + query + "'", false);
         };
+    }
+
+    /**
+     * The response's status as a metric tag. A status this class does not know
+     * gets one shared tag, so an unexpected value cannot add a series of its own.
+     */
+    private static String statusTag(GoogleGeocodeResponse response) {
+        if (response == null || response.status() == null) {
+            return "no_status";
+        }
+        return switch (response.status()) {
+            case "OK", "ZERO_RESULTS", "INVALID_REQUEST", "OVER_QUERY_LIMIT", "OVER_DAILY_LIMIT",
+                 "REQUEST_DENIED", "UNKNOWN_ERROR" -> response.status().toLowerCase(Locale.ROOT);
+            default -> "unrecognised";
+        };
+    }
+
+    private void recordRequest(String status, Duration elapsed) {
+        metricService.recordTimer(MetricName.LOCATION_GEOCODE_REQUEST, Map.of(TagName.STATUS, status), elapsed);
     }
 
     private URI buildUri(String query) {
