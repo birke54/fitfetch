@@ -1,5 +1,6 @@
 package org.example.fitfetch.fetching;
 
+import io.micrometer.observation.ObservationRegistry;
 import org.example.fitfetch.ats.AtsName;
 import org.example.fitfetch.metrics.MetricService;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,15 +34,17 @@ public class AtsRestClients {
      * @param clock          time source
      * @param connectTimeout {@code app.http.connect-timeout}
      * @param readTimeout    {@code app.http.read-timeout}
+     * @param observationRegistry where each request is observed
      */
     public AtsRestClients(FetchLimits limits,
                           MetricService metricService,
                           Clock clock,
                           @Value("${app.http.connect-timeout}") Duration connectTimeout,
-                          @Value("${app.http.read-timeout}") Duration readTimeout) {
+                          @Value("${app.http.read-timeout}") Duration readTimeout,
+                          ObservationRegistry observationRegistry) {
         for (AtsName ats : AtsName.values()) {
             AtsRateLimiter limiter = new AtsRateLimiter(ats, limits.forAts(ats), clock, AtsRateLimiter.THREAD_SLEEP);
-            clients.put(ats, RestClientConfig.builderWithTimeouts(connectTimeout, readTimeout)
+            clients.put(ats, RestClientConfig.builderWithTimeouts(connectTimeout, readTimeout, observationRegistry)
                     .requestInterceptor(new RateLimitInterceptor(limiter, metricService, clock))
                     .build());
         }

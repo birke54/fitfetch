@@ -35,6 +35,12 @@ management:
   metrics:
     tags:
       application: ${spring.application.name}
+    distribution:
+      # Histogram buckets, so Prometheus can compute latency percentiles for
+      # calls to Greenhouse, Google and Ollama. Bracketed so the dots stay part
+      # of the metric name.
+      percentiles-histogram:
+        "[http.client.requests]": true
 
 app:
   slug-ids: slugs.json

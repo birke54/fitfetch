@@ -63,11 +63,11 @@ public class GreenhouseFetch implements Fetch<GreenhouseJobEntry> {
      */
     @Override
     public AtsResponse<GreenhouseJobEntry> fetchJobs(String slug) {
-        String endpoint = BASEURL + slug + "/jobs?content=true";
-
-        // 1. Fetch cleanly into the concrete DTO layer
+        // The slug stays a template variable: the template is what the request's
+        // uri metric tag holds, and concatenating the slug in would make that one
+        // series per board.
         GreenhouseResponse response = restClient.get()
-                .uri(endpoint)
+                .uri(BASEURL + "{slug}/jobs?content=true", slug)
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .body(GreenhouseResponse.class);

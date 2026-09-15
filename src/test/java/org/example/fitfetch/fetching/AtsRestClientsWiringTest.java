@@ -1,5 +1,6 @@
 package org.example.fitfetch.fetching;
 
+import io.micrometer.observation.ObservationRegistry;
 import org.example.fitfetch.ats.AtsName;
 import org.example.fitfetch.metrics.MetricService;
 import org.junit.jupiter.api.DisplayName;
@@ -28,6 +29,7 @@ class AtsRestClientsWiringTest {
                     .setConversionService(ApplicationConversionService.getSharedInstance()))
             .withUserConfiguration(RestClientConfig.class, AtsRestClients.class, GreenhouseFetch.class)
             .withBean(MetricService.class, () -> mock(MetricService.class))
+            .withBean(ObservationRegistry.class, () -> ObservationRegistry.NOOP)
             .withBean(Clock.class, Clock::systemUTC);
 
     @Test

@@ -1,5 +1,6 @@
 package org.example.fitfetch.location;
 
+import io.micrometer.observation.ObservationRegistry;
 import org.example.fitfetch.fetching.RestClientConfig;
 import org.example.fitfetch.metrics.MetricService;
 import org.slf4j.Logger;
@@ -82,6 +83,7 @@ public class LocationConfig {
      * @param hitGranularity  how stale a row's last-read timestamp must be
      *                        before it is worth rewriting
      * @param metricService   where failed model calls are counted
+     * @param observationRegistry where each request to Ollama is observed
      * @return the cached extractor
      */
     @Bean
@@ -89,12 +91,13 @@ public class LocationConfig {
             LocationInterpretationRepository repository,
             Clock clock,
             MetricService metricService,
+            ObservationRegistry observationRegistry,
             @Value("${app.location.llm.base-url}") String baseUrl,
             @Value("${app.location.llm.model}") String model,
             @Value("${app.http.connect-timeout}") Duration connectTimeout,
             @Value("${app.location.llm.read-timeout}") Duration readTimeout,
             @Value("${app.location.cache.last-hit-granularity}") Duration hitGranularity) {
-        RestClient ollamaClient = RestClientConfig.withTimeouts(connectTimeout, readTimeout);
+        RestClient ollamaClient = RestClientConfig.withTimeouts(connectTimeout, readTimeout, observationRegistry);
         return new CachingLocationExtractor(
                 new OllamaLocationExtractor(ollamaClient, baseUrl, model, metricService),
                 repository, model, OllamaPrompt.VERSION, hitGranularity, clock);
