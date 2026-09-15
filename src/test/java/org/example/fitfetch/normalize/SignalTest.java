@@ -19,8 +19,8 @@ class SignalTest {
         // Signal has a second, shorter constructor; reading must still use the
         // full one, or skills and years would come back empty.
         List<Signal> signals = List.of(
-                new Signal(SignalClassification.REQUIRED_SKILL, "Has 3+ years of Kubernetes.",
-                        List.of("Kubernetes"), 3),
+                new Signal(SignalClassification.REQUIRED_SKILL, "Has 3+ years of Kubernetes on AWS or GCP.",
+                        List.of("Kubernetes"), List.of("AWS", "GCP"), 3),
                 new Signal(SignalClassification.CORE_RESPONSIBILITY, "Operates services."));
 
         String json = MAPPER.writeValueAsString(signals);
@@ -29,7 +29,20 @@ class SignalTest {
 
         assertEquals(signals, read);
         assertTrue(json.contains("\"skills\":[\"Kubernetes\"]"), json);
+        assertTrue(json.contains("\"anyOfSkills\":[\"AWS\",\"GCP\"]"), json);
         assertTrue(json.contains("\"minYears\":3"), json);
+    }
+
+    @Test
+    @DisplayName("A signal stored before alternatives existed reads with none")
+    void testReadsRowWithoutAlternatives() {
+        String stored = """
+                [{"classification":"REQUIRED_SKILL","text":"Knows Go.","skills":["Go"],"minYears":2}]""";
+
+        List<Signal> read = MAPPER.readValue(stored, new TypeReference<>() {
+        });
+
+        assertEquals(List.of(new Signal(SignalClassification.REQUIRED_SKILL, "Knows Go.", List.of("Go"), 2)), read);
     }
 
     @Test

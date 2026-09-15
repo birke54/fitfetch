@@ -90,6 +90,54 @@ class MatchScorerTest {
         assertEquals(0.0, match.coverage());
     }
 
+    private static Signal cloudNetworking() {
+        return new Signal(SignalClassification.REQUIRED_SKILL,
+                "Knows the network primitives of at least one of AWS, Azure, or GCP.",
+                List.of("VPCs", "subnetting", "routing", "VPNs", "peering", "private link",
+                        "private service connect", "CDNs"),
+                List.of("AWS", "Azure", "GCP"), 0);
+    }
+
+    private static List<CandidateProfile.Skill> skills(String... names) {
+        return java.util.Arrays.stream(names).map(name -> new CandidateProfile.Skill(name, 3)).toList();
+    }
+
+    @Test
+    @DisplayName("A signal's alternatives count as one skill, met by any of them")
+    void testAlternativesCountAsOne() {
+        Map<String, float[]> weak = Map.of("one", similarity(0.1));
+
+        MatchResult.SignalMatch noCloud = scorer.score(job(cloudNetworking()), signalVectors(1),
+                profile(skills("VPCs", "subnetting", "VPNs", "routing"), "one"), weak).signals().getFirst();
+
+        assertEquals(4.0 / 9, noCloud.coverage(), 1e-9, "four of eight skills, and none of the alternatives");
+        assertEquals(List.of("VPCs", "subnetting", "routing", "VPNs"), noCloud.matchedSkills());
+        assertEquals(List.of("peering", "private link", "private service connect", "CDNs"), noCloud.missingSkills());
+        assertEquals(List.of("AWS", "Azure", "GCP"), noCloud.missingAlternatives());
+
+        MatchResult.SignalMatch onAws = scorer.score(job(cloudNetworking()), signalVectors(1),
+                profile(skills("VPCs", "subnetting", "VPNs", "routing", "aws"), "one"), weak).signals().getFirst();
+
+        assertEquals(5.0 / 9, onAws.coverage(), 1e-9, "AWS alone meets the alternatives");
+        assertEquals(List.of("VPCs", "subnetting", "routing", "VPNs", "AWS"), onAws.matchedSkills());
+        assertEquals(List.of(), onAws.missingAlternatives());
+    }
+
+    @Test
+    @DisplayName("An alternative held for fewer years than the signal asks for does not meet it")
+    void testAlternativeYears() {
+        Signal fiveYears = new Signal(SignalClassification.REQUIRED_SKILL, "Has 5+ years of Java or Go.",
+                List.of(), List.of("Java", "Go"), 5);
+
+        MatchResult.SignalMatch match = scorer.score(job(fiveYears), signalVectors(1),
+                profile(List.of(new CandidateProfile.Skill("Java", 3)), "one"),
+                Map.of("one", similarity(0.1))).signals().getFirst();
+
+        assertEquals(0.0, match.coverage());
+        assertEquals(List.of(), match.matchedSkills());
+        assertEquals(List.of("Java", "Go"), match.missingAlternatives());
+    }
+
     @Test
     @DisplayName("Required signals outweigh responsibilities, which outweigh nice-to-haves")
     void testWeights() {
@@ -122,6 +170,19 @@ class MatchScorerTest {
                 .parts().skillMatch(), 1e-9, "Java of Java and Go; Rust is only preferred");
         assertEquals(1.0, scorer.score(job(required("None named.")), signalVectors(1), javaOnly,
                 Map.of("one", similarity(0.1))).parts().skillMatch());
+    }
+
+    @Test
+    @DisplayName("In skill match, a signal's alternatives count as one required skill, held if any of them is")
+    void testSkillMatchAlternatives() {
+        NormalizedData job = job(required("A.", "Java"),
+                new Signal(SignalClassification.REQUIRED_SKILL, "B.", List.of(), List.of("AWS", "Azure", "GCP"), 0));
+        Map<String, float[]> weak = Map.of("one", similarity(0.1));
+
+        assertEquals(1.0, scorer.score(job, signalVectors(2), profile(skills("Java", "GCP"), "one"), weak)
+                .parts().skillMatch(), 1e-9, "Java, and GCP for the clouds");
+        assertEquals(0.5, scorer.score(job, signalVectors(2), profile(skills("Java"), "one"), weak)
+                .parts().skillMatch(), 1e-9, "Java of Java and one cloud");
     }
 
     @Test

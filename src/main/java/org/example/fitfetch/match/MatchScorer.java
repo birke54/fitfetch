@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Scores how well a job matches the candidate, from what normalization
@@ -30,9 +31,11 @@ import java.util.Set;
  *       for each signal, the better of how similar the best bullet is and how
  *       many of the signal's skills the profile has, weighted by the signal's
  *       section. A required skill counts more than a responsibility, which
- *       counts more than a nice-to-have.</li>
+ *       counts more than a nice-to-have. A signal's alternatives ("one of AWS,
+ *       Azure, or GCP") count as one skill, met by any of them.</li>
  *   <li><strong>Skill match</strong> ({@value #SKILL_WEIGHT}): the share of
- *       the skills named in required signals that the profile has.</li>
+ *       the skills named in required signals that the profile has, each set
+ *       of alternatives again counting as one.</li>
  *   <li><strong>Level fit</strong> ({@value #LEVEL_WEIGHT}): how close the
  *       job's seniority band is to the profile's, and the profile's years
  *       against the job's minimum.</li>
@@ -47,7 +50,7 @@ import java.util.Set;
 public class MatchScorer {
 
     /** Version of the scoring rules; increment on any change to them. */
-    public static final int VERSION = 1;
+    public static final int VERSION = 2;
 
     /**
      * Below this cosine similarity a bullet says nothing about a signal; at
@@ -121,16 +124,36 @@ public class MatchScorer {
         List<String> matched = new ArrayList<>();
         List<String> missing = new ArrayList<>();
         for (String skill : signal.skills()) {
-            Integer years = yearsBySkill.get(key(skill));
-            if (years != null && years >= signal.minYears()) {
+            if (heldLongEnough(skill, signal, yearsBySkill)) {
                 matched.add(skill);
             } else {
                 missing.add(skill);
             }
         }
-        double bySkills = signal.skills().isEmpty() ? 0 : (double) matched.size() / signal.skills().size();
+        int needed = signal.skills().size();
+        int met = matched.size();
+
+        // The alternatives are one skill between them: any one held meets it.
+        List<String> missingAlternatives = List.of();
+        if (!signal.anyOfSkills().isEmpty()) {
+            List<String> held = signal.anyOfSkills().stream()
+                    .filter(skill -> heldLongEnough(skill, signal, yearsBySkill)).toList();
+            matched.addAll(held);
+            needed++;
+            if (held.isEmpty()) {
+                missingAlternatives = signal.anyOfSkills();
+            } else {
+                met++;
+            }
+        }
+        double bySkills = needed == 0 ? 0 : (double) met / needed;
         return new SignalMatch(index, signal.classification(), Math.max(semantic, bySkills),
-                new ArrayList<>(best), matched, missing);
+                new ArrayList<>(best), matched, missing, missingAlternatives);
+    }
+
+    private static boolean heldLongEnough(String skill, Signal signal, Map<String, Integer> yearsBySkill) {
+        Integer years = yearsBySkill.get(key(skill));
+        return years != null && years >= signal.minYears();
     }
 
     /** @return 0 below the floor, 1 at or above full, linear between */
@@ -156,22 +179,29 @@ public class MatchScorer {
 
     /**
      * @return the share of distinct skills in required signals that the profile
-     *         has at all; 1 if they name none. Years are judged per signal, in
+     *         has at all; 1 if they name none. A signal's alternatives count as
+     *         one skill, held if any of them is. Years are judged per signal, in
      *         coverage
      */
     private static double skillMatch(NormalizedData job, Map<String, Integer> yearsBySkill) {
         Set<String> required = new LinkedHashSet<>();
+        Set<Set<String>> alternatives = new LinkedHashSet<>();
         for (Signal signal : job.signals()) {
             if (signal.classification() == SignalClassification.REQUIRED_SKILL
                     || signal.classification() == SignalClassification.REQUIRED_QUALIFICATION) {
                 signal.skills().forEach(skill -> required.add(key(skill)));
+                if (!signal.anyOfSkills().isEmpty()) {
+                    alternatives.add(signal.anyOfSkills().stream().map(MatchScorer::key).collect(Collectors.toSet()));
+                }
             }
         }
-        if (required.isEmpty()) {
+        int total = required.size() + alternatives.size();
+        if (total == 0) {
             return 1;
         }
-        long held = required.stream().filter(yearsBySkill::containsKey).count();
-        return (double) held / required.size();
+        long held = required.stream().filter(yearsBySkill::containsKey).count()
+                + alternatives.stream().filter(group -> group.stream().anyMatch(yearsBySkill::containsKey)).count();
+        return (double) held / total;
     }
 
     /** @return the average of seniority fit and years fit */
