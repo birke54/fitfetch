@@ -106,6 +106,14 @@ public class NormalizedJob {
     @Column(name = "normalized_at", nullable = false)
     private OffsetDateTime normalizedAt;
 
+    /**
+     * {@code EmbeddingSettings.key()} of the embedder that gave this row's
+     * signals their vectors, or {@code null} until one has. A new row starts
+     * null, so a job normalized again is embedded again.
+     */
+    @Column(name = "embedded_with", length = 100)
+    private String embeddedWith;
+
     /** No-arg constructor required by JPA; not intended for application use. */
     protected NormalizedJob() {
     }
@@ -197,5 +205,10 @@ public class NormalizedJob {
     /** @return when this row was written */
     public OffsetDateTime getNormalizedAt() {
         return normalizedAt;
+    }
+
+    /** @return what embedded this row's signals, or {@code null} if nothing has */
+    public String getEmbeddedWith() {
+        return embeddedWith;
     }
 }

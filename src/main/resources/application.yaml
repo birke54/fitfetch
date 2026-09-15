@@ -116,6 +116,28 @@ app:
       # Ollama's default is far smaller and truncates silently; a prompt that
       # fills the window is detected and the job marked FAILED.
       context-length: 8192
+  embedding:
+    # Off by default, like normalization. Needs the embedding model pulled into
+    # Ollama first (ollama pull nomic-embed-text). Embeds the profile's bullets
+    # and one page of normalized jobs' signals per run; vectors are cached in
+    # the embeddings table, so a restart or a repeated text costs no model call.
+    enable: false
+    schedule: "0 */10 * * * *"
+    # Normalized jobs per run. A job is one batched call for its signals, far
+    # cheaper than normalizing it.
+    page-size: 20
+    # Texts per call to the model.
+    batch-size: 32
+    llm:
+      base-url: ${OLLAMA_BASE_URL}
+      model: ${OLLAMA_EMBED_MODEL:nomic-embed-text}
+      read-timeout: PT1M
+    # nomic-embed-text is trained with these task prefixes: a job requirement is
+    # the query searched for among the bullets. Quoted to keep the trailing
+    # space. Another model may want other prefixes, or none; changing either
+    # re-embeds every job.
+    query-prefix: "search_query: "
+    document-prefix: "search_document: "
   location:
     # On, but in warm-up only (below): with geocoding on, this fills the
     # interpretation and geocode caches and nothing else. The pass is a no-op
