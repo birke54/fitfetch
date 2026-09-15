@@ -47,6 +47,31 @@ class SkillCanonicalizerTest {
     }
 
     @Test
+    @DisplayName("A text names a skill by its canonical name or any alias, whatever spelling is asked about")
+    void testNamedBySpelling() {
+        assertTrue(table.isNamedIn("Kubernetes", "Runs services on Kubernetes."));
+        assertTrue(table.isNamedIn("Kubernetes", "Deploys to k8s."));
+        assertTrue(table.isNamedIn("k8s", "Runs services on Kubernetes."));
+        assertTrue(table.isNamedIn("Go", "Builds GOLANG services."));
+        assertTrue(table.isNamedIn("Apache  Beam", "Writes pipelines in apache\nbeam."));
+        assertFalse(table.isNamedIn("PostgreSQL", "Runs MySQL."));
+        assertFalse(table.isNamedIn("Go", " "));
+        assertFalse(table.isNamedIn(" ", "Knows Go."));
+    }
+
+    @Test
+    @DisplayName("A name counts only as whole words, allowing a plural and surrounding punctuation")
+    void testNamedAsWholeWords() {
+        assertFalse(table.isNamedIn("Go", "Deploys to Google Cloud."));
+        assertFalse(table.isNamedIn("Java", "Writes JavaScript."));
+        assertTrue(table.isNamedIn("API", "Designs APIs."));
+        assertTrue(table.isNamedIn("C++", "Writes C++ daily."));
+        assertTrue(table.isNamedIn("CI/CD", "Owns the CI/CD pipelines."));
+        assertTrue(table.isNamedIn("TLS", "Knows TCP/IP, TLS/mTLS and BGP."));
+        assertTrue(table.isNamedIn("mTLS", "Knows TCP/IP, TLS/mTLS and BGP."));
+    }
+
+    @Test
     @DisplayName("An alias claimed by two skills is rejected")
     void testConflictRejected() {
         IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
@@ -103,6 +128,25 @@ class SkillCanonicalizerTest {
         assertEquals(List.of("Ruby on Rails", "Go", "Bash", "MVC"),
                 shipped.canonicalAll(List.of("Ruby/Rails", "Golang", "shell scripting", "model-view-controller")));
         assertNotEquals(shipped.canonical("Ruby"), shipped.canonical("Ruby/Rails"));
+    }
+
+    @Test
+    @DisplayName("With the shipped table, real signals name the skills they list by any spelling")
+    void testShippedNamedIn() throws Exception {
+        SkillCanonicalizer shipped = SkillCanonicalizer.load(new ClassPathResource("skill_aliases.json"));
+        String languages = "Proficiency in TypeScript/Node, Python, or Golang";
+        String networking = "Network design primitives, e.g. VPCs, subnetting, routing, VPNs, peering, "
+                + "private link / private service connect, and CDNs";
+
+        for (String skill : List.of("TypeScript", "Node.js", "Python", "Go")) {
+            assertTrue(shipped.isNamedIn(skill, languages), skill);
+        }
+        for (String skill : List.of("VPC", "Subnetting", "Routing", "VPN", "Peering", "PrivateLink",
+                "Private Service Connect", "CDN")) {
+            assertTrue(shipped.isNamedIn(skill, networking), skill);
+        }
+        assertTrue(shipped.isNamedIn("API Design", "Experience designing and building APIs."));
+        assertFalse(shipped.isNamedIn("Rust", languages));
     }
 
     @Test

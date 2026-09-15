@@ -245,6 +245,10 @@ public class OllamaSignalExtractor implements LlmSignalExtractor {
      * Builds one signal, its skills in canonical names. A section outside the
      * schema is kept as {@code OTHER} and counted as a fallback.
      *
+     * <p>A skill the signal's text does not name is dropped. The model copies
+     * skills from elsewhere in the posting onto signals that never mention
+     * them, and each one would count as a requirement the job never made.
+     *
      * <p>A skill the model put in both lists is an alternative, since that is
      * the narrower claim: kept in {@code skills} it would count as required. A
      * single alternative is no choice at all, so it joins the required skills.
@@ -254,8 +258,9 @@ public class OllamaSignalExtractor implements LlmSignalExtractor {
         if (classification == SignalClassification.OTHER) {
             recordFallback("classification");
         }
-        List<String> required = skills.canonicalAll(item.skills());
-        List<String> anyOf = skills.canonicalAll(item.anyOfSkills());
+        String text = item.text().strip();
+        List<String> required = namedIn(text, skills.canonicalAll(item.skills()));
+        List<String> anyOf = namedIn(text, skills.canonicalAll(item.anyOfSkills()));
         if (anyOf.size() < 2) {
             // canonicalAll drops the repeat if the one alternative is also required.
             required = skills.canonicalAll(Stream.concat(required.stream(), anyOf.stream()).toList());
@@ -266,7 +271,21 @@ public class OllamaSignalExtractor implements LlmSignalExtractor {
             required = required.stream()
                     .filter(skill -> !alternatives.contains(skill.toLowerCase(Locale.ROOT))).toList();
         }
-        return new Signal(classification, item.text().strip(), required, anyOf, years(item.minYears()));
+        return new Signal(classification, text, required, anyOf, years(item.minYears()));
+    }
+
+    /** @return the skills the text names, in order, having counted each one dropped */
+    private List<String> namedIn(String text, List<String> candidates) {
+        List<String> named = new ArrayList<>(candidates.size());
+        for (String skill : candidates) {
+            if (skills.isNamedIn(skill, text)) {
+                named.add(skill);
+            } else {
+                LOGGER.debug("Dropped skill '{}', which the signal does not name: {}", skill, text);
+                metricService.recordCounter(MetricName.NORMALIZE_SKILLS_DROPPED_COUNT);
+            }
+        }
+        return named;
     }
 
     /**

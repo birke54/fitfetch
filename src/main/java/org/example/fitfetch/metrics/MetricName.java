@@ -163,7 +163,14 @@ public enum MetricName {
      * ({@code normalize.field.fallback.count}). An early sign of the model
      * drifting from the schema.
      */
-    NORMALIZE_FIELD_FALLBACK_COUNT("normalize.field.fallback.count");
+    NORMALIZE_FIELD_FALLBACK_COUNT("normalize.field.fallback.count"),
+    /**
+     * Skills the model listed on a signal whose text does not name them, and
+     * which were dropped ({@code normalize.skills.dropped.count}). Counted per
+     * skill. Mostly skills copied from elsewhere in the posting; a sudden rise
+     * means the check is dropping ones it should keep, or the model has drifted.
+     */
+    NORMALIZE_SKILLS_DROPPED_COUNT("normalize.skills.dropped.count");
 
     private final String metricName;
 

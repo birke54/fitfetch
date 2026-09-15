@@ -35,6 +35,9 @@ public final class SkillCanonicalizer {
 
     private final Map<String, String> canonicalByKey;
 
+    /** Every key that maps to each canonical name, the name's own included, by the name's key. */
+    private final Map<String, List<String>> keysByCanonicalKey;
+
     /**
      * @param aliasesByCanonical each canonical name and the aliases that map to
      *                           it. A canonical name matches itself too
@@ -61,6 +64,9 @@ public final class SkillCanonicalizer {
             throw new IllegalArgumentException("Skill names that map to more than one skill: " + conflicts);
         }
         this.canonicalByKey = Map.copyOf(byKey);
+        Map<String, List<String>> keys = new HashMap<>();
+        byKey.forEach((key, canonical) -> keys.computeIfAbsent(key(canonical), k -> new ArrayList<>()).add(key));
+        this.keysByCanonicalKey = Map.copyOf(keys);
     }
 
     private static void register(Map<String, String> byKey, List<String> conflicts, String written, String canonical) {
@@ -129,6 +135,43 @@ public final class SkillCanonicalizer {
             byKey.putIfAbsent(key(canonical), canonical);
         }
         return List.copyOf(byKey.values());
+    }
+
+    /**
+     * Whether a text names a skill, by its canonical name or any alias of it.
+     *
+     * <p>A name must stand as whole words, ignoring case and runs of
+     * whitespace, so "Go" is not found in "Google" nor "Java" in "JavaScript".
+     * A plural "s" is allowed after it, so "APIs" names the skill "API".
+     *
+     * @param skill a skill, as written or canonical
+     * @param text  the text to look in
+     * @return whether the text names it; never for a blank skill or text
+     */
+    public boolean isNamedIn(String skill, String text) {
+        Objects.requireNonNull(skill, "skill");
+        if (skill.isBlank() || text == null || text.isBlank()) {
+            return false;
+        }
+        String haystack = key(text);
+        List<String> names = keysByCanonicalKey.getOrDefault(key(canonical(skill)), List.of(key(skill)));
+        return names.stream().anyMatch(name -> containsWord(haystack, name));
+    }
+
+    /** @return whether {@code word} occurs in {@code text} with no letter or digit either side, bar a plural "s" */
+    private static boolean containsWord(String text, String word) {
+        for (int at = text.indexOf(word); at >= 0; at = text.indexOf(word, at + 1)) {
+            int end = at + word.length();
+            if (end < text.length() && text.charAt(end) == 's') {
+                end++;
+            }
+            boolean startsWord = at == 0 || !Character.isLetterOrDigit(text.charAt(at - 1));
+            boolean endsWord = end == text.length() || !Character.isLetterOrDigit(text.charAt(end));
+            if (startsWord && endsWord) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static String key(String skill) {
