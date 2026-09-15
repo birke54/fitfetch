@@ -10,6 +10,7 @@ import org.example.fitfetch.domain.LocationStatus;
 import org.example.fitfetch.fetching.FetchedJobsRepository;
 import org.example.fitfetch.fetching.records.GreenhouseJobEntry;
 import org.example.fitfetch.fetching.records.GreenhouseSubRecords.Location;
+import org.example.fitfetch.metrics.MetricService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -67,7 +68,7 @@ class LocationServiceTest {
         }).when(template).executeWithoutResult(any());
 
         return new LocationService(fetchedJobs, jobLocations, resolver, template,
-                Clock.fixed(NOW, ZoneOffset.UTC), enabled, 200, warmCachesOnly);
+                Clock.fixed(NOW, ZoneOffset.UTC), mock(MetricService.class), enabled, 200, warmCachesOnly);
     }
 
     private FetchedJob job(String locationName) {

@@ -22,7 +22,13 @@ public enum MetricName {
      * An ATS's fetch cycle ended early because it asked for a pause longer than
      * {@code max-wait} ({@code fetching.stopped.count}).
      */
-    FETCH_STOPPED_COUNT("fetching.stopped.count");
+    FETCH_STOPPED_COUNT("fetching.stopped.count"),
+    /**
+     * A call to the location model produced no usable location, tagged with the
+     * {@code reason} ({@code location.llm.extraction.failure.count}). Counted per
+     * call, so a label whose output is unusable twice counts twice.
+     */
+    LOCATION_LLM_EXTRACTION_FAILURE_COUNT("location.llm.extraction.failure.count");
 
     private final String metricName;
 
