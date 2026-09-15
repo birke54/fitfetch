@@ -43,7 +43,10 @@ management:
         "[http.client.requests]": true
 
 app:
-  slug-ids: slugs.json
+  # Resource paths need the classpath: prefix. In a web application a bare path
+  # resolves against the servlet context, where these files are not, and the
+  # app fails to start.
+  slug-ids: classpath:slugs.json
   http:
     # Applied to every outbound call. The JDK client has no timeouts by
     # default, so without these one hung connection stalls a run indefinitely.
@@ -95,7 +98,7 @@ app:
     # One page per run: a backlog clears steadily instead of a single invocation
     # holding the model and the geocoding budget for as long as it takes.
     page-size: ${LOCATION_PAGE_SIZE}
-    table: location_table.json
+    table: classpath:location_table.json
     # Used verbatim by every resolution that redirects here. A full street
     # address geocodes to distance zero, so no radius setting can exclude a row
     # that was redirected on purpose; a city name would land arbitrarily far off.
