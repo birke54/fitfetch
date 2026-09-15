@@ -27,8 +27,8 @@ class OllamaSignalExtractorTest {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final int CONTEXT = 8192;
 
+    private static final String TITLE = "Senior Backend Engineer";
     private static final String DESCRIPTION = """
-            Senior Backend Engineer
             Design and operate high-throughput services.
             5+ years of Java experience.
             Kubernetes experience is a plus.""";
@@ -62,31 +62,86 @@ class OllamaSignalExtractorTest {
     }
 
     private static final String GOOD_ANSWER = """
-            {"seniority":"senior","signals":[
-              {"classification":"core responsibilities","text":"Design and operate high-throughput services."},
-              {"classification":"required qualifications","text":"Has 5+ years of Java experience."},
-              {"classification":"preferred/nice-to-have skills","text":"Has Kubernetes experience."}]}
+            {"seniority":"senior","track":"ic","employment_type":"full_time","min_years_experience":5,
+             "required_degree":"bachelors","clearance_required":false,"sponsorship":"no",
+             "required_certifications":["AWS Certified Solutions Architect"],
+             "travel_required":true,"on_call":true,"domains":["payments"],
+             "signals":[
+              {"classification":"core responsibilities","text":"Design and operate high-throughput services.",
+               "skills":[],"min_years":0},
+              {"classification":"required qualifications","text":"Has 5+ years of Java experience.",
+               "skills":["Java"],"min_years":5},
+              {"classification":"preferred/nice-to-have skills","text":"Has Kubernetes experience.",
+               "skills":["Kubernetes"],"min_years":0}]}
             """;
 
     // ------------------------------------------------------------- happy path
 
     @Test
-    @DisplayName("A well-formed answer is parsed into a seniority band and classified signals")
-    void testExtractsSeniorityAndSignals() {
+    @DisplayName("A well-formed answer is parsed into its job-level fields and classified signals")
+    void testExtractsEveryField() {
         respondWith(GOOD_ANSWER);
 
-        NormalizedData data = extractor.extract(DESCRIPTION).orElseThrow();
+        NormalizedData data = extractor.extract(TITLE, DESCRIPTION).orElseThrow();
 
         assertEquals(Seniority.SENIOR, data.seniority());
+        assertEquals(Track.IC, data.track());
+        assertEquals(EmploymentType.FULL_TIME, data.employmentType());
+        assertEquals(5, data.minYearsExperience());
+        assertEquals(new HardRequirements(Degree.BACHELORS, false, Sponsorship.NO,
+                List.of("AWS Certified Solutions Architect"), true, true), data.requirements());
+        assertEquals(List.of("payments"), data.domains());
         assertEquals(List.of(
                 new Signal(SignalClassification.CORE_RESPONSIBILITY, "Design and operate high-throughput services."),
-                new Signal(SignalClassification.REQUIRED_QUALIFICATION, "Has 5+ years of Java experience."),
-                new Signal(SignalClassification.PREFERRED_SKILL, "Has Kubernetes experience.")), data.signals());
+                new Signal(SignalClassification.REQUIRED_QUALIFICATION, "Has 5+ years of Java experience.",
+                        List.of("Java"), 5),
+                new Signal(SignalClassification.PREFERRED_SKILL, "Has Kubernetes experience.",
+                        List.of("Kubernetes"), 0)), data.signals());
         mockServer.verify();
     }
 
     @Test
-    @DisplayName("The request carries the instructions, the description, the schema and pinned options")
+    @DisplayName("Job-level fields the model left out or misspelled fall back to the reading that excludes no job")
+    void testJobLevelFallbacks() {
+        // The signals are still good, so an odd job-level field must not cost the answer.
+        respondWith("""
+                {"seniority":"senior","track":"wizard","employment_type":"gig","required_degree":"doctorate",
+                 "sponsorship":"maybe","signals":[{"classification":"required skills","text":"Knows SQL."}]}
+                """);
+
+        NormalizedData data = extractor.extract(TITLE, DESCRIPTION).orElseThrow();
+
+        assertEquals(Track.IC, data.track());
+        assertEquals(EmploymentType.UNSTATED, data.employmentType());
+        assertEquals(0, data.minYearsExperience());
+        assertEquals(HardRequirements.NONE, data.requirements());
+        assertEquals(List.of(), data.domains());
+        assertEquals(List.of(), data.signals().getFirst().skills());
+        assertEquals(0, data.signals().getFirst().minYears());
+    }
+
+    @Test
+    @DisplayName("Skills and lists are stripped, blanks and repeats dropped, domains lower-cased, and negative years made 0")
+    void testListsCleaned() {
+        respondWith("""
+                {"seniority":"senior","min_years_experience":-1,
+                 "domains":[" Payments ","payments","","Ad Tech"],
+                 "required_certifications":["  CKA ", "cka"],
+                 "signals":[{"classification":"required skills","text":"Knows Kafka and Spark.",
+                   "skills":[" Kafka","kafka","Spark ",""],"min_years":-3}]}
+                """);
+
+        NormalizedData data = extractor.extract(TITLE, DESCRIPTION).orElseThrow();
+
+        assertEquals(0, data.minYearsExperience());
+        assertEquals(List.of("payments", "ad tech"), data.domains());
+        assertEquals(List.of("CKA"), data.requirements().requiredCertifications());
+        assertEquals(List.of("Kafka", "Spark"), data.signals().getFirst().skills());
+        assertEquals(0, data.signals().getFirst().minYears());
+    }
+
+    @Test
+    @DisplayName("The request carries the instructions, the title, the description, the schema and pinned options")
     void testRequestShape() {
         mockServer.expect(requestTo(GENERATE))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("\"num_ctx\":" + CONTEXT)))
@@ -95,28 +150,61 @@ class OllamaSignalExtractorTest {
                     assertEquals("qwen2.5:14b", body.path("model").asString());
                     assertFalse(body.path("stream").asBoolean());
                     assertEquals(SignalPrompt.SYSTEM, body.path("system").asString());
+                    // The title carries the level, and descriptions rarely repeat it.
+                    assertTrue(body.path("prompt").asString().contains("JOB TITLE: " + TITLE));
                     assertTrue(body.path("prompt").asString().endsWith(DESCRIPTION));
                     assertEquals(SignalPrompt.schema(), body.path("format"));
                     assertEquals(0.0d, body.path("options").path("temperature").asDouble());
                 })
                 .andRespond(withSuccess(ollamaBody(GOOD_ANSWER, "stop", 900), MediaType.APPLICATION_JSON));
 
-        extractor.extract(DESCRIPTION);
+        extractor.extract(TITLE, DESCRIPTION);
 
         mockServer.verify();
     }
 
     @Test
-    @DisplayName("The schema offers the model exactly the prompt's seniority bands and sections")
+    @DisplayName("A job with no title says so rather than sending an empty line")
+    void testMissingTitle() {
+        assertTrue(SignalPrompt.forJob(null, DESCRIPTION).contains("JOB TITLE: (none given)"));
+        assertTrue(SignalPrompt.forJob("  ", DESCRIPTION).contains("JOB TITLE: (none given)"));
+    }
+
+    @Test
+    @DisplayName("The schema offers the model exactly the prompt's values for every fixed-choice field")
     void testSchemaMatchesEnums() {
         JsonNode properties = SignalPrompt.schema().path("properties");
 
         assertEquals(List.of("junior", "midlevel", "senior", "staff", "principal", "distinguished"),
                 texts(properties.path("seniority").path("enum")));
+        assertEquals(List.of("ic", "manager"), texts(properties.path("track").path("enum")));
+        assertEquals(List.of("full_time", "part_time", "contract", "internship", "temporary", "unstated"),
+                texts(properties.path("employment_type").path("enum")));
+        assertEquals(List.of("none", "bachelors", "masters", "phd"),
+                texts(properties.path("required_degree").path("enum")));
+        assertEquals(List.of("yes", "no", "unstated"), texts(properties.path("sponsorship").path("enum")));
         assertEquals(List.of("core responsibilities", "required skills", "preferred/nice-to-have skills",
                         "required qualifications", "preferred/nice-to-have qualifications"),
                 texts(properties.path("signals").path("items").path("properties").path("classification")
                         .path("enum")));
+    }
+
+    @Test
+    @DisplayName("Every schema property is required and none is nullable, so the answer always has each field")
+    void testSchemaRequiresEveryField() {
+        JsonNode schema = SignalPrompt.schema();
+        JsonNode item = schema.path("properties").path("signals").path("items");
+
+        assertEquals(names(schema.path("properties")), texts(schema.path("required")));
+        assertEquals(names(item.path("properties")), texts(item.path("required")));
+        assertEquals(List.of("classification", "text", "skills", "min_years"), names(item.path("properties")));
+        assertFalse(schema.toString().contains("null"), "no nullable types");
+    }
+
+    private static List<String> names(JsonNode object) {
+        List<String> names = new java.util.ArrayList<>();
+        object.propertyNames().forEach(names::add);
+        return names;
     }
 
     private static List<String> texts(JsonNode array) {
@@ -136,7 +224,7 @@ class OllamaSignalExtractorTest {
                   {"classification":"benefits","text":"Offers a pension."}]}
                 """);
 
-        NormalizedData data = extractor.extract(DESCRIPTION).orElseThrow();
+        NormalizedData data = extractor.extract(TITLE, DESCRIPTION).orElseThrow();
 
         assertEquals(Seniority.STAFF, data.seniority());
         assertEquals(SignalClassification.REQUIRED_SKILL, data.signals().get(0).classification());
@@ -152,7 +240,7 @@ class OllamaSignalExtractorTest {
                   {"classification":"required skills","text":" Knows Git. "}]}
                 """);
 
-        NormalizedData data = extractor.extract(DESCRIPTION).orElseThrow();
+        NormalizedData data = extractor.extract(TITLE, DESCRIPTION).orElseThrow();
 
         assertEquals(List.of(new Signal(SignalClassification.REQUIRED_SKILL, "Knows Git.")), data.signals());
     }
@@ -167,7 +255,7 @@ class OllamaSignalExtractorTest {
                 {"seniority":"senior","signals":[]}
                 """);
 
-        assertEquals(Optional.empty(), extractor.extract(DESCRIPTION));
+        assertEquals(Optional.empty(), extractor.extract(TITLE, DESCRIPTION));
         mockServer.verify();
     }
 
@@ -178,7 +266,7 @@ class OllamaSignalExtractorTest {
                 {"seniority":"","signals":[{"classification":"required skills","text":"Knows SQL."}]}
                 """);
 
-        assertEquals(Optional.empty(), extractor.extract(DESCRIPTION));
+        assertEquals(Optional.empty(), extractor.extract(TITLE, DESCRIPTION));
         mockServer.verify();
     }
 
@@ -187,7 +275,7 @@ class OllamaSignalExtractorTest {
     void testTruncatedPromptRejected() {
         respondWith(once(), ollamaBody(GOOD_ANSWER, "stop", CONTEXT));
 
-        assertEquals(Optional.empty(), extractor.extract(DESCRIPTION));
+        assertEquals(Optional.empty(), extractor.extract(TITLE, DESCRIPTION));
         mockServer.verify();
     }
 
@@ -198,7 +286,7 @@ class OllamaSignalExtractorTest {
     void testUnparseableRetriedOnce() {
         respondWith(twice(), ollamaBody("not json at all", "stop", 900));
 
-        assertEquals(Optional.empty(), extractor.extract(DESCRIPTION));
+        assertEquals(Optional.empty(), extractor.extract(TITLE, DESCRIPTION));
         mockServer.verify();
     }
 
@@ -208,7 +296,7 @@ class OllamaSignalExtractorTest {
         respondWith(once(), ollamaBody(GOOD_ANSWER, "length", 900));
         respondWith(once(), ollamaBody(GOOD_ANSWER, "stop", 900));
 
-        assertTrue(extractor.extract(DESCRIPTION).isPresent());
+        assertTrue(extractor.extract(TITLE, DESCRIPTION).isPresent());
         mockServer.verify();
     }
 
@@ -219,13 +307,13 @@ class OllamaSignalExtractorTest {
     void testServerErrorThrows() {
         mockServer.expect(requestTo(GENERATE)).andRespond(withServerError());
 
-        assertThrows(SignalExtractionException.class, () -> extractor.extract(DESCRIPTION));
+        assertThrows(SignalExtractionException.class, () -> extractor.extract(TITLE, DESCRIPTION));
     }
 
     @Test
     @DisplayName("A blank description is rejected before any call")
     void testBlankDescriptionRejected() {
-        assertThrows(IllegalArgumentException.class, () -> extractor.extract("  "));
+        assertThrows(IllegalArgumentException.class, () -> extractor.extract(TITLE, "  "));
         mockServer.verify();
     }
 }

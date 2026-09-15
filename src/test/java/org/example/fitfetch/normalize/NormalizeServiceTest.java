@@ -35,8 +35,12 @@ class NormalizeServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-09-13T10:00:00Z");
     private static final OriginRadius RADIUS = OriginRadius.of(47.7231d, -122.2967d, 50);
-    private static final NormalizedData ANSWER = new NormalizedData(Seniority.SENIOR,
-            List.of(new Signal(SignalClassification.REQUIRED_SKILL, "Knows Java.")));
+    private static final String TITLE = "Backend Engineer";
+    private static final NormalizedData ANSWER = new NormalizedData(Seniority.SENIOR, Track.IC,
+            EmploymentType.FULL_TIME, 5,
+            new HardRequirements(Degree.BACHELORS, false, Sponsorship.NO, List.of(), false, true),
+            List.of("payments"),
+            List.of(new Signal(SignalClassification.REQUIRED_SKILL, "Knows Java.", List.of("Java"), 3)));
 
     private FetchedJobsRepository fetchedJobs;
     private NormalizedJobRepository normalizedJobs;
@@ -75,7 +79,7 @@ class NormalizeServiceTest {
 
     private FetchedJob job(String content) {
         GreenhouseJobEntry entry = new GreenhouseJobEntry(
-                "https://example.com", null, nextId, null, null, null, "Backend Engineer",
+                "https://example.com", null, nextId, null, null, null, TITLE,
                 "Co", null, "en", null, content, null, List.of(), List.of(), List.of(), "co");
         FetchedJob fetched = new FetchedJob(AtsName.GREENHOUSE, String.valueOf(nextId), "co", entry);
         fetched.setId(nextId++);
@@ -139,19 +143,24 @@ class NormalizeServiceTest {
     // ------------------------------------------------------------ happy path
 
     @Test
-    @DisplayName("A job's description is sent as plain text, and the answer written with its provenance")
+    @DisplayName("A job's title and plain-text description are sent, and the whole answer written with its provenance")
     void testNormalizesAndPersists() {
         FetchedJob job = job("<p>Senior engineer</p><ul><li>Knows Java</li></ul>");
         pageContains(job);
-        when(extractor.extract(anyString())).thenReturn(Optional.of(ANSWER));
+        when(extractor.extract(anyString(), anyString())).thenReturn(Optional.of(ANSWER));
 
         assertEquals(1, service.normalizeOnePage());
 
-        verify(extractor).extract("Senior engineer\nKnows Java");
+        verify(extractor).extract(TITLE, "Senior engineer\nKnows Java");
         ArgumentCaptor<NormalizedJob> saved = ArgumentCaptor.forClass(NormalizedJob.class);
         verify(normalizedJobs).save(saved.capture());
         assertEquals(job.getId(), saved.getValue().getFetchedJobId());
         assertEquals(Seniority.SENIOR, saved.getValue().getSeniority());
+        assertEquals(Track.IC, saved.getValue().getTrack());
+        assertEquals(EmploymentType.FULL_TIME, saved.getValue().getEmploymentType());
+        assertEquals(5, saved.getValue().getMinYearsExperience());
+        assertEquals(ANSWER.requirements(), saved.getValue().getRequirements());
+        assertEquals(List.of("payments"), saved.getValue().getDomains());
         assertEquals(ANSWER.signals(), saved.getValue().getSignals());
         assertEquals("qwen2.5:14b", saved.getValue().getModel());
         assertEquals(SignalPrompt.VERSION, saved.getValue().getPromptVersion());
@@ -166,7 +175,7 @@ class NormalizeServiceTest {
         // would otherwise reject the new one against.
         FetchedJob job = job("Knows Java");
         pageContains(job);
-        when(extractor.extract(anyString())).thenReturn(Optional.of(ANSWER));
+        when(extractor.extract(anyString(), anyString())).thenReturn(Optional.of(ANSWER));
 
         service.normalizeOnePage();
 
@@ -181,7 +190,7 @@ class NormalizeServiceTest {
         // Saving the entity would write back the location status loaded at the
         // start of the run over anything the location pass has changed since.
         pageContains(job("Knows Java"));
-        when(extractor.extract(anyString())).thenReturn(Optional.of(ANSWER));
+        when(extractor.extract(anyString(), anyString())).thenReturn(Optional.of(ANSWER));
 
         service.normalizeOnePage();
 
@@ -196,7 +205,7 @@ class NormalizeServiceTest {
     void testNoAnswerMarksFailed() {
         FetchedJob job = job("Knows Java");
         pageContains(job);
-        when(extractor.extract(anyString())).thenReturn(Optional.empty());
+        when(extractor.extract(anyString(), anyString())).thenReturn(Optional.empty());
 
         assertEquals(0, service.normalizeOnePage());
 
@@ -224,8 +233,8 @@ class NormalizeServiceTest {
         FetchedJob broken = job("Broken");
         FetchedJob fine = job("Knows Java");
         pageContains(broken, fine);
-        when(extractor.extract("Broken")).thenThrow(new IllegalStateException("bug"));
-        when(extractor.extract("Knows Java")).thenReturn(Optional.of(ANSWER));
+        when(extractor.extract(TITLE, "Broken")).thenThrow(new IllegalStateException("bug"));
+        when(extractor.extract(TITLE, "Knows Java")).thenReturn(Optional.of(ANSWER));
 
         assertEquals(1, service.normalizeOnePage());
 
@@ -239,7 +248,7 @@ class NormalizeServiceTest {
         FetchedJob bad = job("Bad");
         FetchedJob good = job("Good");
         pageContains(bad, good);
-        when(extractor.extract(anyString())).thenReturn(Optional.of(ANSWER));
+        when(extractor.extract(anyString(), anyString())).thenReturn(Optional.of(ANSWER));
         when(normalizedJobs.save(any())).thenAnswer(invocation -> {
             NormalizedJob row = invocation.getArgument(0);
             if (row.getFetchedJobId().equals(bad.getId())) {
@@ -263,14 +272,14 @@ class NormalizeServiceTest {
         FetchedJob second = job("Second");
         FetchedJob third = job("Third");
         pageContains(first, second, third);
-        when(extractor.extract("First")).thenReturn(Optional.of(ANSWER));
-        when(extractor.extract("Second")).thenThrow(outage());
+        when(extractor.extract(TITLE, "First")).thenReturn(Optional.of(ANSWER));
+        when(extractor.extract(TITLE, "Second")).thenThrow(outage());
 
         assertDoesNotThrow(() -> service.normalizePendingJobs());
 
         verify(fetchedJobs).updateNormalizeStatus(first.getId(), NormalizeStatus.NORMALIZED);
         verify(fetchedJobs, never()).updateNormalizeStatus(eq(second.getId()), any());
-        verify(extractor, never()).extract("Third");
+        verify(extractor, never()).extract(TITLE, "Third");
     }
 
     // -------------------------------------------------------------- paging
@@ -284,7 +293,7 @@ class NormalizeServiceTest {
         FetchedJob second = job("Second");
         pageAfter(0L, first, second);
         pageAfter(second.getId());
-        when(extractor.extract(anyString())).thenReturn(Optional.of(ANSWER));
+        when(extractor.extract(anyString(), anyString())).thenReturn(Optional.of(ANSWER));
 
         service.normalizeOnePage();
         service.normalizeOnePage();
@@ -299,7 +308,7 @@ class NormalizeServiceTest {
     @DisplayName("A stopped run does not move the cursor, so the next run starts from the same place")
     void testStoppedRunRetriedFromSameCursor() {
         pageContains(job("Knows Java"));
-        when(extractor.extract(anyString())).thenThrow(outage());
+        when(extractor.extract(anyString(), anyString())).thenThrow(outage());
 
         runs(2);
 
@@ -316,11 +325,11 @@ class NormalizeServiceTest {
         FetchedJob poison = job("Poison");
         FetchedJob fine = job("Knows Java");
         pageContains(poison, fine);
-        when(extractor.extract("Poison")).thenThrow(outage());
-        when(extractor.extract("Knows Java")).thenReturn(Optional.of(ANSWER));
+        when(extractor.extract(TITLE, "Poison")).thenThrow(outage());
+        when(extractor.extract(TITLE, "Knows Java")).thenReturn(Optional.of(ANSWER));
 
         runs(NormalizeService.STRIKE_LIMIT - 1);
-        verify(extractor, never()).extract("Knows Java");
+        verify(extractor, never()).extract(TITLE, "Knows Java");
 
         service.normalizePendingJobs();
 
@@ -335,9 +344,9 @@ class NormalizeServiceTest {
         FetchedJob second = job("Second");
         FetchedJob fine = job("Knows Java");
         pageContains(first, second, fine);
-        when(extractor.extract("First")).thenThrow(outage());
-        when(extractor.extract("Second")).thenThrow(outage());
-        when(extractor.extract("Knows Java")).thenReturn(Optional.of(ANSWER));
+        when(extractor.extract(TITLE, "First")).thenThrow(outage());
+        when(extractor.extract(TITLE, "Second")).thenThrow(outage());
+        when(extractor.extract(TITLE, "Knows Java")).thenReturn(Optional.of(ANSWER));
 
         // First strikes out on run 2; Second collects its strikes on runs 2 and
         // 3, while First is retried once per run.
@@ -346,9 +355,9 @@ class NormalizeServiceTest {
 
         service.normalizePendingJobs();
 
-        verify(extractor).extract("First");
-        verify(extractor, never()).extract("Second");
-        verify(extractor).extract("Knows Java");
+        verify(extractor).extract(TITLE, "First");
+        verify(extractor, never()).extract(TITLE, "Second");
+        verify(extractor).extract(TITLE, "Knows Java");
     }
 
     @Test
@@ -357,12 +366,12 @@ class NormalizeServiceTest {
         FetchedJob flaky = job("Flaky");
         FetchedJob fine = job("Knows Java");
         pageContains(flaky, fine);
-        when(extractor.extract("Flaky"))
+        when(extractor.extract(TITLE, "Flaky"))
                 .thenThrow(outage())
                 .thenThrow(outage())
                 .thenReturn(Optional.of(ANSWER))
                 .thenThrow(outage());
-        when(extractor.extract("Knows Java")).thenReturn(Optional.of(ANSWER));
+        when(extractor.extract(TITLE, "Knows Java")).thenReturn(Optional.of(ANSWER));
 
         // Run 1 stops on Flaky, run 2 sets it aside, run 3 retries it and succeeds.
         runs(NormalizeService.STRIKE_LIMIT + 1);
@@ -372,8 +381,8 @@ class NormalizeServiceTest {
         service.normalizePendingJobs();
 
         // One failure after the success stops the run again, as for any job.
-        verify(extractor).extract("Flaky");
-        verify(extractor, never()).extract("Knows Java");
+        verify(extractor).extract(TITLE, "Flaky");
+        verify(extractor, never()).extract(TITLE, "Knows Java");
     }
 
     @Test
@@ -381,7 +390,7 @@ class NormalizeServiceTest {
     void testNoAnswerIsNotAStrike() {
         FetchedJob job = job("Knows Java");
         pageContains(job);
-        when(extractor.extract(anyString())).thenReturn(Optional.empty());
+        when(extractor.extract(anyString(), anyString())).thenReturn(Optional.empty());
 
         service.normalizeOnePage();
 

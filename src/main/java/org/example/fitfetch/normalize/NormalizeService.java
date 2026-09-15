@@ -210,7 +210,7 @@ public class NormalizeService {
 
             Optional<NormalizedData> data;
             try {
-                data = extractor.extract(description);
+                data = extractor.extract(job.getJobData().title(), description);
                 strikes.remove(job.getId());
             } catch (SignalExtractionException e) {
                 int count = strikes.merge(job.getId(), 1, Integer::sum);

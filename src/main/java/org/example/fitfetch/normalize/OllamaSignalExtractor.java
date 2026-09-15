@@ -13,7 +13,10 @@ import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -70,14 +73,14 @@ public class OllamaSignalExtractor implements LlmSignalExtractor {
     }
 
     @Override
-    public Optional<NormalizedData> extract(String jobDescription) {
+    public Optional<NormalizedData> extract(String title, String jobDescription) {
         if (jobDescription == null || jobDescription.isBlank()) {
             throw new IllegalArgumentException("jobDescription must not be blank");
         }
-        Attempt attempt = generate(jobDescription);
+        Attempt attempt = generate(title, jobDescription);
         if (attempt.retryable()) {
             LOGGER.debug("Retrying signal extraction after unusable model output");
-            attempt = generate(jobDescription);
+            attempt = generate(title, jobDescription);
         }
         return attempt.data();
     }
@@ -114,9 +117,9 @@ public class OllamaSignalExtractor implements LlmSignalExtractor {
     /**
      * @throws SignalExtractionException on any transport failure
      */
-    private Attempt generate(String jobDescription) {
+    private Attempt generate(String title, String jobDescription) {
         SignalGenerateRequest request = new SignalGenerateRequest(model, SignalPrompt.SYSTEM,
-                SignalPrompt.forDescription(jobDescription), SignalPrompt.schema(), false, options);
+                SignalPrompt.forJob(title, jobDescription), SignalPrompt.schema(), false, options);
 
         SignalGenerateResponse response;
         try {
@@ -173,13 +176,56 @@ public class OllamaSignalExtractor implements LlmSignalExtractor {
                 if (item == null || item.text() == null || item.text().isBlank()) {
                     continue;
                 }
-                signals.add(new Signal(SignalClassification.fromLabel(item.classification()), item.text().strip()));
+                signals.add(new Signal(SignalClassification.fromLabel(item.classification()), item.text().strip(),
+                        cleaned(item.skills(), false), years(item.minYears())));
             }
         }
         if (signals.isEmpty()) {
             LOGGER.warn("Model extracted no signals");
             return Attempt.noAnswer();
         }
-        return Attempt.of(new NormalizedData(seniority, signals));
+        // The job-level fields fall back rather than reject the answer: the
+        // schema constrains them, so an odd value is rare, and the signals are
+        // still good. Each fallback is the reading that excludes no job.
+        HardRequirements requirements = new HardRequirements(
+                Degree.fromLabel(payload.requiredDegree()),
+                Boolean.TRUE.equals(payload.clearanceRequired()),
+                Sponsorship.fromLabel(payload.sponsorship()),
+                cleaned(payload.requiredCertifications(), false),
+                Boolean.TRUE.equals(payload.travelRequired()),
+                Boolean.TRUE.equals(payload.onCall()));
+        return Attempt.of(new NormalizedData(
+                seniority,
+                Track.fromLabel(payload.track()),
+                EmploymentType.fromLabel(payload.employmentType()),
+                years(payload.minYearsExperience()),
+                requirements,
+                cleaned(payload.domains(), true),
+                signals));
+    }
+
+    /**
+     * @return the values stripped, without blanks or repeats, in the order the
+     *         model gave them; lower-cased first if {@code lowerCase}. Repeats
+     *         are found ignoring case, so "Kafka" and "kafka" keep only the first
+     */
+    private static List<String> cleaned(List<String> values, boolean lowerCase) {
+        if (values == null) {
+            return List.of();
+        }
+        Map<String, String> byKey = new LinkedHashMap<>();
+        for (String value : values) {
+            if (value == null || value.isBlank()) {
+                continue;
+            }
+            String stripped = lowerCase ? value.strip().toLowerCase(Locale.ROOT) : value.strip();
+            byKey.putIfAbsent(stripped.toLowerCase(Locale.ROOT), stripped);
+        }
+        return List.copyOf(byKey.values());
+    }
+
+    /** @return the year count, or 0 if the model left it out or gave a negative one */
+    private static int years(Integer years) {
+        return years == null ? 0 : Math.max(0, years);
     }
 }

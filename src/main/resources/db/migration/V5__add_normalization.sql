@@ -1,5 +1,6 @@
--- Normalization: the LLM pass that reads a job description and extracts its
--- seniority and its requirement signals.
+-- Normalization: the LLM pass that reads a job posting and extracts its
+-- seniority, the job-level fields that gate a match, and its requirement
+-- signals.
 --
 -- Two changes land here:
 --   1. fetched_jobs.normalize_status -- replaces is_normalized
@@ -51,7 +52,25 @@ CREATE TABLE IF NOT EXISTS normalized_jobs (
     -- on it with an index.
     seniority       VARCHAR(16) NOT NULL,
 
-    -- List<Signal>: {"classification": ..., "text": ...} per requirement.
+    -- The job-level fields that filter and gate a match are columns for the
+    -- same reason. 0 years means none stated.
+    track                   VARCHAR(16) NOT NULL,
+    employment_type         VARCHAR(16) NOT NULL,
+    min_years_experience    INT         NOT NULL,
+
+    -- Hard requirements: what a job requires outright, never what it prefers.
+    required_degree         VARCHAR(16) NOT NULL,
+    clearance_required      BOOLEAN     NOT NULL,
+    sponsorship             VARCHAR(16) NOT NULL,
+    required_certifications JSONB       NOT NULL,
+    travel_required         BOOLEAN     NOT NULL,
+    on_call                 BOOLEAN     NOT NULL,
+
+    -- Business domains, lower case: ["payments", "healthcare"].
+    domains         JSONB       NOT NULL,
+
+    -- List<Signal>: {"classification", "text", "skills": [...], "minYears"}
+    -- per requirement.
     signals         JSONB       NOT NULL,
 
     -- Which model and prompt produced this. Without both, the prompt could
@@ -68,7 +87,16 @@ CREATE TABLE IF NOT EXISTS normalized_jobs (
     CONSTRAINT uq_normalized_jobs_fetched_job UNIQUE (fetched_job_id),
     CONSTRAINT ck_normalized_jobs_seniority CHECK (seniority IN (
         'JUNIOR', 'MIDLEVEL', 'SENIOR', 'STAFF', 'PRINCIPAL', 'DISTINGUISHED'
-    ))
+    )),
+    CONSTRAINT ck_normalized_jobs_track CHECK (track IN ('IC', 'MANAGER')),
+    CONSTRAINT ck_normalized_jobs_employment_type CHECK (employment_type IN (
+        'FULL_TIME', 'PART_TIME', 'CONTRACT', 'INTERNSHIP', 'TEMPORARY', 'UNSTATED'
+    )),
+    CONSTRAINT ck_normalized_jobs_min_years CHECK (min_years_experience >= 0),
+    CONSTRAINT ck_normalized_jobs_required_degree CHECK (required_degree IN (
+        'NONE', 'BACHELORS', 'MASTERS', 'PHD'
+    )),
+    CONSTRAINT ck_normalized_jobs_sponsorship CHECK (sponsorship IN ('YES', 'NO', 'UNSTATED'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_normalized_jobs_seniority
