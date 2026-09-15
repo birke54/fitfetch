@@ -18,7 +18,7 @@ spring:
   task:
     scheduling:
       pool:
-        size: 4
+        size: 8
       thread-name-prefix: "scheduled-task-"
   threads:
     virtual:
@@ -53,7 +53,7 @@ app:
     # The read timeout covers the whole exchange, body included, so it also
     # caps how long a large Greenhouse board may take to download.
     connect-timeout: PT2S
-    read-timeout: PT10S
+    read-timeout: PT5S
   fetch:
     enable: true
     schedule: ${FETCH_CRON_SCHEDULE}
@@ -88,14 +88,14 @@ app:
     # then raise them once the answers in normalized_jobs and the Ollama
     # timings (http.client.requests) look right.
     enable: false
-    schedule: "0 0 * * * *"
+    schedule: "0 */10 * * * *"
     # Jobs per run. Each is one model call over a whole description, far slower
     # than a location label.
     page-size: 5
     # Only jobs with a location this close to app.location.default-origin are
     # normalized; the rest are marked OUT_OF_RANGE once and never sent to the
     # model. After widening this, requeue them (see NormalizeStatus.OUT_OF_RANGE).
-    radius-miles: 50
+    radius-miles: 60
     llm:
       base-url: ${OLLAMA_BASE_URL}
       # Its own setting so a larger model can read descriptions while the
