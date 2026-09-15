@@ -37,4 +37,7 @@ USER app
 # Honour container memory limits; picked up by the JVM automatically.
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75.0"
 
+# Actuator endpoints (health, prometheus); see server.port.
+EXPOSE 8080
+
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

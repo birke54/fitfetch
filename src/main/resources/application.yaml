@@ -1,8 +1,9 @@
 spring:
   main:
-    # No embedded web server, and virtual threads (below) are always daemon
-    # threads, so without this the JVM exits right after startup since
-    # nothing non-daemon is left running to keep it alive.
+    # Virtual threads (below) are always daemon threads, so without this the
+    # JVM would exit once nothing non-daemon was left running. The web server
+    # now keeps it alive anyway; this keeps the scheduled passes running if the
+    # server is ever removed.
     keep-alive: true
   application:
     name: FitFetch
@@ -22,6 +23,10 @@ spring:
   threads:
     virtual:
       enabled: true
+server:
+  # Serves only the actuator endpoints below; the app has no HTTP API of its
+  # own. Prometheus scrapes /actuator/prometheus on this port.
+  port: ${SERVER_PORT:8080}
 management:
   endpoints:
     web:

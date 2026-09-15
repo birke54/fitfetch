@@ -28,10 +28,9 @@ services:
       APP_DB_USER: ${APP_POSTGRES_USER}
       APP_DB_PASSWORD: ${APP_POSTGRES_PASSWORD}
     restart: unless-stopped
-    # No embedded web server yet (no spring-boot-starter-web), so nothing
-    # listens on a port. After adding one, expose actuator/prometheus:
-    # ports:
-    #   - "${APP_PORT:-8080}:8080"
+    # Serves /actuator/health and /actuator/prometheus for scraping.
+    ports:
+      - "${APP_PORT:-8080}:8080"
 
 volumes:
   db-data:
