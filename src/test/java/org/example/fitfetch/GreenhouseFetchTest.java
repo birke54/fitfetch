@@ -1,5 +1,9 @@
 package org.example.fitfetch;
 
+import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.observation.DefaultMeterObservationHandler;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import io.micrometer.observation.ObservationRegistry;
 import org.example.fitfetch.fetching.Fetch;
 
 import org.example.fitfetch.fetching.GreenhouseFetch;
@@ -16,6 +20,7 @@ import org.springframework.web.client.RestClient;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collection;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -151,6 +156,34 @@ public class GreenhouseFetchTest {
         // Round-trip: clearing the slug again must reproduce the original exactly,
         // which fails if withSlug drops a component it should be threading through.
         assertEquals(original, tagged.withSlug(null));
+    }
+
+    @Test
+    @DisplayName("Requests for different slugs share one http.client.requests series, tagged by template")
+    void testRequestMetricNotTaggedBySlug() {
+        // Concatenating the slug into the URI would make the uri tag one series
+        // per board; the template keeps it to one.
+        SimpleMeterRegistry meters = new SimpleMeterRegistry();
+        ObservationRegistry observations = ObservationRegistry.create();
+        observations.observationConfig().observationHandler(new DefaultMeterObservationHandler(meters));
+        RestClient.Builder builder = RestClient.builder().observationRegistry(observations);
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        Fetch<GreenhouseJobEntry> observed = new GreenhouseFetch(builder.build());
+        for (String slug : List.of("alpha", "beta")) {
+            server.expect(requestTo("https://boards-api.greenhouse.io/v1/boards/" + slug + "/jobs?content=true"))
+                    .andRespond(withSuccess("{\"jobs\":[]}", MediaType.APPLICATION_JSON));
+        }
+
+        observed.fetchJobs("alpha");
+        observed.fetchJobs("beta");
+
+        server.verify();
+        Collection<Timer> timers = meters.get("http.client.requests").timers();
+        assertEquals(1, timers.size(), "one series whatever the slug");
+        Timer timer = timers.iterator().next();
+        assertEquals(2, timer.count());
+        String uri = timer.getId().getTag("uri");
+        assertTrue(uri.contains("{slug}"), "tagged with the template, but was " + uri);
     }
 
     @Test
