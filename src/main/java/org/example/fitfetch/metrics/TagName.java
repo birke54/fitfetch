@@ -8,6 +8,12 @@ package org.example.fitfetch.metrics;
  * Referencing the enum instead of the raw string keeps tag keys consistent
  * across metrics.
  *
+ * <p>Every tag value must come from a small, fixed set. Each distinct value
+ * starts a time series of its own, so a tag carrying a slug, a label or a
+ * query would add one per board or place. There is no {@code slug} tag for
+ * that reason: with thousands of boards it made the fetch counters thousands
+ * of series each.
+ *
  * @see MetricService#recordCounter(MetricName, java.util.Map)
  */
 public enum TagName {
@@ -15,12 +21,15 @@ public enum TagName {
     REASON("reason"),
     /** The ATS provider a metric relates to ({@code ats}). */
     ATS("ats"),
-    /** The company board identifier a metric relates to ({@code slug}). */
-    SLUG("slug"),
-    /** The status an external service answered with ({@code status}). */
+    /**
+     * A status, e.g. the one an external service answered with or the one a job
+     * was written with ({@code status}).
+     */
     STATUS("status"),
-    /** How a lookup was answered, e.g. from the cache or not ({@code result}). */
-    RESULT("result");
+    /** How something was dealt with, e.g. a lookup answered from the cache ({@code result}). */
+    RESULT("result"),
+    /** Which tier of the location pipeline answered a label ({@code tier}). */
+    TIER("tier");
 
     private final String key;
 

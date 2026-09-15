@@ -134,7 +134,7 @@ public final class SlugSweep<T extends AtsJobEntry> {
                 // Not one of the failures fetchSlug handles, so most likely a bug.
                 // It cost this slug only.
                 LOGGER.error("Fetching {} from {} failed unexpectedly", slugs.get(i), ats.stringValue(), e.getCause());
-                recordError(slugs.get(i));
+                recordError();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 notFetched += futures.size() - i;
@@ -166,29 +166,47 @@ public final class SlugSweep<T extends AtsJobEntry> {
             return Outcome.NOT_FETCHED;
         } catch (HttpStatusCodeException e) {
             LOGGER.error("{} answered {} for {}", ats.stringValue(), e.getStatusCode(), slug);
-            recordError(slug);
+            recordError();
             return Outcome.NOTHING_NEW;
         } catch (RestClientException e) {
             // Timeouts, refused connections and unreadable bodies.
             LOGGER.error("Could not fetch jobs for {} from {}: {}", slug, ats.stringValue(), e.getMessage());
-            recordError(slug);
+            recordError();
             return Outcome.NOTHING_NEW;
         }
 
         if (response == null || response.jobs() == null) {
-            metricService.recordCounter(MetricName.SLUG_FETCH_NULL_RESPONSE_COUNT, tags(slug));
+            metricService.recordCounter(MetricName.SLUG_FETCH_NULL_RESPONSE_COUNT, tags());
             return Outcome.NOTHING_NEW;
         }
-        List<AtsJobEntry> fresh = response.jobs().stream()
-                .filter(job -> job != null && job.id() != null && job.title() != null
-                        && !knownJobIds.contains(job.id().toString())
-                        && TitleFilter.keep(job.title()))
-                .map(job -> job.withSlug(slug))
-                .toList();
+        List<AtsJobEntry> fresh = new ArrayList<>();
+        int invalid = 0;
+        int known = 0;
+        int filtered = 0;
+        for (AtsJobEntry job : response.jobs()) {
+            if (job == null || job.id() == null || job.title() == null) {
+                invalid++;
+            } else if (knownJobIds.contains(job.id().toString())) {
+                known++;
+            } else if (!TitleFilter.keep(job.title())) {
+                filtered++;
+            } else {
+                fresh.add(job.withSlug(slug));
+            }
+        }
         LOGGER.debug("Found {} new jobs for {} from {}; dropped {} known or filtered by title",
                 fresh.size(), slug, ats.stringValue(), response.jobs().size() - fresh.size());
-        metricService.recordCounter(MetricName.SLUG_FETCH_SUCCESS_COUNT, tags(slug));
+        recordJobs("new", fresh.size());
+        recordJobs("known", known);
+        recordJobs("filtered_title", filtered);
+        recordJobs("invalid", invalid);
+        metricService.recordCounter(MetricName.SLUG_FETCH_SUCCESS_COUNT, tags());
         return new Outcome(fresh, true);
+    }
+
+    private void recordJobs(String result, int count) {
+        metricService.recordCounterByIncrement(MetricName.FETCH_JOBS_COUNT,
+                Map.of(TagName.ATS, ats.stringValue(), TagName.RESULT, result), count);
     }
 
     /**
@@ -207,11 +225,15 @@ public final class SlugSweep<T extends AtsJobEntry> {
         }
     }
 
-    private void recordError(String slug) {
-        metricService.recordCounter(MetricName.SLUG_FETCH_ERROR_COUNT, tags(slug));
+    private void recordError() {
+        metricService.recordCounter(MetricName.SLUG_FETCH_ERROR_COUNT, tags());
     }
 
-    private Map<TagName, String> tags(String slug) {
-        return Map.of(TagName.ATS, ats.stringValue(), TagName.SLUG, slug);
+    /**
+     * Tagged by ATS only. The slug is in the log line beside each counter; as a
+     * tag it would make these counters one series per board.
+     */
+    private Map<TagName, String> tags() {
+        return Map.of(TagName.ATS, ats.stringValue());
     }
 }

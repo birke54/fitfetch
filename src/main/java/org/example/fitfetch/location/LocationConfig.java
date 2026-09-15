@@ -157,6 +157,7 @@ public class LocationConfig {
      * @param extractor          the extraction chain
      * @param policy             the policy switch
      * @param geocoder           the geocoding chain
+     * @param metricService      where each resolved label's tier is counted
      * @param maxLocationsPerJob fan-out cap
      * @return the full resolution chain
      */
@@ -166,7 +167,8 @@ public class LocationConfig {
             LocationExtractor extractor,
             LocationPolicy policy,
             Geocoder geocoder,
+            MetricService metricService,
             @Value("${app.location.max-locations-per-job}") int maxLocationsPerJob) {
-        return new LocationResolver(curated, extractor, policy, geocoder, maxLocationsPerJob);
+        return new LocationResolver(curated, extractor, policy, geocoder, metricService, maxLocationsPerJob);
     }
 }

@@ -1,5 +1,8 @@
 package org.example.fitfetch.location;
 
+import org.example.fitfetch.metrics.MetricName;
+import org.example.fitfetch.metrics.MetricService;
+import org.example.fitfetch.metrics.TagName;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -7,6 +10,7 @@ import org.springframework.core.io.ClassPathResource;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -21,12 +25,14 @@ class LocationResolverTest {
 
     private LocationExtractor extractor;
     private Geocoder geocoder;
+    private MetricService metricService;
     private LocationResolver resolver;
 
     @BeforeEach
     void setUp() throws IOException {
         extractor = mock(LocationExtractor.class);
         geocoder = mock(Geocoder.class);
+        metricService = mock(MetricService.class);
         when(geocoder.geocode(anyString())).thenReturn(ANY_POINT);
         resolver = newResolver(25);
     }
@@ -37,7 +43,13 @@ class LocationResolverTest {
                 extractor,
                 new LocationPolicy(ORIGIN, "WA"),
                 geocoder,
+                metricService,
                 cap);
+    }
+
+    private void verifyResolvedBy(String tier) {
+        verify(metricService).recordCounter(
+                MetricName.LOCATION_LABELS_RESOLVED_COUNT, Map.of(TagName.TIER, tier));
     }
 
     private void extractorReturns(ExtractedLocation... locations) {
@@ -56,6 +68,7 @@ class LocationResolverTest {
         assertEquals(Resolution.REMOTE_IN_US, resolved.getFirst().input().resolution());
         assertEquals(ORIGIN, resolved.getFirst().input().geocodeQuery());
         verifyNoInteractions(extractor);
+        verifyResolvedBy("curated");
     }
 
     @Test
@@ -84,6 +97,7 @@ class LocationResolverTest {
         assertEquals("Faroe Islands", resolved.getFirst().input().geocodeQuery());
         assertEquals("FO", resolved.getFirst().input().regionCode());
         verify(extractor).extract("Remote, Faroe Islands");
+        verifyResolvedBy("llm");
     }
 
     @Test
@@ -97,6 +111,18 @@ class LocationResolverTest {
                         .withTier(SourceTier.INTERPRETATION));
 
         assertEquals(SourceTier.INTERPRETATION, resolver.resolve("Oslo, Norway").getFirst().tier());
+        verifyResolvedBy("interpretation");
+    }
+
+    @Test
+    @DisplayName("A label whose geocoding fails is not counted, so its retry is not counted twice")
+    void testFailedGeocodingNotCounted() {
+        extractorReturns(new ExtractedLocation("Oslo, Norway",
+                LocationKind.PLACE, "Oslo, Norway", SpecifierType.CITY));
+        when(geocoder.geocode(anyString())).thenThrow(new GeocodingException("quota exhausted", false));
+
+        assertThrows(GeocodingException.class, () -> resolver.resolve("Oslo, Norway"));
+        verifyNoInteractions(metricService);
     }
 
     @Test

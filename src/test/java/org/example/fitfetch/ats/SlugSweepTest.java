@@ -100,7 +100,27 @@ class SlugSweepTest {
         assertEquals(List.of(1L), kept.stream().map(AtsJobEntry::id).toList());
         assertEquals(List.of("alpha"), slugsOf(kept));
         verify(metricService).recordCounter(MetricName.SLUG_FETCH_SUCCESS_COUNT,
-                Map.of(TagName.ATS, "Greenhouse", TagName.SLUG, "alpha"));
+                ATS_TAG);
+        verifyJobs("new", 1);
+        verifyJobs("known", 1);
+        verifyJobs("filtered_title", 1);
+        verifyJobs("invalid", 3);
+    }
+
+    private void verifyJobs(String result, int count) {
+        verify(metricService).recordCounterByIncrement(MetricName.FETCH_JOBS_COUNT,
+                Map.of(TagName.ATS, AtsName.GREENHOUSE.stringValue(), TagName.RESULT, result), count);
+    }
+
+    @Test
+    @DisplayName("Fetch counters are tagged by ATS only, never by slug")
+    void testCountersNotTaggedBySlug() {
+        // A slug tag would make each counter one series per board, thousands of them.
+        when(fetcher.fetchJobs(anyString())).thenAnswer(invocation -> oneJob());
+
+        sweep(1).run(List.of("alpha", "beta"), Set.of());
+
+        verify(metricService, times(2)).recordCounter(MetricName.SLUG_FETCH_SUCCESS_COUNT, ATS_TAG);
     }
 
     @Test
@@ -110,7 +130,7 @@ class SlugSweepTest {
 
         assertTrue(sweep(1).run(List.of("alpha"), Set.of()).isEmpty());
         verify(metricService).recordCounter(MetricName.SLUG_FETCH_NULL_RESPONSE_COUNT,
-                Map.of(TagName.ATS, "Greenhouse", TagName.SLUG, "alpha"));
+                ATS_TAG);
     }
 
     // ---------------------------------------------------------- concurrency
@@ -199,7 +219,7 @@ class SlugSweepTest {
 
         assertEquals(List.of("alpha", "gamma"), slugsOf(jobs));
         verify(metricService).recordCounter(MetricName.SLUG_FETCH_ERROR_COUNT,
-                Map.of(TagName.ATS, "Greenhouse", TagName.SLUG, "beta"));
+                ATS_TAG);
     }
 
     @Test
@@ -212,7 +232,7 @@ class SlugSweepTest {
 
         assertEquals(List.of("beta"), slugsOf(jobs));
         verify(metricService).recordCounter(MetricName.SLUG_FETCH_ERROR_COUNT,
-                Map.of(TagName.ATS, "Greenhouse", TagName.SLUG, "alpha"));
+                ATS_TAG);
     }
 
     // ------------------------------------------------------------ throttling
@@ -240,7 +260,7 @@ class SlugSweepTest {
         assertEquals(List.of("beta"), slugsOf(jobs));
         verify(fetcher, times(2)).fetchJobs("alpha");
         verify(metricService).recordCounter(MetricName.SLUG_FETCH_ERROR_COUNT,
-                Map.of(TagName.ATS, "Greenhouse", TagName.SLUG, "alpha"));
+                ATS_TAG);
     }
 
     @Test

@@ -8,6 +8,9 @@ import org.example.fitfetch.fetching.FetchedJobsRepository;
 import org.example.fitfetch.fetching.records.AtsJobEntry;
 import org.example.fitfetch.fetching.records.GreenhouseJobEntry;
 import org.example.fitfetch.fetching.records.GreenhouseSubRecords.Location;
+import org.example.fitfetch.metrics.MetricName;
+import org.example.fitfetch.metrics.MetricService;
+import org.example.fitfetch.metrics.TagName;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,6 +23,7 @@ import org.springframework.dao.DataAccessResourceFailureException;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
@@ -34,6 +38,8 @@ import static org.mockito.Mockito.*;
 public class AtsFetchServiceTest {
 
     @Mock private FetchedJobsRepository fetchedJobsRepository;
+
+    @Mock private MetricService metricService;
 
     @Mock private GreenhouseAts mockGreenhouseAts;
 
@@ -62,7 +68,7 @@ public class AtsFetchServiceTest {
     @BeforeEach
     void setUp() {
         atsBoards.add(mockGreenhouseAts);
-        atsFetchService = new AtsFetchService(fetchedJobsRepository, atsBoards, true);
+        atsFetchService = new AtsFetchService(fetchedJobsRepository, atsBoards, metricService, true);
     }
 
     /** Runs each task inline, surfacing a failure the way a real Future does. */
@@ -167,6 +173,34 @@ public class AtsFetchServiceTest {
         assertEquals(AtsName.GREENHOUSE, savedJob.getAts());
         assertEquals("1", savedJob.getJobId());
         assertEquals("company-a", savedJob.getSlug());
+        verify(metricService).recordCounterByIncrement(MetricName.FETCH_JOBS_SAVED_COUNT,
+                Map.of(TagName.ATS, AtsName.GREENHOUSE.stringValue()), 1);
+    }
+
+    @Test
+    @DisplayName("A cycle with nothing new records zero saved jobs")
+    void testNothingNewRecordsZero() {
+        when(mockGreenhouseAts.fetchJobs()).thenReturn(List.of(job(1L, "company-a")));
+        when(fetchedJobsRepository.findJobIdsByAtsNameAndJobIdIn(any(), anySet())).thenReturn(Set.of("1"));
+
+        atsFetchService.fetchAtsBoards(directExecutor());
+
+        verify(fetchedJobsRepository, never()).saveAll(anyIterable());
+        verify(metricService).recordCounterByIncrement(MetricName.FETCH_JOBS_SAVED_COUNT,
+                Map.of(TagName.ATS, AtsName.GREENHOUSE.stringValue()), 0);
+    }
+
+    @Test
+    @DisplayName("Jobs that fail to save are not counted as saved")
+    void testFailedSaveNotCounted() {
+        when(mockGreenhouseAts.fetchJobs()).thenReturn(List.of(job(1L, "company-a")));
+        when(fetchedJobsRepository.findJobIdsByAtsNameAndJobIdIn(any(), anySet())).thenReturn(Set.of());
+        doThrow(new DataAccessResourceFailureException("connection refused"))
+                .when(fetchedJobsRepository).saveAll(anyIterable());
+
+        atsFetchService.fetchAtsBoards(directExecutor());
+
+        verifyNoInteractions(metricService);
     }
 
     @Test

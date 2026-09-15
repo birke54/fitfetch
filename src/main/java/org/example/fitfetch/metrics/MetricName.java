@@ -24,6 +24,14 @@ public enum MetricName {
      */
     FETCH_STOPPED_COUNT("fetching.stopped.count"),
     /**
+     * Jobs an ATS returned, tagged with the {@code result}: {@code new},
+     * {@code known}, {@code filtered_title} or {@code invalid}
+     * ({@code fetching.jobs.count}).
+     */
+    FETCH_JOBS_COUNT("fetching.jobs.count"),
+    /** New jobs saved to {@code fetched_jobs} ({@code fetching.jobs.saved.count}). */
+    FETCH_JOBS_SAVED_COUNT("fetching.jobs.saved.count"),
+    /**
      * A call to the location model produced no usable location, tagged with the
      * {@code reason} ({@code location.llm.extraction.failure.count}). Counted per
      * call, so a label whose output is unusable twice counts twice.
@@ -44,7 +52,23 @@ public enum MetricName {
      * A location pass stopped before writing its page, tagged with the
      * {@code reason} ({@code location.pass.stopped.count}).
      */
-    LOCATION_PASS_STOPPED_COUNT("location.pass.stopped.count");
+    LOCATION_PASS_STOPPED_COUNT("location.pass.stopped.count"),
+    /**
+     * A label resolved to its locations, tagged with the {@code tier} that
+     * answered it ({@code location.labels.resolved.count}).
+     */
+    LOCATION_LABELS_RESOLVED_COUNT("location.labels.resolved.count"),
+    /**
+     * Jobs whose locations were written, tagged with the {@code status} they
+     * were written with ({@code location.jobs.written.count}).
+     */
+    LOCATION_JOBS_WRITTEN_COUNT("location.jobs.written.count"),
+    /**
+     * Jobs left pending by a pass, tagged with the {@code reason}
+     * ({@code location.jobs.deferred.count}). Counted on every pass that defers
+     * them.
+     */
+    LOCATION_JOBS_DEFERRED_COUNT("location.jobs.deferred.count");
 
     private final String metricName;
 

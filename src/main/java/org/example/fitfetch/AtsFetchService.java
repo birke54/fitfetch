@@ -5,6 +5,9 @@ import org.example.fitfetch.ats.AtsName;
 import org.example.fitfetch.domain.FetchedJob;
 import org.example.fitfetch.fetching.FetchedJobsRepository;
 import org.example.fitfetch.fetching.records.AtsJobEntry;
+import org.example.fitfetch.metrics.MetricName;
+import org.example.fitfetch.metrics.MetricService;
+import org.example.fitfetch.metrics.TagName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,6 +15,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
@@ -34,6 +38,7 @@ public class AtsFetchService {
     private static final Logger LOGGER = LoggerFactory.getLogger(AtsFetchService.class);
     private final FetchedJobsRepository fetchedJobsRepository;
     private final List<Ats> atsSites;
+    private final MetricService metricService;
     private final boolean enableFetching;
 
     /**
@@ -41,14 +46,17 @@ public class AtsFetchService {
      *                              new jobs
      * @param atsSites              all {@link Ats} beans discovered by Spring,
      *                              one per configured provider
+     * @param metricService         where saved jobs are counted
      * @param enableFetching        {@code app.fetch.enable} flag toggling
      *                              whether scheduled fetch cycles run
      */
     public AtsFetchService(FetchedJobsRepository fetchedJobsRepository,
                            List<Ats> atsSites,
+                           MetricService metricService,
                            @Value("${app.fetch.enable}") boolean enableFetching) {
         this.fetchedJobsRepository = fetchedJobsRepository;
         this.atsSites = atsSites;
+        this.metricService = metricService;
         this.enableFetching = enableFetching;
     }
 
@@ -155,11 +163,13 @@ public class AtsFetchService {
 
         if (!toSave.isEmpty()) {
             fetchedJobsRepository.saveAll(toSave);
-            // TODO: Add metric for new saves
             LOGGER.info("Saved {} new jobs from {}", toSave.size(), atsName);
         } else {
-            // TODO: Add metric for no op save
             LOGGER.info("No new jobs to save for {}", atsName);
         }
+        // Zero is recorded too, so the series exists from the first cycle and a
+        // cycle that saved nothing shows as no increase rather than no data.
+        metricService.recordCounterByIncrement(MetricName.FETCH_JOBS_SAVED_COUNT,
+                Map.of(TagName.ATS, atsName.stringValue()), toSave.size());
     }
 }

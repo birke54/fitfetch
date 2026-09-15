@@ -64,6 +64,16 @@ class LocationServiceTest {
                 MetricName.LOCATION_PASS_STOPPED_COUNT, Map.of(TagName.REASON, reason));
     }
 
+    private void verifyWritten(String status, int count) {
+        verify(metricService).recordCounterByIncrement(
+                MetricName.LOCATION_JOBS_WRITTEN_COUNT, Map.of(TagName.STATUS, status), count);
+    }
+
+    private void verifyDeferred(String reason, int count) {
+        verify(metricService).recordCounterByIncrement(
+                MetricName.LOCATION_JOBS_DEFERRED_COUNT, Map.of(TagName.REASON, reason), count);
+    }
+
     private LocationService newService(boolean enabled) {
         return newService(enabled, false);
     }
@@ -188,6 +198,7 @@ class LocationServiceTest {
         assertEquals(3, service.resolveOnePage());
 
         verify(resolver, times(1)).resolve("Remote US");
+        verifyWritten("resolved", 3);
     }
 
     @Test
@@ -242,6 +253,7 @@ class LocationServiceTest {
         verify(jobLocations).saveAll(saved.capture());
         assertEquals(1, saved.getValue().size(), "the row is still kept for the worklist");
         assertFalse(saved.getValue().getFirst().isMatchable());
+        verifyWritten("failed", 1);
     }
 
     @Test
@@ -329,6 +341,8 @@ class LocationServiceTest {
         assertEquals(LocationStatus.RESOLVED, written.getLocationStatus());
         verify(jobLocations).deleteByFetchedJobIds(List.of(written.getId()));
         verify(fetchedJobs).saveAll(List.of(written));
+        verifyDeferred("geocoding_off", 1);
+        verifyWritten("resolved", 1);
     }
 
     @Test
@@ -395,6 +409,11 @@ class LocationServiceTest {
         assertEquals(LocationStatus.FAILED, bad.getLocationStatus());
         verify(fetchedJobs).saveAll(List.of(good));
         verify(fetchedJobs).save(bad);
+        // Counted once each, after the retry: the rolled-back page counts nothing.
+        verifyWritten("resolved", 1);
+        verifyWritten("failed", 1);
+        verify(metricService, never()).recordCounterByIncrement(
+                MetricName.LOCATION_JOBS_WRITTEN_COUNT, Map.of(TagName.STATUS, "resolved"), 2);
     }
 
     @Test
@@ -599,6 +618,7 @@ class LocationServiceTest {
         verify(fetchedJobs).saveAll(List.of(fine));
         assertEquals(LocationStatus.RESOLVED, fine.getLocationStatus());
         assertEquals(LocationStatus.PENDING, poison.getLocationStatus(), "deferred, not failed: it may be an outage");
+        verifyDeferred("struck_out", 1);
     }
 
     @Test

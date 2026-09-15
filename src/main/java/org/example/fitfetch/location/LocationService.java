@@ -23,10 +23,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 /**
  * Scheduled pass that resolves the location of every fetched job that still
@@ -217,7 +220,8 @@ public class LocationService {
         //    page: every job keeps its PENDING status and nothing is written.
         //    The exception is a label that keeps failing (see STRIKE_LIMIT).
         Map<String, List<ResolvedLocation>> byLabel = new HashMap<>(distinct.size());
-        Set<String> deferred = new HashSet<>();
+        // Deferred labels, each with why, which is what the deferred count is tagged with.
+        Map<String, String> deferred = new HashMap<>();
         // Labels that got past the model step and stopped only at geocoding.
         int geocodingOff = 0;
         boolean probed = false;
@@ -227,7 +231,7 @@ public class LocationService {
                 // they all fail, so trying each would stretch a run by a timeout
                 // per label; the rest wait for a later run.
                 if (probed) {
-                    deferred.add(label);
+                    deferred.put(label, "struck_out");
                     continue;
                 }
                 probed = true;
@@ -236,7 +240,7 @@ public class LocationService {
                 byLabel.put(label, resolver.resolve(label));
                 strikes.remove(label);
             } catch (GeocodingDisabledException e) {
-                deferred.add(label);
+                deferred.put(label, "geocoding_off");
                 geocodingOff++;
             } catch (LocationExtractionException | GeocodingException e) {
                 if (e instanceof GeocodingException geocoding && geocoding.isFatal()) {
@@ -250,7 +254,7 @@ public class LocationService {
                 }
                 LOGGER.warn("'{}' has failed {} times in a row ({}); leaving its jobs pending "
                         + "so the rest of the page can proceed", label, count, e.getMessage());
-                deferred.add(label);
+                deferred.put(label, "struck_out");
             } catch (RuntimeException e) {
                 // A bug rather than an outage, so it will fail the same way every
                 // time. Resolving the label to nothing marks its jobs FAILED, where
@@ -275,11 +279,18 @@ public class LocationService {
         }
 
         List<FetchedJob> toWrite = page.stream()
-                .filter(job -> !deferred.contains(labelOf(job)))
+                .filter(job -> !deferred.containsKey(labelOf(job)))
                 .toList();
         if (toWrite.size() < page.size()) {
             LOGGER.info("Deferred {} jobs across {} labels; they stay pending",
                     page.size() - toWrite.size(), deferred.size());
+            page.stream()
+                    .map(job -> deferred.get(labelOf(job)))
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.groupingBy(reason -> reason, Collectors.counting()))
+                    .forEach((reason, jobs) -> metricService.recordCounterByIncrement(
+                            MetricName.LOCATION_JOBS_DEFERRED_COUNT,
+                            Map.of(TagName.REASON, reason), jobs.intValue()));
         }
 
         // 3. Write. Only now is a transaction opened.
@@ -334,6 +345,7 @@ public class LocationService {
         }
         try {
             transactionTemplate.executeWithoutResult(status -> persist(jobs, byLabel, now));
+            recordWritten(jobs);
             return;
         } catch (RuntimeException e) {
             if (jobs.size() == 1) {
@@ -347,7 +359,9 @@ public class LocationService {
                 transactionTemplate.executeWithoutResult(status -> persist(List.of(job), byLabel, now));
             } catch (RuntimeException e) {
                 markFailed(job, e);
+                continue;
             }
+            recordWritten(List.of(job));
         }
     }
 
@@ -359,6 +373,20 @@ public class LocationService {
             jobLocationRepository.deleteByFetchedJobIds(List.of(job.getId()));
             fetchedJobsRepository.save(job);
         });
+        recordWritten(List.of(job));
+    }
+
+    /**
+     * Counts jobs by the status they were written with. Called only once their
+     * transaction has committed: a page that rolls back is written again one job
+     * at a time, and counting inside it would count those jobs twice.
+     */
+    private void recordWritten(List<FetchedJob> jobs) {
+        jobs.stream()
+                .collect(Collectors.groupingBy(FetchedJob::getLocationStatus, Collectors.counting()))
+                .forEach((status, count) -> metricService.recordCounterByIncrement(
+                        MetricName.LOCATION_JOBS_WRITTEN_COUNT,
+                        Map.of(TagName.STATUS, status.name().toLowerCase(Locale.ROOT)), count.intValue()));
     }
 
     private void persist(List<FetchedJob> page, Map<String, List<ResolvedLocation>> byLabel,
