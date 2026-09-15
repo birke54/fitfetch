@@ -82,8 +82,11 @@ app:
       #   greenhouse:
       #     requests-per-second: 5
   normalize:
-    # Off until the location pass is writing job_locations: normalization only
-    # takes jobs located within the radius, so until then it finds nothing.
+    # Off by default: each job costs one model call over its whole description.
+    # Start small with environment variables, e.g. APP_NORMALIZE_ENABLE=true,
+    # APP_NORMALIZE_PAGESIZE=2 and APP_NORMALIZE_SCHEDULE="0 */10 * * * *",
+    # then raise them once the answers in normalized_jobs and the Ollama
+    # timings (http.client.requests) look right.
     enable: false
     schedule: "0 0 * * * *"
     # Jobs per run. Each is one model call over a whole description, far slower
