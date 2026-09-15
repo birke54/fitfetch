@@ -11,14 +11,22 @@ import java.util.Objects;
  * matching, which embeddings do badly on technology names: "Java" and
  * "JavaScript" sit close together, while "Go" and "Golang" may not.
  *
+ * <p>Skills it offers as alternatives ("one of AWS, Azure, or GCP") are kept
+ * apart from the rest: any one of them meets the signal, so matching counts
+ * them as one skill rather than asking for all of them.
+ *
  * @param classification which part of the description it came from
  * @param text           the requirement as one crisp sentence
  * @param skills         the technologies, languages, tools and methods it
  *                       names, by common name; empty if it names none
+ * @param anyOfSkills    skills it offers as alternatives, any one of which is
+ *                       enough, by common name; empty if it offers none. Rows
+ *                       normalized before this field existed read as empty
  * @param minYears       years of experience it asks for itself ("3+ years of
  *                       Kubernetes" is 3); 0 if it states none
  */
-public record Signal(SignalClassification classification, String text, List<String> skills, int minYears) {
+public record Signal(SignalClassification classification, String text, List<String> skills,
+                     List<String> anyOfSkills, int minYears) {
 
     public Signal {
         Objects.requireNonNull(classification, "classification");
@@ -26,9 +34,23 @@ public record Signal(SignalClassification classification, String text, List<Stri
             throw new IllegalArgumentException("text must not be blank");
         }
         skills = skills == null ? List.of() : List.copyOf(skills);
+        anyOfSkills = anyOfSkills == null ? List.of() : List.copyOf(anyOfSkills);
         if (minYears < 0) {
             throw new IllegalArgumentException("minYears must not be negative, but was " + minYears);
         }
+    }
+
+    /**
+     * A signal offering no alternatives.
+     *
+     * @param classification which part of the description it came from
+     * @param text           the requirement as one crisp sentence
+     * @param skills         the technologies, languages, tools and methods it
+     *                       names, by common name
+     * @param minYears       years of experience it asks for itself
+     */
+    public Signal(SignalClassification classification, String text, List<String> skills, int minYears) {
+        this(classification, text, skills, List.of(), minYears);
     }
 
     /**
@@ -38,6 +60,6 @@ public record Signal(SignalClassification classification, String text, List<Stri
      * @param text           the requirement as one crisp sentence
      */
     public Signal(SignalClassification classification, String text) {
-        this(classification, text, List.of(), 0);
+        this(classification, text, List.of(), List.of(), 0);
     }
 }

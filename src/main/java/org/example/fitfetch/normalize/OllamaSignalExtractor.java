@@ -20,6 +20,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * {@link LlmSignalExtractor} backed by a locally hosted Ollama model.
@@ -182,8 +185,7 @@ public class OllamaSignalExtractor implements LlmSignalExtractor {
                 if (item == null || item.text() == null || item.text().isBlank()) {
                     continue;
                 }
-                signals.add(new Signal(SignalClassification.fromLabel(item.classification()), item.text().strip(),
-                        skills.canonicalAll(item.skills()), years(item.minYears())));
+                signals.add(signal(item));
             }
         }
         if (signals.isEmpty()) {
@@ -208,6 +210,30 @@ public class OllamaSignalExtractor implements LlmSignalExtractor {
                 requirements,
                 cleaned(payload.domains(), true),
                 signals));
+    }
+
+    /**
+     * Builds one signal, its skills in canonical names.
+     *
+     * <p>A skill the model put in both lists is an alternative, since that is
+     * the narrower claim: kept in {@code skills} it would count as required. A
+     * single alternative is no choice at all, so it joins the required skills.
+     */
+    private Signal signal(SignalPayload.Item item) {
+        List<String> required = skills.canonicalAll(item.skills());
+        List<String> anyOf = skills.canonicalAll(item.anyOfSkills());
+        if (anyOf.size() < 2) {
+            // canonicalAll drops the repeat if the one alternative is also required.
+            required = skills.canonicalAll(Stream.concat(required.stream(), anyOf.stream()).toList());
+            anyOf = List.of();
+        } else {
+            Set<String> alternatives = anyOf.stream()
+                    .map(skill -> skill.toLowerCase(Locale.ROOT)).collect(Collectors.toSet());
+            required = required.stream()
+                    .filter(skill -> !alternatives.contains(skill.toLowerCase(Locale.ROOT))).toList();
+        }
+        return new Signal(SignalClassification.fromLabel(item.classification()), item.text().strip(), required,
+                anyOf, years(item.minYears()));
     }
 
     /**

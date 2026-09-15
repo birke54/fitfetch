@@ -41,11 +41,13 @@ public record SignalPayload(String seniority,
      * @param classification one of the {@code SignalClassification} labels
      * @param text           the requirement as one sentence
      * @param skills         the technologies and methods it names
+     * @param anyOfSkills    the ones it offers as alternatives
      * @param minYears       years of experience it asks for
      */
     public record Item(String classification,
                        String text,
                        List<String> skills,
+                       @JsonProperty("any_of_skills") List<String> anyOfSkills,
                        @JsonProperty("min_years") Integer minYears) {
     }
 }

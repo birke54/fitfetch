@@ -43,7 +43,8 @@ class OllamaSignalExtractorTest {
         RestClient.Builder builder = RestClient.builder();
         mockServer = MockRestServiceServer.bindTo(builder).build();
         extractor = new OllamaSignalExtractor(builder.build(), BASE_URL + "/", "qwen2.5:14b", CONTEXT,
-                new SkillCanonicalizer(Map.of("Kubernetes", List.of("k8s"), "PostgreSQL", List.of("postgres"))));
+                new SkillCanonicalizer(Map.of("Kubernetes", List.of("k8s"), "PostgreSQL", List.of("postgres"),
+                        "Go", List.of("golang"))));
     }
 
     /** Wraps a payload the way Ollama does: the answer is a JSON string field. */
@@ -114,6 +115,42 @@ class OllamaSignalExtractorTest {
         NormalizedData data = extractor.extract(TITLE, DESCRIPTION).orElseThrow();
 
         assertEquals(List.of("Kubernetes", "PostgreSQL", "Terraform"), data.signals().getFirst().skills());
+    }
+
+    @Test
+    @DisplayName("Alternatives are canonicalized and kept apart from the required skills")
+    void testAlternatives() {
+        // The model listed Postgres as both required and an alternative: an
+        // alternative is the narrower claim, so it is not also required.
+        respondWith("""
+                {"seniority":"senior","signals":[{"classification":"required skills",
+                  "text":"Runs Postgres or MySQL on k8s.","skills":["k8s","Postgres"],
+                  "any_of_skills":["postgres","MySQL","mysql"],"min_years":0}]}
+                """);
+
+        Signal signal = extractor.extract(TITLE, DESCRIPTION).orElseThrow().signals().getFirst();
+
+        assertEquals(List.of("Kubernetes"), signal.skills());
+        assertEquals(List.of("PostgreSQL", "MySQL"), signal.anyOfSkills());
+    }
+
+    @Test
+    @DisplayName("A single alternative is no choice, so it joins the required skills")
+    void testSingleAlternativeIsRequired() {
+        respondWith("""
+                {"seniority":"senior","signals":[
+                  {"classification":"required skills","text":"Knows Go.","skills":["Kafka"],
+                   "any_of_skills":["Golang"],"min_years":0},
+                  {"classification":"required skills","text":"Knows k8s.","skills":["Kubernetes"],
+                   "any_of_skills":["k8s"],"min_years":0}]}
+                """);
+
+        List<Signal> signals = extractor.extract(TITLE, DESCRIPTION).orElseThrow().signals();
+
+        assertEquals(List.of("Kafka", "Go"), signals.get(0).skills());
+        assertEquals(List.of(), signals.get(0).anyOfSkills());
+        assertEquals(List.of("Kubernetes"), signals.get(1).skills(), "the repeat is dropped");
+        assertEquals(List.of(), signals.get(1).anyOfSkills());
     }
 
     @Test
@@ -213,7 +250,8 @@ class OllamaSignalExtractorTest {
 
         assertEquals(names(schema.path("properties")), texts(schema.path("required")));
         assertEquals(names(item.path("properties")), texts(item.path("required")));
-        assertEquals(List.of("classification", "text", "skills", "min_years"), names(item.path("properties")));
+        assertEquals(List.of("classification", "text", "skills", "any_of_skills", "min_years"),
+                names(item.path("properties")));
         assertFalse(schema.toString().contains("null"), "no nullable types");
     }
 
