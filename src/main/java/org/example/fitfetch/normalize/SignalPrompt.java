@@ -33,7 +33,7 @@ public final class SignalPrompt {
      * job's existing row. Rows from an older version can be found by
      * {@code prompt_version}.
      */
-    public static final int VERSION = 2;
+    public static final int VERSION = 3;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 

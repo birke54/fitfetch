@@ -123,7 +123,8 @@ class OllamaSignalExtractorTest {
     void testSkillsCanonicalized() {
         respondWith("""
                 {"seniority":"senior","signals":[{"classification":"required skills",
-                  "text":"Runs Postgres on k8s.","skills":["k8s","Postgres","Kubernetes","Terraform"],"min_years":0}]}
+                  "text":"Runs Postgres on k8s with Terraform.","skills":["k8s","Postgres","Kubernetes","Terraform"],
+                  "min_years":0}]}
                 """);
 
         NormalizedData data = extractor.extract(TITLE, DESCRIPTION).orElseThrow();
@@ -153,7 +154,7 @@ class OllamaSignalExtractorTest {
     void testSingleAlternativeIsRequired() {
         respondWith("""
                 {"seniority":"senior","signals":[
-                  {"classification":"required skills","text":"Knows Go.","skills":["Kafka"],
+                  {"classification":"required skills","text":"Knows Kafka and Go.","skills":["Kafka"],
                    "any_of_skills":["Golang"],"min_years":0},
                   {"classification":"required skills","text":"Knows k8s.","skills":["Kubernetes"],
                    "any_of_skills":["k8s"],"min_years":0}]}
@@ -164,6 +165,46 @@ class OllamaSignalExtractorTest {
         assertEquals(List.of("Kafka", "Go"), signals.get(0).skills());
         assertEquals(List.of(), signals.get(0).anyOfSkills());
         assertEquals(List.of("Kubernetes"), signals.get(1).skills(), "the repeat is dropped");
+        assertEquals(List.of(), signals.get(1).anyOfSkills());
+    }
+
+    @Test
+    @DisplayName("Skills the signal's text does not name are dropped and counted")
+    void testUnnamedSkillsDropped() {
+        // Both as a real posting came back: languages copied from another
+        // bullet, and "AGI" where the text says "ADK".
+        respondWith("""
+                {"seniority":"staff","signals":[
+                  {"classification":"required skills",
+                   "text":"Hands-on experience building agentic or large language model-based systems.",
+                   "skills":["Go","Rust","Python"],"min_years":0},
+                  {"classification":"required qualifications",
+                   "text":"Experience with AI/agentic systems (DAP, ADK, LangGraph, or similar).",
+                   "skills":["AI","AGI"],"min_years":2}]}
+                """);
+
+        List<Signal> signals = extractor.extract(TITLE, DESCRIPTION).orElseThrow().signals();
+
+        assertEquals(List.of(), signals.get(0).skills());
+        assertEquals(List.of("AI"), signals.get(1).skills());
+        verify(metricService, times(4)).recordCounter(MetricName.NORMALIZE_SKILLS_DROPPED_COUNT);
+    }
+
+    @Test
+    @DisplayName("Unnamed alternatives are dropped before deciding whether a choice remains")
+    void testUnnamedAlternativesDropped() {
+        respondWith("""
+                {"seniority":"senior","signals":[
+                  {"classification":"required skills","text":"Knows Java or Golang.","skills":[],
+                   "any_of_skills":["Java","Go","Rust"],"min_years":0},
+                  {"classification":"required skills","text":"Knows Go.","skills":[],
+                   "any_of_skills":["Go","Rust"],"min_years":0}]}
+                """);
+
+        List<Signal> signals = extractor.extract(TITLE, DESCRIPTION).orElseThrow().signals();
+
+        assertEquals(List.of("Java", "Go"), signals.get(0).anyOfSkills(), "Go is named by its alias");
+        assertEquals(List.of("Go"), signals.get(1).skills(), "one alternative left is no choice");
         assertEquals(List.of(), signals.get(1).anyOfSkills());
     }
 
