@@ -110,7 +110,60 @@ public enum MetricName {
      * Jobs scored against the profile, tagged with the {@code result}:
      * {@code eligible} or {@code excluded} by a gate ({@code match.jobs.scored.count}).
      */
-    MATCH_JOBS_SCORED_COUNT("match.jobs.scored.count");
+    MATCH_JOBS_SCORED_COUNT("match.jobs.scored.count"),
+    /**
+     * Jobs the normalization pass dealt with, tagged with the {@code result}:
+     * {@code normalized}, {@code failed}, {@code out_of_range} (swept without a
+     * model call) or {@code set_aside} after stopping the run repeatedly
+     * ({@code normalize.jobs.count}).
+     */
+    NORMALIZE_JOBS_COUNT("normalize.jobs.count"),
+    /**
+     * Jobs marked {@code FAILED}, tagged with the {@code reason}:
+     * {@code empty_description}, {@code no_answer}, {@code error} or
+     * {@code write_error} ({@code normalize.jobs.failed.count}). Its own metric
+     * because every series of {@link #NORMALIZE_JOBS_COUNT} carries only
+     * {@code result}.
+     */
+    NORMALIZE_JOBS_FAILED_COUNT("normalize.jobs.failed.count"),
+    /**
+     * A normalization pass that stopped before finishing its page, tagged with
+     * the {@code reason} ({@code normalize.pass.stopped.count}).
+     */
+    NORMALIZE_PASS_STOPPED_COUNT("normalize.pass.stopped.count"),
+    /**
+     * Gauge: jobs by normalization status, tagged with the {@code status}:
+     * {@code pending} (in range and located, waiting for the model),
+     * {@code failed} or {@code out_of_range} ({@code normalize.jobs.backlog}).
+     * Refreshed after each successful pass, so a scrape never queries the
+     * database.
+     */
+    NORMALIZE_JOBS_BACKLOG("normalize.jobs.backlog"),
+    /**
+     * Gauge: when the normalization pass last ran without stopping, in epoch
+     * seconds ({@code normalize.pass.last.success.seconds}). Starts at the time
+     * the app started, so its age is how long the pass has gone without success.
+     */
+    NORMALIZE_PASS_LAST_SUCCESS_SECONDS("normalize.pass.last.success.seconds"),
+    /**
+     * A call to the normalization model that gave no usable answer, tagged with
+     * the {@code reason} ({@code normalize.extraction.failure.count}). Counted
+     * per call, so garbled output retried and garbled again counts twice.
+     */
+    NORMALIZE_EXTRACTION_FAILURE_COUNT("normalize.extraction.failure.count"),
+    /**
+     * Distribution of the tokens each normalization prompt took, with buckets at
+     * fractions of the context window ({@code normalize.prompt.tokens}). Shows
+     * how close descriptions come to being cut off before jobs start failing.
+     */
+    NORMALIZE_PROMPT_TOKENS("normalize.prompt.tokens"),
+    /**
+     * A job-level field or signal section the model left out or answered outside
+     * the schema, so a fallback was used, tagged with the {@code field}
+     * ({@code normalize.field.fallback.count}). An early sign of the model
+     * drifting from the schema.
+     */
+    NORMALIZE_FIELD_FALLBACK_COUNT("normalize.field.fallback.count");
 
     private final String metricName;
 

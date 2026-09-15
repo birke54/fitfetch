@@ -1,5 +1,8 @@
 package org.example.fitfetch.normalize;
 
+import org.example.fitfetch.metrics.MetricName;
+import org.example.fitfetch.metrics.MetricService;
+import org.example.fitfetch.metrics.TagName;
 import org.example.fitfetch.skills.SkillCanonicalizer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -17,6 +20,14 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.client.ExpectedCount.once;
 import static org.springframework.test.web.client.ExpectedCount.twice;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
@@ -36,15 +47,18 @@ class OllamaSignalExtractorTest {
             Kubernetes experience is a plus.""";
 
     private MockRestServiceServer mockServer;
+    private MetricService metricService;
     private OllamaSignalExtractor extractor;
 
     @BeforeEach
     void setUp() {
         RestClient.Builder builder = RestClient.builder();
         mockServer = MockRestServiceServer.bindTo(builder).build();
+        metricService = mock(MetricService.class);
         extractor = new OllamaSignalExtractor(builder.build(), BASE_URL + "/", "qwen2.5:14b", CONTEXT,
                 new SkillCanonicalizer(Map.of("Kubernetes", List.of("k8s"), "PostgreSQL", List.of("postgres"),
-                        "Go", List.of("golang"))));
+                        "Go", List.of("golang"))),
+                metricService);
     }
 
     /** Wraps a payload the way Ollama does: the answer is a JSON string field. */
@@ -369,5 +383,111 @@ class OllamaSignalExtractorTest {
     void testBlankDescriptionRejected() {
         assertThrows(IllegalArgumentException.class, () -> extractor.extract(TITLE, "  "));
         mockServer.verify();
+    }
+
+    // ------------------------------------------------------------- metrics
+
+    private void verifyFailure(String reason, int times) {
+        verify(metricService, times(times)).recordCounter(MetricName.NORMALIZE_EXTRACTION_FAILURE_COUNT,
+                Map.of(TagName.REASON, reason));
+    }
+
+    private void verifyFallback(String field) {
+        verify(metricService).recordCounter(MetricName.NORMALIZE_FIELD_FALLBACK_COUNT, Map.of(TagName.FIELD, field));
+    }
+
+    @Test
+    @DisplayName("Each prompt's size is recorded, with buckets at fractions of the context window")
+    void testPromptTokensRecorded() {
+        respondWith(once(), ollamaBody(GOOD_ANSWER, "stop", 900));
+
+        extractor.extract(TITLE, DESCRIPTION);
+
+        verify(metricService).recordDistribution(MetricName.NORMALIZE_PROMPT_TOKENS, Map.of(), 900.0,
+                CONTEXT * 0.25, CONTEXT * 0.5, CONTEXT * 0.75, CONTEXT * 0.9, CONTEXT);
+    }
+
+    @Test
+    @DisplayName("A prompt that filled the window is recorded at its size and counted as too long")
+    void testPromptTooLongCounted() {
+        respondWith(once(), ollamaBody(GOOD_ANSWER, "stop", CONTEXT));
+
+        extractor.extract(TITLE, DESCRIPTION);
+
+        verify(metricService).recordDistribution(eq(MetricName.NORMALIZE_PROMPT_TOKENS), anyMap(),
+                eq((double) CONTEXT), any(double[].class));
+        verifyFailure("prompt_too_long", 1);
+    }
+
+    @Test
+    @DisplayName("Garbled output is counted per call, so a failed retry counts twice")
+    void testUnparseableCountedPerCall() {
+        respondWith(twice(), ollamaBody("not json at all", "stop", 900));
+
+        extractor.extract(TITLE, DESCRIPTION);
+
+        verifyFailure("unparseable_json", 2);
+    }
+
+    @Test
+    @DisplayName("A cut-off answer, an empty body and a transport failure are each counted with their reason")
+    void testOtherFailuresCounted() {
+        respondWith(once(), ollamaBody(GOOD_ANSWER, "length", 900));
+        respondWith(once(), """
+                {"model":"qwen2.5:14b","response":"","done":true,"done_reason":"stop"}
+                """);
+        extractor.extract(TITLE, DESCRIPTION);
+        verifyFailure("cut_off", 1);
+        verifyFailure("empty_body", 1);
+
+        mockServer.reset();
+        mockServer.expect(requestTo(GENERATE)).andRespond(withServerError());
+        assertThrows(SignalExtractionException.class, () -> extractor.extract(TITLE, DESCRIPTION));
+        verifyFailure("transport", 1);
+    }
+
+    @Test
+    @DisplayName("An answer naming no seniority or no signals is counted with its reason")
+    void testNoAnswerReasonsCounted() {
+        respondWith("""
+                {"seniority":"","signals":[{"classification":"required skills","text":"Knows SQL."}]}
+                """);
+        extractor.extract(TITLE, DESCRIPTION);
+        verifyFailure("no_seniority", 1);
+
+        mockServer.reset();
+        respondWith("""
+                {"seniority":"senior","signals":[]}
+                """);
+        extractor.extract(TITLE, DESCRIPTION);
+        verifyFailure("no_signals", 1);
+    }
+
+    @Test
+    @DisplayName("A field the model left out or answered outside the schema is counted as a fallback")
+    void testFallbacksCounted() {
+        respondWith("""
+                {"seniority":"senior","track":"wizard","sponsorship":"maybe",
+                 "signals":[{"classification":"benefits","text":"Knows SQL."}]}
+                """);
+
+        extractor.extract(TITLE, DESCRIPTION);
+
+        verifyFallback("track");
+        verifyFallback("sponsorship");
+        verifyFallback("employment_type");
+        verifyFallback("required_degree");
+        verifyFallback("classification");
+    }
+
+    @Test
+    @DisplayName("A complete, well-formed answer counts no failure and no fallback")
+    void testGoodAnswerCountsNothing() {
+        respondWith(GOOD_ANSWER);
+
+        extractor.extract(TITLE, DESCRIPTION);
+
+        verify(metricService, never()).recordCounter(eq(MetricName.NORMALIZE_EXTRACTION_FAILURE_COUNT), anyMap());
+        verify(metricService, never()).recordCounter(eq(MetricName.NORMALIZE_FIELD_FALLBACK_COUNT), anyMap());
     }
 }

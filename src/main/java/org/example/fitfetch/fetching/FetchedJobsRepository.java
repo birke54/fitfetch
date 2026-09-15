@@ -101,6 +101,14 @@ public interface FetchedJobsRepository extends JpaRepository<FetchedJob,Long>, R
     long countByNormalizeStatusAndLocationStatus(NormalizeStatus normalizeStatus, LocationStatus locationStatus);
 
     /**
+     * Counts jobs in a given normalization state, whatever their location state.
+     *
+     * @param normalizeStatus the state to count
+     * @return how many jobs are in that state
+     */
+    long countByNormalizeStatus(NormalizeStatus normalizeStatus);
+
+    /**
      * Sets one job's normalization state, and nothing else.
      *
      * <p>An update rather than saving the entity: saving writes every column
