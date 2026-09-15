@@ -8,6 +8,9 @@ import org.example.fitfetch.fetching.FetchedJobsRepository;
 import org.example.fitfetch.location.GeocodingException;
 import org.example.fitfetch.location.OriginRadius;
 import org.example.fitfetch.location.RadiusSearchService;
+import org.example.fitfetch.metrics.MetricName;
+import org.example.fitfetch.metrics.MetricService;
+import org.example.fitfetch.metrics.TagName;
 import org.example.fitfetch.utilities.JdPreProcess;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,6 +83,7 @@ public class NormalizeService {
     private final RadiusSearchService radiusSearch;
     private final TransactionTemplate transactionTemplate;
     private final Clock clock;
+    private final MetricService metricService;
     private final boolean enabled;
     private final int pageSize;
     private final double radiusMiles;
@@ -90,6 +94,14 @@ public class NormalizeService {
      * revisiting jobs that were set aside.
      */
     private final AtomicLong cursor = new AtomicLong();
+
+    /** Jobs by status as of the last successful pass, for the backlog gauge. */
+    private final AtomicLong pendingJobs = new AtomicLong();
+    private final AtomicLong failedJobs = new AtomicLong();
+    private final AtomicLong outOfRangeJobs = new AtomicLong();
+
+    /** When the pass last ran without stopping, in epoch seconds, for its gauge. */
+    private final AtomicLong lastSuccess = new AtomicLong();
 
     /**
      * Consecutive run-stopping failures per job, cleared when the job gets an
@@ -108,6 +120,8 @@ public class NormalizeService {
      *                                configured now
      * @param transactionTemplate     scopes each write explicitly
      * @param clock                   time source
+     * @param metricService           where outcomes, stops and the backlog are
+     *                                recorded
      * @param enabled                 {@code app.normalize.enable}
      * @param pageSize                {@code app.normalize.page-size}
      * @param radiusMiles             {@code app.normalize.radius-miles}
@@ -118,6 +132,7 @@ public class NormalizeService {
                             RadiusSearchService radiusSearch,
                             TransactionTemplate transactionTemplate,
                             Clock clock,
+                            MetricService metricService,
                             @Value("${app.normalize.enable}") boolean enabled,
                             @Value("${app.normalize.page-size}") int pageSize,
                             @Value("${app.normalize.radius-miles}") double radiusMiles) {
@@ -127,9 +142,21 @@ public class NormalizeService {
         this.radiusSearch = radiusSearch;
         this.transactionTemplate = transactionTemplate;
         this.clock = clock;
+        this.metricService = metricService;
         this.enabled = enabled;
         this.pageSize = pageSize;
         this.radiusMiles = radiusMiles;
+
+        // Starts at startup rather than zero, so the gauge's age is how long the
+        // pass has gone without a successful run, not how long since 1970.
+        lastSuccess.set(clock.instant().getEpochSecond());
+        metricService.registerGauge(MetricName.NORMALIZE_PASS_LAST_SUCCESS_SECONDS, Map.of(), lastSuccess::get);
+        metricService.registerGauge(MetricName.NORMALIZE_JOBS_BACKLOG,
+                Map.of(TagName.STATUS, "pending"), pendingJobs::get);
+        metricService.registerGauge(MetricName.NORMALIZE_JOBS_BACKLOG,
+                Map.of(TagName.STATUS, "failed"), failedJobs::get);
+        metricService.registerGauge(MetricName.NORMALIZE_JOBS_BACKLOG,
+                Map.of(TagName.STATUS, "out_of_range"), outOfRangeJobs::get);
     }
 
     /**
@@ -143,16 +170,52 @@ public class NormalizeService {
             return;
         }
         try {
-            normalizeOnePage();
+            int normalized = normalizeOnePage();
+            lastSuccess.set(clock.instant().getEpochSecond());
+            refreshBacklog();
+            if (normalized > 0) {
+                LOGGER.info("Normalized {} jobs, {} still pending", normalized, pendingJobs.get());
+            }
         } catch (SignalExtractionException e) {
             LOGGER.warn("Normalization stopped early, model unavailable: {}", e.getMessage());
+            recordStopped("model_unavailable");
         } catch (GeocodingException e) {
             // Without the origin there is no radius, and no way to tell which
             // jobs are worth a model call.
             LOGGER.warn("Normalization skipped, search origin unavailable: {}", e.getMessage());
+            recordStopped("origin_unavailable");
         } catch (RuntimeException e) {
             // Most likely the database. Unwritten jobs stay pending for next run.
             LOGGER.error("Normalization pass failed, will retry", e);
+            recordStopped("error");
+        }
+    }
+
+    /**
+     * Updates the backlog gauge. A failure here leaves the gauge as it was: the
+     * page is already written, so it must not count as the pass stopping.
+     * {@code pending} counts only located jobs, which are the ones waiting for
+     * the model rather than for the location pass.
+     */
+    private void refreshBacklog() {
+        try {
+            pendingJobs.set(fetchedJobsRepository.countByNormalizeStatusAndLocationStatus(
+                    NormalizeStatus.PENDING, LocationStatus.RESOLVED));
+            failedJobs.set(fetchedJobsRepository.countByNormalizeStatus(NormalizeStatus.FAILED));
+            outOfRangeJobs.set(fetchedJobsRepository.countByNormalizeStatus(NormalizeStatus.OUT_OF_RANGE));
+        } catch (RuntimeException e) {
+            LOGGER.warn("Could not count the normalization backlog: {}", e.getMessage());
+        }
+    }
+
+    private void recordStopped(String reason) {
+        metricService.recordCounter(MetricName.NORMALIZE_PASS_STOPPED_COUNT, Map.of(TagName.REASON, reason));
+    }
+
+    private void recordJobs(String result, int count) {
+        if (count > 0) {
+            metricService.recordCounterByIncrement(MetricName.NORMALIZE_JOBS_COUNT,
+                    Map.of(TagName.RESULT, result), count);
         }
     }
 
@@ -178,6 +241,7 @@ public class NormalizeService {
                 status -> fetchedJobsRepository.markOutOfRangeForNormalization(radius));
         if (excluded != null && excluded > 0) {
             LOGGER.info("{} jobs are outside the {}-mile radius and will not be normalized", excluded, radiusMiles);
+            recordJobs("out_of_range", excluded);
         }
 
         List<FetchedJob> page = nextPage(radius);
@@ -193,7 +257,7 @@ public class NormalizeService {
                     job.getJobData() == null ? null : job.getJobData().content());
             if (description.isEmpty()) {
                 LOGGER.warn("Job {} has an empty description; marking it FAILED", job.getId());
-                markFailed(job);
+                markFailed(job, "empty_description");
                 continue;
             }
 
@@ -226,13 +290,13 @@ public class NormalizeService {
                 // time. Failing the job keeps it from blocking the queue.
                 strikes.remove(job.getId());
                 LOGGER.error("Could not normalize job {}; marking it FAILED", job.getId(), e);
-                markFailed(job);
+                markFailed(job, "error");
                 continue;
             }
 
             if (data.isEmpty()) {
                 LOGGER.warn("No usable normalization for job {}; marking it FAILED", job.getId());
-                markFailed(job);
+                markFailed(job, "no_answer");
             } else if (write(job, data.get())) {
                 normalized++;
             }
@@ -242,11 +306,8 @@ public class NormalizeService {
         if (setAside > 0) {
             LOGGER.info("Set aside {} repeatedly failing jobs; they stay pending", setAside);
         }
-        // Counted after the out-of-range sweep, so every pending job with a
-        // resolved location is one in range that is still to be normalized.
-        LOGGER.info("Normalized {} of {} jobs, {} still pending", normalized, page.size(),
-                fetchedJobsRepository.countByNormalizeStatusAndLocationStatus(
-                        NormalizeStatus.PENDING, LocationStatus.RESOLVED));
+        recordJobs("normalized", normalized);
+        recordJobs("set_aside", setAside);
         return normalized;
     }
 
@@ -286,20 +347,25 @@ public class NormalizeService {
             return true;
         } catch (RuntimeException e) {
             LOGGER.error("Could not write normalization for job {}; marking it FAILED", job.getId(), e);
-            markFailed(job);
+            markFailed(job, "write_error");
             return false;
         }
     }
 
     /**
-     * Marks a job {@code FAILED}. If this fails too, the database itself is the
-     * problem, and the exception propagates to end the run.
+     * Marks a job {@code FAILED}, and counts it once that is written. If this
+     * fails too, the database itself is the problem, and the exception
+     * propagates to end the run.
+     *
+     * @param reason why, as the failed-jobs counter's {@code reason}
      */
-    private void markFailed(FetchedJob job) {
+    private void markFailed(FetchedJob job, String reason) {
         transactionTemplate.executeWithoutResult(status -> {
             // A row from an earlier normalization would contradict FAILED.
             normalizedJobRepository.deleteByFetchedJobId(job.getId());
             fetchedJobsRepository.updateNormalizeStatus(job.getId(), NormalizeStatus.FAILED);
         });
+        recordJobs("failed", 1);
+        metricService.recordCounter(MetricName.NORMALIZE_JOBS_FAILED_COUNT, Map.of(TagName.REASON, reason));
     }
 }

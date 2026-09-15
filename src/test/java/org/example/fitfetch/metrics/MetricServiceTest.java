@@ -1,6 +1,8 @@
 package org.example.fitfetch.metrics;
 
+import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.distribution.CountAtBucket;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
@@ -69,5 +71,23 @@ class MetricServiceTest {
         metricService.recordTimer(MetricName.LOCATION_GEOCODE_REQUEST, null, Duration.ofMillis(5));
 
         assertEquals(1, registry.get("location.geocode.request").timer().count());
+    }
+
+    @Test
+    @DisplayName("A distribution counts each value into the buckets given")
+    void testRecordDistribution() {
+        double[] buckets = {2048, 4096, 8192};
+        metricService.recordDistribution(MetricName.NORMALIZE_PROMPT_TOKENS, null, 1000, buckets);
+        metricService.recordDistribution(MetricName.NORMALIZE_PROMPT_TOKENS, null, 3000, buckets);
+        metricService.recordDistribution(MetricName.NORMALIZE_PROMPT_TOKENS, null, 8000, buckets);
+
+        DistributionSummary summary = registry.get("normalize.prompt.tokens").summary();
+        assertEquals(3, summary.count());
+        assertEquals(8000, summary.max());
+        CountAtBucket[] counts = summary.takeSnapshot().histogramCounts();
+        assertEquals(3, counts.length);
+        assertEquals(1, counts[0].count(), "at or under 2048");
+        assertEquals(2, counts[1].count(), "at or under 4096");
+        assertEquals(3, counts[2].count(), "at or under 8192");
     }
 }

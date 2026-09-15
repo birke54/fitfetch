@@ -1,5 +1,6 @@
 package org.example.fitfetch.metrics;
 
+import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
@@ -128,5 +129,34 @@ public class MetricService {
                         .toList())
                 .strongReference(true)
                 .register(meterRegistry);
+    }
+
+    /**
+     * Records one value in the distribution identified by {@code metricName},
+     * counted into the given buckets.
+     *
+     * <p>Explicit buckets rather than a generated histogram: a distribution of
+     * token counts is only readable against the limits that matter, such as
+     * fractions of a context window.
+     *
+     * @param metricName the distribution to record in
+     * @param tags       tag name/value pairs to attach; may be {@code null} or
+     *                   empty
+     * @param value      the value
+     * @param buckets    upper bounds of the buckets to count values into, taken
+     *                   from the first record of each name and tag set
+     */
+    public void recordDistribution(MetricName metricName, Map<TagName, String> tags, double value,
+                                   double... buckets) {
+        if (tags == null) {
+            tags = Map.of();
+        }
+        DistributionSummary.builder(metricName.metricName())
+                .tags(tags.entrySet().stream()
+                        .map(entry -> Tag.of(entry.getKey().key(), entry.getValue()))
+                        .toList())
+                .serviceLevelObjectives(buckets)
+                .register(meterRegistry)
+                .record(value);
     }
 }

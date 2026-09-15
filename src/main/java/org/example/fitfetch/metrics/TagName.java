@@ -31,7 +31,9 @@ public enum TagName {
     /** Which tier of the location pipeline answered a label ({@code tier}). */
     TIER("tier"),
     /** Which check a result belongs to, e.g. one of a label audit's ({@code check}). */
-    CHECK("check");
+    CHECK("check"),
+    /** Which field of a model's answer a metric is about ({@code field}). */
+    FIELD("field");
 
     private final String key;
 

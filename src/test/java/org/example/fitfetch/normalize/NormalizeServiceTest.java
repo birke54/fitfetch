@@ -1,7 +1,9 @@
 package org.example.fitfetch.normalize;
 
+import org.example.fitfetch.MutableClock;
 import org.example.fitfetch.ats.AtsName;
 import org.example.fitfetch.domain.FetchedJob;
+import org.example.fitfetch.domain.LocationStatus;
 import org.example.fitfetch.domain.NormalizeStatus;
 import org.example.fitfetch.domain.NormalizedJob;
 import org.example.fitfetch.fetching.FetchedJobsRepository;
@@ -9,6 +11,9 @@ import org.example.fitfetch.fetching.records.GreenhouseJobEntry;
 import org.example.fitfetch.location.GeocodingDisabledException;
 import org.example.fitfetch.location.OriginRadius;
 import org.example.fitfetch.location.RadiusSearchService;
+import org.example.fitfetch.metrics.MetricName;
+import org.example.fitfetch.metrics.MetricService;
+import org.example.fitfetch.metrics.TagName;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,12 +25,15 @@ import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -46,6 +54,7 @@ class NormalizeServiceTest {
     private NormalizedJobRepository normalizedJobs;
     private LlmSignalExtractor extractor;
     private RadiusSearchService radiusSearch;
+    private MetricService metricService;
     private NormalizeService service;
 
     private long nextId = 1L;
@@ -56,13 +65,18 @@ class NormalizeServiceTest {
         normalizedJobs = mock(NormalizedJobRepository.class);
         extractor = mock(LlmSignalExtractor.class);
         radiusSearch = mock(RadiusSearchService.class);
+        metricService = mock(MetricService.class);
         when(radiusSearch.around(50)).thenReturn(RADIUS);
         when(extractor.model()).thenReturn("qwen2.5:14b");
         service = newService(true);
     }
 
-    @SuppressWarnings("unchecked")
     private NormalizeService newService(boolean enabled) {
+        return newService(enabled, Clock.fixed(NOW, ZoneOffset.UTC));
+    }
+
+    @SuppressWarnings("unchecked")
+    private NormalizeService newService(boolean enabled, Clock clock) {
         TransactionTemplate template = mock(TransactionTemplate.class);
         // Run callbacks inline so the write path is exercised without a
         // transaction manager.
@@ -74,7 +88,7 @@ class NormalizeServiceTest {
                 invocation -> invocation.getArgument(0, TransactionCallback.class).doInTransaction(null));
 
         return new NormalizeService(fetchedJobs, normalizedJobs, extractor, radiusSearch, template,
-                Clock.fixed(NOW, ZoneOffset.UTC), enabled, 5, 50);
+                clock, metricService, enabled, 5, 50);
     }
 
     private FetchedJob job(String content) {
@@ -405,5 +419,136 @@ class NormalizeServiceTest {
 
         assertDoesNotThrow(() -> service.normalizePendingJobs());
         verifyNoInteractions(extractor);
+    }
+
+    // -------------------------------------------------------------- metrics
+
+    private void verifyJobs(String result, int count) {
+        verify(metricService).recordCounterByIncrement(MetricName.NORMALIZE_JOBS_COUNT,
+                Map.of(TagName.RESULT, result), count);
+    }
+
+    private void verifyFailed(String reason) {
+        verify(metricService).recordCounter(MetricName.NORMALIZE_JOBS_FAILED_COUNT, Map.of(TagName.REASON, reason));
+    }
+
+    private void verifyStopped(String reason) {
+        verify(metricService).recordCounter(MetricName.NORMALIZE_PASS_STOPPED_COUNT, Map.of(TagName.REASON, reason));
+    }
+
+    /** The supplier the most recently built service registered for a gauge. */
+    @SuppressWarnings("unchecked")
+    private Supplier<Number> gauge(MetricName name, Map<TagName, String> tags) {
+        ArgumentCaptor<Supplier<Number>> gauge = ArgumentCaptor.forClass(Supplier.class);
+        verify(metricService, atLeastOnce()).registerGauge(eq(name), eq(tags), gauge.capture());
+        return gauge.getValue();
+    }
+
+    @Test
+    @DisplayName("Each job's outcome is counted, and each failure with its reason")
+    void testOutcomesCounted() {
+        pageContains(job("Knows Java"), job(""), job("Nothing here"));
+        when(fetchedJobs.markOutOfRangeForNormalization(RADIUS)).thenReturn(3);
+        when(extractor.extract(TITLE, "Knows Java")).thenReturn(Optional.of(ANSWER));
+        when(extractor.extract(TITLE, "Nothing here")).thenReturn(Optional.empty());
+
+        service.normalizePendingJobs();
+
+        verifyJobs("normalized", 1);
+        verifyJobs("out_of_range", 3);
+        verify(metricService, times(2)).recordCounterByIncrement(MetricName.NORMALIZE_JOBS_COUNT,
+                Map.of(TagName.RESULT, "failed"), 1);
+        verifyFailed("empty_description");
+        verifyFailed("no_answer");
+    }
+
+    @Test
+    @DisplayName("A bug in extraction and a failed write are counted as failures with their own reasons")
+    void testErrorAndWriteFailureCounted() {
+        FetchedJob broken = job("Broken");
+        FetchedJob unwritable = job("Knows Java");
+        pageContains(broken, unwritable);
+        when(extractor.extract(TITLE, "Broken")).thenThrow(new IllegalStateException("bug"));
+        when(extractor.extract(TITLE, "Knows Java")).thenReturn(Optional.of(ANSWER));
+        when(normalizedJobs.save(any())).thenThrow(new DataIntegrityViolationException("constraint"));
+
+        service.normalizePendingJobs();
+
+        verifyFailed("error");
+        verifyFailed("write_error");
+    }
+
+    @Test
+    @DisplayName("A job set aside after repeated outages is counted")
+    void testSetAsideCounted() {
+        pageContains(job("Poison"), job("Knows Java"));
+        when(extractor.extract(TITLE, "Poison")).thenThrow(outage());
+        when(extractor.extract(TITLE, "Knows Java")).thenReturn(Optional.of(ANSWER));
+
+        runs(NormalizeService.STRIKE_LIMIT);
+
+        verifyJobs("set_aside", 1);
+        verifyStopped("model_unavailable");
+    }
+
+    @Test
+    @DisplayName("A pass stopped by the origin or the database is counted with its reason")
+    void testStopsCounted() {
+        when(radiusSearch.around(50)).thenThrow(new GeocodingDisabledException("origin"));
+        service.normalizePendingJobs();
+        verifyStopped("origin_unavailable");
+
+        reset(radiusSearch);
+        when(radiusSearch.around(50)).thenReturn(RADIUS);
+        when(fetchedJobs.markOutOfRangeForNormalization(any()))
+                .thenThrow(new DataAccessResourceFailureException("down"));
+        service.normalizePendingJobs();
+        verifyStopped("error");
+    }
+
+    @Test
+    @DisplayName("After a successful pass the backlog gauge holds located pending, failed and out-of-range counts")
+    void testBacklogGauge() {
+        pageContains();
+        when(fetchedJobs.countByNormalizeStatusAndLocationStatus(NormalizeStatus.PENDING, LocationStatus.RESOLVED))
+                .thenReturn(12L);
+        when(fetchedJobs.countByNormalizeStatus(NormalizeStatus.FAILED)).thenReturn(2L);
+        when(fetchedJobs.countByNormalizeStatus(NormalizeStatus.OUT_OF_RANGE)).thenReturn(40L);
+
+        service.normalizePendingJobs();
+
+        assertEquals(12L, gauge(MetricName.NORMALIZE_JOBS_BACKLOG, Map.of(TagName.STATUS, "pending")).get());
+        assertEquals(2L, gauge(MetricName.NORMALIZE_JOBS_BACKLOG, Map.of(TagName.STATUS, "failed")).get());
+        assertEquals(40L, gauge(MetricName.NORMALIZE_JOBS_BACKLOG, Map.of(TagName.STATUS, "out_of_range")).get());
+    }
+
+    @Test
+    @DisplayName("A backlog count that fails does not count as the pass stopping")
+    void testBacklogFailureIsNotAStop() {
+        pageContains();
+        when(fetchedJobs.countByNormalizeStatus(any())).thenThrow(new DataAccessResourceFailureException("down"));
+
+        assertDoesNotThrow(() -> service.normalizePendingJobs());
+
+        verify(metricService, never()).recordCounter(eq(MetricName.NORMALIZE_PASS_STOPPED_COUNT), anyMap());
+    }
+
+    @Test
+    @DisplayName("The last-success gauge starts at startup, moves on a successful pass, and stays put when one stops")
+    void testLastSuccessGauge() {
+        MutableClock clock = new MutableClock(NOW);
+        NormalizeService timed = newService(true, clock);
+        Supplier<Number> lastSuccess = gauge(MetricName.NORMALIZE_PASS_LAST_SUCCESS_SECONDS, Map.of());
+        assertEquals(NOW.getEpochSecond(), lastSuccess.get());
+
+        pageContains();
+        clock.advance(Duration.ofMinutes(10));
+        timed.normalizePendingJobs();
+        assertEquals(NOW.plus(Duration.ofMinutes(10)).getEpochSecond(), lastSuccess.get());
+
+        when(radiusSearch.around(50)).thenThrow(new GeocodingDisabledException("origin"));
+        clock.advance(Duration.ofMinutes(10));
+        timed.normalizePendingJobs();
+        assertEquals(NOW.plus(Duration.ofMinutes(10)).getEpochSecond(), lastSuccess.get());
     }
 }

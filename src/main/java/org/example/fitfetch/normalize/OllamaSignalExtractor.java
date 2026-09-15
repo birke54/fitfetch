@@ -3,6 +3,9 @@ package org.example.fitfetch.normalize;
 import org.example.fitfetch.normalize.records.SignalGenerateRequest;
 import org.example.fitfetch.normalize.records.SignalGenerateResponse;
 import org.example.fitfetch.normalize.records.SignalOptions;
+import org.example.fitfetch.metrics.MetricName;
+import org.example.fitfetch.metrics.MetricService;
+import org.example.fitfetch.metrics.TagName;
 import org.example.fitfetch.normalize.records.SignalPayload;
 import org.example.fitfetch.skills.SkillCanonicalizer;
 import org.slf4j.Logger;
@@ -47,6 +50,14 @@ public class OllamaSignalExtractor implements LlmSignalExtractor {
     private final String model;
     private final SignalOptions options;
     private final SkillCanonicalizer skills;
+    private final MetricService metricService;
+
+    /**
+     * Upper bounds of the prompt-size buckets: a quarter, half, three quarters,
+     * nine tenths and all of the context window, so the distribution reads as
+     * how full the window gets.
+     */
+    private final double[] promptTokenBuckets;
 
     /**
      * @param restClient    the HTTP client; give it a read timeout long enough
@@ -60,16 +71,21 @@ public class OllamaSignalExtractor implements LlmSignalExtractor {
      *                      answer is not used
      * @param skills        maps each signal's skills to canonical names, the
      *                      same ones the candidate profile uses
+     * @param metricService where failed calls, prompt sizes and fallbacks are
+     *                      recorded
      */
     public OllamaSignalExtractor(RestClient restClient, String baseUrl, String model, int contextLength,
-                                 SkillCanonicalizer skills) {
+                                 SkillCanonicalizer skills, MetricService metricService) {
         this.restClient = Objects.requireNonNull(restClient, "restClient");
         this.skills = Objects.requireNonNull(skills, "skills");
+        this.metricService = Objects.requireNonNull(metricService, "metricService");
         this.model = requireText(model, "model");
         if (contextLength <= 0) {
             throw new IllegalArgumentException("contextLength must be positive, but was " + contextLength);
         }
         this.options = SignalOptions.deterministic(contextLength);
+        this.promptTokenBuckets = new double[]{contextLength * 0.25, contextLength * 0.5, contextLength * 0.75,
+                contextLength * 0.9, contextLength};
         String trimmed = requireText(baseUrl, "baseUrl");
         this.baseUrl = trimmed.endsWith("/") ? trimmed.substring(0, trimmed.length() - 1) : trimmed;
     }
@@ -140,12 +156,18 @@ public class OllamaSignalExtractor implements LlmSignalExtractor {
                     .retrieve()
                     .body(SignalGenerateResponse.class);
         } catch (RestClientException e) {
+            recordFailure("transport");
             throw new SignalExtractionException("Ollama request failed during signal extraction", e);
         }
 
         if (response == null || response.response() == null || response.response().isBlank()) {
             LOGGER.warn("Ollama returned an empty body for signal extraction");
+            recordFailure("empty_body");
             return Attempt.garbled();
+        }
+        if (response.promptEvalCount() != null) {
+            metricService.recordDistribution(MetricName.NORMALIZE_PROMPT_TOKENS, Map.of(),
+                    response.promptEvalCount(), promptTokenBuckets);
         }
         if (response.promptEvalCount() != null && response.promptEvalCount() >= options.contextLength()) {
             // Ollama fits an oversized prompt by dropping part of it, silently.
@@ -153,11 +175,13 @@ public class OllamaSignalExtractor implements LlmSignalExtractor {
             // made without the instructions.
             LOGGER.warn("Prompt filled the {}-token context window and was truncated; "
                     + "raise app.normalize.llm.context-length", options.contextLength());
+            recordFailure("prompt_too_long");
             return Attempt.noAnswer();
         }
         if ("length".equals(response.doneReason())) {
             // A truncated array can still parse, having lost signals off the end.
             LOGGER.warn("Ollama cut off its signal extraction answer");
+            recordFailure("cut_off");
             return Attempt.garbled();
         }
 
@@ -166,6 +190,7 @@ public class OllamaSignalExtractor implements LlmSignalExtractor {
             payload = MAPPER.readValue(response.response(), SignalPayload.class);
         } catch (JacksonException e) {
             LOGGER.warn("Could not parse signal extraction output: {}", e.getMessage());
+            recordFailure("unparseable_json");
             return Attempt.garbled();
         }
         return toData(payload);
@@ -177,6 +202,7 @@ public class OllamaSignalExtractor implements LlmSignalExtractor {
             // The prompt asks for an empty seniority when the input is not a job
             // description, so this is the model saying there is nothing here.
             LOGGER.warn("Model named no seniority band ('{}')", payload.seniority());
+            recordFailure("no_seniority");
             return Attempt.noAnswer();
         }
         List<Signal> signals = new ArrayList<>();
@@ -190,22 +216,25 @@ public class OllamaSignalExtractor implements LlmSignalExtractor {
         }
         if (signals.isEmpty()) {
             LOGGER.warn("Model extracted no signals");
+            recordFailure("no_signals");
             return Attempt.noAnswer();
         }
         // The job-level fields fall back rather than reject the answer: the
         // schema constrains them, so an odd value is rare, and the signals are
-        // still good. Each fallback is the reading that excludes no job.
+        // still good. Each fallback is the reading that excludes no job, and is
+        // counted, since a rising count means the model is drifting from the schema.
         HardRequirements requirements = new HardRequirements(
-                Degree.fromLabel(payload.requiredDegree()),
+                checked("required_degree", payload.requiredDegree(), Degree.fromLabel(payload.requiredDegree())),
                 Boolean.TRUE.equals(payload.clearanceRequired()),
-                Sponsorship.fromLabel(payload.sponsorship()),
+                checked("sponsorship", payload.sponsorship(), Sponsorship.fromLabel(payload.sponsorship())),
                 cleaned(payload.requiredCertifications(), false),
                 Boolean.TRUE.equals(payload.travelRequired()),
                 Boolean.TRUE.equals(payload.onCall()));
         return Attempt.of(new NormalizedData(
                 seniority,
-                Track.fromLabel(payload.track()),
-                EmploymentType.fromLabel(payload.employmentType()),
+                checked("track", payload.track(), Track.fromLabel(payload.track())),
+                checked("employment_type", payload.employmentType(),
+                        EmploymentType.fromLabel(payload.employmentType())),
                 years(payload.minYearsExperience()),
                 requirements,
                 cleaned(payload.domains(), true),
@@ -213,13 +242,18 @@ public class OllamaSignalExtractor implements LlmSignalExtractor {
     }
 
     /**
-     * Builds one signal, its skills in canonical names.
+     * Builds one signal, its skills in canonical names. A section outside the
+     * schema is kept as {@code OTHER} and counted as a fallback.
      *
      * <p>A skill the model put in both lists is an alternative, since that is
      * the narrower claim: kept in {@code skills} it would count as required. A
      * single alternative is no choice at all, so it joins the required skills.
      */
     private Signal signal(SignalPayload.Item item) {
+        SignalClassification classification = SignalClassification.fromLabel(item.classification());
+        if (classification == SignalClassification.OTHER) {
+            recordFallback("classification");
+        }
         List<String> required = skills.canonicalAll(item.skills());
         List<String> anyOf = skills.canonicalAll(item.anyOfSkills());
         if (anyOf.size() < 2) {
@@ -232,8 +266,26 @@ public class OllamaSignalExtractor implements LlmSignalExtractor {
             required = required.stream()
                     .filter(skill -> !alternatives.contains(skill.toLowerCase(Locale.ROOT))).toList();
         }
-        return new Signal(SignalClassification.fromLabel(item.classification()), item.text().strip(), required,
-                anyOf, years(item.minYears()));
+        return new Signal(classification, item.text().strip(), required, anyOf, years(item.minYears()));
+    }
+
+    /**
+     * @return {@code value}, having counted a fallback if the model gave no
+     *         value for the field or one the schema does not offer
+     */
+    private <E extends Labeled> E checked(String field, String given, E value) {
+        if (given == null || !given.strip().equalsIgnoreCase(value.label())) {
+            recordFallback(field);
+        }
+        return value;
+    }
+
+    private void recordFailure(String reason) {
+        metricService.recordCounter(MetricName.NORMALIZE_EXTRACTION_FAILURE_COUNT, Map.of(TagName.REASON, reason));
+    }
+
+    private void recordFallback(String field) {
+        metricService.recordCounter(MetricName.NORMALIZE_FIELD_FALLBACK_COUNT, Map.of(TagName.FIELD, field));
     }
 
     /**
