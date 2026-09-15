@@ -67,6 +67,42 @@ class SkillCanonicalizerTest {
         assertEquals("Java", shipped.canonical("java"));
         // Close names must stay apart.
         assertNotEquals(shipped.canonical("Java"), shipped.canonical("JavaScript"));
+        assertNotEquals(shipped.canonical("TLS"), shipped.canonical("mTLS"));
+    }
+
+    @Test
+    @DisplayName("The shipped table gives a job's networking wording the names a profile uses")
+    void testShippedNetworking() throws Exception {
+        SkillCanonicalizer shipped = SkillCanonicalizer.load(new ClassPathResource("skill_aliases.json"));
+
+        // As one networking posting's signals named them.
+        assertEquals(List.of("TCP/IP", "DNS", "TLS", "BGP", "Tunneling", "Overlay Networks", "SDN"),
+                shipped.canonicalAll(List.of("TCP/IP", "DNS", "TLS", "BGP", "tunnels", "overlays", "SDN")));
+        assertEquals(List.of("VPC", "Subnetting", "Routing", "VPN", "Peering", "PrivateLink",
+                        "Private Service Connect", "CDN"),
+                shipped.canonicalAll(List.of("VPCs", "subnetting", "routing", "VPNs", "peering", "private link",
+                        "private service connect", "CDNs")));
+        assertEquals(List.of("Service Mesh", "Load Balancing"),
+                shipped.canonicalAll(List.of("service mesh", "load-balancing")));
+    }
+
+    @Test
+    @DisplayName("The shipped table gives backend and AI postings' wording the names a profile uses")
+    void testShippedBackendAndAi() throws Exception {
+        SkillCanonicalizer shipped = SkillCanonicalizer.load(new ClassPathResource("skill_aliases.json"));
+
+        // As backend and AI postings' signals named them. Queues and messaging
+        // are one skill, so the repeat is dropped.
+        assertEquals(List.of("PostgreSQL", "Schema Migrations", "caching", "Message Queues",
+                        "Event-Driven Architecture"),
+                shipped.canonicalAll(List.of("PostgreSQL", "schema evolution", "caching", "queues", "messaging",
+                        "event-driven workflows")));
+        assertEquals(List.of("LLM", "AI Agents", "Tool Calling", "Domain-Driven Design", "Open Source"),
+                shipped.canonicalAll(List.of("large language models", "agentic systems", "tool-use",
+                        "bounded contexts", "open-source")));
+        assertEquals(List.of("Ruby on Rails", "Go", "Bash", "MVC"),
+                shipped.canonicalAll(List.of("Ruby/Rails", "Golang", "shell scripting", "model-view-controller")));
+        assertNotEquals(shipped.canonical("Ruby"), shipped.canonical("Ruby/Rails"));
     }
 
     @Test
