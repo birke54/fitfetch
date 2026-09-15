@@ -1,0 +1,160 @@
+# Prometheus alerting rules for FitFetch. Load with rule_files in
+# prometheus.yml. Names follow Micrometer's Prometheus mapping: counters gain
+# _total (fetching.success.count -> fetching_success_count_total) and timers a
+# unit suffix (location.geocode.request -> location_geocode_request_seconds_count).
+#
+# The last-success gauges are registered even when a pass is disabled and then
+# never move, so silence FetchStale or LocationPassStale while app.fetch.enable
+# or app.location.enable is false.
+groups:
+  - name: fitfetch
+    rules:
+      # --- Process ---
+
+      # Assumes the scrape job is named fitfetch; up carries no application tag.
+      - alert: FitFetchDown
+        expr: up{job="fitfetch"} == 0
+        for: 5m
+        labels:
+          severity: page
+        annotations:
+          summary: FitFetch has not been scraped for 5 minutes
+
+      # The last-success gauges start at startup, so a crash loop keeps every
+      # staleness alert below from firing.
+      - alert: FitFetchRestartLoop
+        expr: changes(process_start_time_seconds{application="FitFetch"}[1h]) > 2
+        labels:
+          severity: page
+        annotations:
+          summary: FitFetch restarted {{ $value }} times in the last hour
+
+      # --- Location pass (runs every 5 minutes) ---
+
+      # Catch-all for any stop reason: model down, database error, quota.
+      - alert: LocationPassStale
+        expr: time() - location_pass_last_success_seconds{application="FitFetch"} > 30 * 60
+        labels:
+          severity: page
+        annotations:
+          summary: The location pass has not succeeded in over 30 minutes
+          description: See location_pass_stopped_count_total by reason for why.
+
+      # A denied key or disabled billing; retrying cannot fix it.
+      - alert: GeocodingRejected
+        expr: increase(location_pass_stopped_count_total{application="FitFetch", reason="geocoding_fatal"}[10m]) > 0
+        labels:
+          severity: page
+        annotations:
+          summary: Google rejected geocoding requests; check the API key and billing
+
+      - alert: GeocodingQuotaExhausted
+        expr: increase(location_geocode_request_seconds_count{application="FitFetch", status=~"over_query_limit|over_daily_limit"}[30m]) > 0
+        labels:
+          severity: warn
+        annotations:
+          summary: The Geocoding API quota is exhausted
+
+      # The timer's count is what Google bills for. Set the threshold to the
+      # daily budget.
+      - alert: GeocodingSpendHigh
+        expr: sum(increase(location_geocode_request_seconds_count{application="FitFetch"}[1d])) > 1000
+        labels:
+          severity: warn
+        annotations:
+          summary: "{{ $value | printf \"%.0f\" }} geocoding requests in the last day"
+
+      # Any truncation means context-length or the prompt needs changing.
+      - alert: LocationModelTruncating
+        expr: increase(location_llm_extraction_failure_count_total{application="FitFetch", reason="truncated"}[1h]) > 0
+        labels:
+          severity: ticket
+        annotations:
+          summary: The location model truncated its answers
+
+      # Leaves out no_locations, a valid answer, and transport, which
+      # LocationPassStale covers.
+      - alert: LocationModelBadOutput
+        expr: sum(increase(location_llm_extraction_failure_count_total{application="FitFetch", reason=~"unparseable_json|empty_body"}[1h])) > 10
+        labels:
+          severity: ticket
+        annotations:
+          summary: "{{ $value | printf \"%.0f\" }} unusable location model answers in the last hour"
+
+      # No smaller than a day ago: fetching adds jobs faster than the pass clears
+      # them. The for clause rides out the gauge reading 0 before the first pass
+      # after a restart.
+      - alert: LocationBacklogNotDraining
+        expr: |
+          location_jobs_backlog{application="FitFetch", status="pending"} > 0
+            and location_jobs_backlog{application="FitFetch", status="pending"}
+              >= location_jobs_backlog{application="FitFetch", status="pending"} offset 1d
+        for: 1h
+        labels:
+          severity: ticket
+        annotations:
+          summary: "{{ $value | printf \"%.0f\" }} jobs pending location, no fewer than a day ago"
+
+      # Labels whose locations leave out a word of the label (coverage) or name
+      # text the label does not contain (verbatim). The WARN log names them. 5%
+      # is a starting guess; set it above the rate seen in the first few days.
+      # The second clause keeps a quiet day's handful of labels from firing it.
+      - alert: LocationLabelAuditFailing
+        expr: |
+          sum by (check, tier) (increase(location_labels_audited_count_total{application="FitFetch", result="fail"}[1d]))
+            / sum by (check, tier) (increase(location_labels_audited_count_total{application="FitFetch"}[1d]))
+            > 0.05
+          and sum by (check, tier) (increase(location_labels_audited_count_total{application="FitFetch"}[1d])) >= 20
+        labels:
+          severity: ticket
+        annotations:
+          summary: "{{ $value | humanizePercentage }} of {{ $labels.tier }} labels failed the {{ $labels.check }} audit in the last day"
+
+      # --- Fetch pass (per ATS) ---
+
+      # One schedule interval plus slack; 26h assumes FETCH_CRON_SCHEDULE is daily.
+      - alert: FetchStale
+        expr: time() - fetching_last_success_seconds{application="FitFetch"} > 26 * 3600
+        labels:
+          severity: page
+        annotations:
+          summary: "{{ $labels.ats }} has not been fetched successfully in over 26 hours"
+
+      # A 429 pause longer than max-wait ended the cycle early and skipped boards.
+      - alert: FetchCycleCutShort
+        expr: increase(fetching_stopped_count_total{application="FitFetch"}[1d]) > 0
+        labels:
+          severity: ticket
+        annotations:
+          summary: "{{ $labels.ats }} fetch cycles ended early after throttling"
+
+      # Zero is recorded each cycle, so the series exists and this can fire.
+      - alert: FetchSavedNothing
+        expr: sum by (ats) (increase(fetching_jobs_saved_count_total{application="FitFetch"}[2d])) == 0
+        labels:
+          severity: warn
+        annotations:
+          summary: "{{ $labels.ats }} saved no new jobs in 2 days"
+
+      # The name regex copes with a counter that has not been created yet. Dead
+      # slugs give a nonzero baseline; measure it and set the threshold above it.
+      - alert: FetchErrorRateHigh
+        expr: |
+          sum by (ats) (increase({__name__=~"fetching_(error|null_response)_count_total", application="FitFetch"}[1d]))
+            / sum by (ats) (increase({__name__=~"fetching_(success|error|null_response)_count_total", application="FitFetch"}[1d]))
+            > 0.10
+        labels:
+          severity: warn
+        annotations:
+          summary: "{{ $value | humanizePercentage }} of {{ $labels.ats }} slug fetches failed in the last day"
+
+      # A jump in invalid jobs usually means the ATS changed its payload.
+      - alert: FetchInvalidJobsSpike
+        expr: |
+          sum by (ats) (increase(fetching_jobs_count_total{application="FitFetch", result="invalid"}[1d]))
+            / sum by (ats) (increase(fetching_jobs_count_total{application="FitFetch"}[1d]))
+            > 0.05
+        labels:
+          severity: ticket
+        annotations:
+          summary: "{{ $value | humanizePercentage }} of jobs from {{ $labels.ats }} were invalid in the last day"
