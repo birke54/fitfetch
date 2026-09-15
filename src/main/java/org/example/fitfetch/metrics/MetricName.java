@@ -105,7 +105,12 @@ public enum MetricName {
      * if the {@code embeddings} table had it, {@code embedded} if the model was
      * called ({@code embedding.inputs.count}).
      */
-    EMBEDDING_INPUTS_COUNT("embedding.inputs.count");
+    EMBEDDING_INPUTS_COUNT("embedding.inputs.count"),
+    /**
+     * Jobs scored against the profile, tagged with the {@code result}:
+     * {@code eligible} or {@code excluded} by a gate ({@code match.jobs.scored.count}).
+     */
+    MATCH_JOBS_SCORED_COUNT("match.jobs.scored.count");
 
     private final String metricName;
 
