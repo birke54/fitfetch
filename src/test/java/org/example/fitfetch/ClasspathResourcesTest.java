@@ -27,6 +27,15 @@ class ClasspathResourcesTest {
     @Value("${app.location.table}")
     private Resource locationTable;
 
+    @Value("${app.skills.aliases}")
+    private Resource skillAliases;
+
+    @Test
+    @DisplayName("The skill alias table resolves to a file that exists in a web context")
+    void testSkillAliasesResolve() {
+        assertTrue(skillAliases.exists(), skillAliases.getDescription());
+    }
+
     @Test
     @DisplayName("The slug list resolves to a file that exists in a web context")
     void testSlugsResolve() {

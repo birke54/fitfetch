@@ -47,6 +47,16 @@ app:
   # resolves against the servlet context, where these files are not, and the
   # app fails to start.
   slug-ids: classpath:slugs.json
+  profile:
+    # The hand-written candidate profile (see profile/profile.example.yaml), a
+    # file path. Never commit the real one: this repository is public. Unset,
+    # or no file at the path, and the app runs with matching off; a file that
+    # is there but invalid stops startup with every problem listed.
+    path: ${APP_PROFILE_PATH:}
+  skills:
+    # Canonical skill names and their aliases, applied to job signals and the
+    # profile alike so exact skill matching compares like with like.
+    aliases: classpath:skill_aliases.json
   http:
     # Applied to every outbound call. The JDK client has no timeouts by
     # default, so without these one hung connection stalls a run indefinitely.

@@ -38,3 +38,8 @@ out/
 
 ### Docker ###
 .env
+
+### Candidate profile ###
+# Personal data, and this repository is public: only the example is committed.
+/profile/*
+!/profile/profile.example.yaml

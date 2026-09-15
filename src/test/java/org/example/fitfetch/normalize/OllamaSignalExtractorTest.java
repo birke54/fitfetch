@@ -1,5 +1,6 @@
 package org.example.fitfetch.normalize;
 
+import org.example.fitfetch.skills.SkillCanonicalizer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -12,6 +13,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -40,7 +42,8 @@ class OllamaSignalExtractorTest {
     void setUp() {
         RestClient.Builder builder = RestClient.builder();
         mockServer = MockRestServiceServer.bindTo(builder).build();
-        extractor = new OllamaSignalExtractor(builder.build(), BASE_URL + "/", "qwen2.5:14b", CONTEXT);
+        extractor = new OllamaSignalExtractor(builder.build(), BASE_URL + "/", "qwen2.5:14b", CONTEXT,
+                new SkillCanonicalizer(Map.of("Kubernetes", List.of("k8s"), "PostgreSQL", List.of("postgres"))));
     }
 
     /** Wraps a payload the way Ollama does: the answer is a JSON string field. */
@@ -98,6 +101,19 @@ class OllamaSignalExtractorTest {
                 new Signal(SignalClassification.PREFERRED_SKILL, "Has Kubernetes experience.",
                         List.of("Kubernetes"), 0)), data.signals());
         mockServer.verify();
+    }
+
+    @Test
+    @DisplayName("Signal skills are mapped to the canonical names the profile uses, and repeat spellings dropped")
+    void testSkillsCanonicalized() {
+        respondWith("""
+                {"seniority":"senior","signals":[{"classification":"required skills",
+                  "text":"Runs Postgres on k8s.","skills":["k8s","Postgres","Kubernetes","Terraform"],"min_years":0}]}
+                """);
+
+        NormalizedData data = extractor.extract(TITLE, DESCRIPTION).orElseThrow();
+
+        assertEquals(List.of("Kubernetes", "PostgreSQL", "Terraform"), data.signals().getFirst().skills());
     }
 
     @Test

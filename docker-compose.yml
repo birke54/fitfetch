@@ -27,6 +27,13 @@ services:
       DB_NAME: ${DB_NAME}
       APP_DB_USER: ${APP_POSTGRES_USER}
       APP_DB_PASSWORD: ${APP_POSTGRES_PASSWORD}
+      # The candidate profile, read from the mounted directory below. Without
+      # a profile.yaml there, the app runs with matching off.
+      APP_PROFILE_PATH: /app/profile/profile.yaml
+    volumes:
+      # A directory rather than the file: mounting a file that does not exist
+      # makes Docker create a directory in its place.
+      - ./profile:/app/profile:ro
     restart: unless-stopped
     # Serves /actuator/health and /actuator/prometheus for scraping.
     ports:

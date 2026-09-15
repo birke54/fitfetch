@@ -4,6 +4,7 @@ import org.example.fitfetch.normalize.records.SignalGenerateRequest;
 import org.example.fitfetch.normalize.records.SignalGenerateResponse;
 import org.example.fitfetch.normalize.records.SignalOptions;
 import org.example.fitfetch.normalize.records.SignalPayload;
+import org.example.fitfetch.skills.SkillCanonicalizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -42,6 +43,7 @@ public class OllamaSignalExtractor implements LlmSignalExtractor {
     private final String baseUrl;
     private final String model;
     private final SignalOptions options;
+    private final SkillCanonicalizer skills;
 
     /**
      * @param restClient    the HTTP client; give it a read timeout long enough
@@ -53,9 +55,13 @@ public class OllamaSignalExtractor implements LlmSignalExtractor {
      *                      instructions, the description and the answer; a
      *                      prompt that fills it has been truncated and its
      *                      answer is not used
+     * @param skills        maps each signal's skills to canonical names, the
+     *                      same ones the candidate profile uses
      */
-    public OllamaSignalExtractor(RestClient restClient, String baseUrl, String model, int contextLength) {
+    public OllamaSignalExtractor(RestClient restClient, String baseUrl, String model, int contextLength,
+                                 SkillCanonicalizer skills) {
         this.restClient = Objects.requireNonNull(restClient, "restClient");
+        this.skills = Objects.requireNonNull(skills, "skills");
         this.model = requireText(model, "model");
         if (contextLength <= 0) {
             throw new IllegalArgumentException("contextLength must be positive, but was " + contextLength);
@@ -162,7 +168,7 @@ public class OllamaSignalExtractor implements LlmSignalExtractor {
         return toData(payload);
     }
 
-    private static Attempt toData(SignalPayload payload) {
+    private Attempt toData(SignalPayload payload) {
         Seniority seniority = Seniority.fromLabel(payload.seniority());
         if (seniority == null) {
             // The prompt asks for an empty seniority when the input is not a job
@@ -177,7 +183,7 @@ public class OllamaSignalExtractor implements LlmSignalExtractor {
                     continue;
                 }
                 signals.add(new Signal(SignalClassification.fromLabel(item.classification()), item.text().strip(),
-                        cleaned(item.skills(), false), years(item.minYears())));
+                        skills.canonicalAll(item.skills()), years(item.minYears())));
             }
         }
         if (signals.isEmpty()) {
