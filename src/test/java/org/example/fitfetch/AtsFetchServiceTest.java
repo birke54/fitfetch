@@ -15,11 +15,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataAccessResourceFailureException;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,6 +32,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -65,10 +69,14 @@ public class AtsFetchServiceTest {
     }
 
 
+    private static final Instant START = Instant.parse("2026-09-14T10:00:00Z");
+
+    private final MutableClock clock = new MutableClock(START);
+
     @BeforeEach
     void setUp() {
         atsBoards.add(mockGreenhouseAts);
-        atsFetchService = new AtsFetchService(fetchedJobsRepository, atsBoards, metricService, true);
+        atsFetchService = new AtsFetchService(fetchedJobsRepository, atsBoards, metricService, clock, true);
     }
 
     /** Runs each task inline, surfacing a failure the way a real Future does. */
@@ -200,7 +208,44 @@ public class AtsFetchServiceTest {
 
         atsFetchService.fetchAtsBoards(directExecutor());
 
-        verifyNoInteractions(metricService);
+        verify(metricService, never()).recordCounterByIncrement(
+                eq(MetricName.FETCH_JOBS_SAVED_COUNT), anyMap(), anyInt());
+    }
+
+    @SuppressWarnings("unchecked")
+    private Supplier<Number> lastSuccessGauge() {
+        ArgumentCaptor<Supplier<Number>> gauge = ArgumentCaptor.forClass(Supplier.class);
+        verify(metricService).registerGauge(eq(MetricName.FETCH_LAST_SUCCESS_SECONDS),
+                eq(Map.of(TagName.ATS, AtsName.GREENHOUSE.stringValue())), gauge.capture());
+        return gauge.getValue();
+    }
+
+    @Test
+    @DisplayName("An ATS's last-success gauge starts at startup and moves when its jobs are stored")
+    void testLastSuccessGaugeMovesOnSuccess() {
+        when(mockGreenhouseAts.fetchJobs()).thenReturn(List.of(job(1L, "company-a")));
+        when(fetchedJobsRepository.findJobIdsByAtsNameAndJobIdIn(any(), anySet())).thenReturn(Set.of());
+        Supplier<Number> gauge = lastSuccessGauge();
+        assertEquals(START.getEpochSecond(), gauge.get());
+
+        clock.advance(Duration.ofMinutes(10));
+        atsFetchService.fetchAtsBoards(directExecutor());
+
+        assertEquals(START.plus(Duration.ofMinutes(10)).getEpochSecond(), gauge.get());
+    }
+
+    @Test
+    @DisplayName("An ATS's last-success gauge stays put when storing its jobs fails")
+    void testLastSuccessGaugeStaysOnFailure() {
+        when(mockGreenhouseAts.fetchJobs()).thenReturn(List.of(job(1L, "company-a")));
+        when(fetchedJobsRepository.findJobIdsByAtsNameAndJobIdIn(any(), anySet())).thenReturn(Set.of());
+        doThrow(new DataAccessResourceFailureException("connection refused"))
+                .when(fetchedJobsRepository).saveAll(anyIterable());
+
+        clock.advance(Duration.ofMinutes(10));
+        atsFetchService.fetchAtsBoards(directExecutor());
+
+        assertEquals(START.getEpochSecond(), lastSuccessGauge().get());
     }
 
     @Test

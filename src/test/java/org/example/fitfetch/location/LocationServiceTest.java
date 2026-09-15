@@ -3,6 +3,7 @@ package org.example.fitfetch.location;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import org.example.fitfetch.MutableClock;
 import org.example.fitfetch.ats.AtsName;
 import org.example.fitfetch.domain.FetchedJob;
 import org.example.fitfetch.domain.JobLocation;
@@ -25,10 +26,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -79,6 +82,10 @@ class LocationServiceTest {
     }
 
     private LocationService newService(boolean enabled, boolean warmCachesOnly) {
+        return newService(enabled, warmCachesOnly, Clock.fixed(NOW, ZoneOffset.UTC));
+    }
+
+    private LocationService newService(boolean enabled, boolean warmCachesOnly, Clock clock) {
         TransactionTemplate template = mock(TransactionTemplate.class);
         // Run the callback inline so the write path is exercised without a
         // transaction manager.
@@ -88,7 +95,15 @@ class LocationServiceTest {
         }).when(template).executeWithoutResult(any());
 
         return new LocationService(fetchedJobs, jobLocations, resolver, template,
-                Clock.fixed(NOW, ZoneOffset.UTC), metricService, enabled, 200, warmCachesOnly);
+                clock, metricService, enabled, 200, warmCachesOnly);
+    }
+
+    /** The supplier the most recently built service registered for a gauge. */
+    @SuppressWarnings("unchecked")
+    private Supplier<Number> gauge(MetricName name, Map<TagName, String> tags) {
+        ArgumentCaptor<Supplier<Number>> gauge = ArgumentCaptor.forClass(Supplier.class);
+        verify(metricService, atLeastOnce()).registerGauge(eq(name), eq(tags), gauge.capture());
+        return gauge.getValue();
     }
 
     private FetchedJob job(String locationName) {
@@ -488,6 +503,55 @@ class LocationServiceTest {
         assertDoesNotThrow(() -> service.resolvePendingLocations());
         verify(jobLocations, never()).saveAll(anyList());
         verifyStopped("geocoding_fatal");
+    }
+
+    // --------------------------------------------------------------- gauges
+
+    @Test
+    @DisplayName("After a successful pass the backlog gauge holds the pending and failed counts")
+    void testBacklogGaugeRefreshed() {
+        pageContains(job("Remote US"));
+        when(resolver.resolve(anyString()))
+                .thenReturn(List.of(resolved("Remote US", Resolution.REMOTE_IN_US, POINT)));
+        when(fetchedJobs.countByLocationStatus(LocationStatus.PENDING)).thenReturn(7L);
+        when(fetchedJobs.countByLocationStatus(LocationStatus.FAILED)).thenReturn(3L);
+
+        service.resolvePendingLocations();
+
+        assertEquals(7L, gauge(MetricName.LOCATION_JOBS_BACKLOG, Map.of(TagName.STATUS, "pending")).get());
+        assertEquals(3L, gauge(MetricName.LOCATION_JOBS_BACKLOG, Map.of(TagName.STATUS, "failed")).get());
+    }
+
+    @Test
+    @DisplayName("A backlog count that fails leaves the gauge alone and does not count as the pass stopping")
+    void testBacklogFailureIsNotAStop() {
+        // The page is already written by then; recording a stop would misreport it.
+        when(fetchedJobs.countByLocationStatus(any())).thenThrow(new DataAccessResourceFailureException("down"));
+
+        assertDoesNotThrow(() -> service.resolvePendingLocations());
+
+        verify(metricService, never()).recordCounter(eq(MetricName.LOCATION_PASS_STOPPED_COUNT), anyMap());
+        assertEquals(0L, gauge(MetricName.LOCATION_JOBS_BACKLOG, Map.of(TagName.STATUS, "pending")).get());
+    }
+
+    @Test
+    @DisplayName("The last-success gauge starts at startup, moves on a successful pass, and stays put when one stops")
+    void testLastSuccessGauge() {
+        MutableClock clock = new MutableClock(NOW);
+        LocationService timed = newService(true, false, clock);
+        Supplier<Number> lastSuccess = gauge(MetricName.LOCATION_PASS_LAST_SUCCESS_SECONDS, Map.of());
+        assertEquals(NOW.getEpochSecond(), lastSuccess.get());
+
+        // An empty page is a successful run: there was simply nothing to do.
+        clock.advance(Duration.ofMinutes(5));
+        timed.resolvePendingLocations();
+        assertEquals(NOW.plus(Duration.ofMinutes(5)).getEpochSecond(), lastSuccess.get());
+
+        pageContains(job("Remote US"));
+        when(resolver.resolve(anyString())).thenThrow(new LocationExtractionException("Ollama unreachable"));
+        clock.advance(Duration.ofMinutes(5));
+        timed.resolvePendingLocations();
+        assertEquals(NOW.plus(Duration.ofMinutes(5)).getEpochSecond(), lastSuccess.get());
     }
 
     @Test

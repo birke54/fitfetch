@@ -1,5 +1,6 @@
 package org.example.fitfetch.metrics;
 
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Timer;
@@ -10,6 +11,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 /**
  * Thin wrapper over the Micrometer {@link MeterRegistry} that records
@@ -99,5 +101,32 @@ public class MetricService {
                 .publishPercentileHistogram()
                 .register(meterRegistry)
                 .record(duration);
+    }
+
+    /**
+     * Registers a gauge whose value is read from {@code value} each time metrics
+     * are collected.
+     *
+     * <p>Register once per name and tag set, typically at construction, and
+     * update whatever the supplier reads, such as an {@code AtomicLong} field.
+     * The gauge holds the supplier strongly. Micrometer otherwise keeps only a
+     * weak reference to what a gauge reads, and once that is collected the gauge
+     * reports {@code NaN} instead of failing.
+     *
+     * @param metricName the gauge to register
+     * @param tags       tag name/value pairs to attach; may be {@code null} or
+     *                   empty for an untagged gauge
+     * @param value      supplies the current value
+     */
+    public void registerGauge(MetricName metricName, Map<TagName, String> tags, Supplier<Number> value) {
+        if (tags == null) {
+            tags = Map.of();
+        }
+        Gauge.builder(metricName.metricName(), value)
+                .tags(tags.entrySet().stream()
+                        .map(entry -> Tag.of(entry.getKey().key(), entry.getValue()))
+                        .toList())
+                .strongReference(true)
+                .register(meterRegistry);
     }
 }
