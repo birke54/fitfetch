@@ -1,0 +1,82 @@
+# Candidate profile: your side of every job match.
+#
+# Copy this file to profile/profile.yaml and fill it in. profile.yaml is
+# ignored by Git and Docker, because this repository is public; only this
+# example is committed. The app reads it from APP_PROFILE_PATH, which
+# docker-compose points at this directory.
+#
+# It mirrors what normalization extracts from a job, so the two compare field
+# for field. The app checks the file at startup and lists every problem at
+# once; an unknown key is an error, so typos do not go unnoticed.
+#
+# Everything below is made up.
+
+# Facts a job's hard requirements are checked against. All required.
+summary:
+  total_years: 8
+  level: senior              # junior, midlevel, senior, staff, principal, distinguished
+  track: ic                  # ic or manager
+  degree: bachelors          # highest held: none, bachelors, masters, phd
+  certifications: [AWS Certified Solutions Architect]
+  clearance: false           # whether you hold a security clearance
+  needs_sponsorship: false   # whether you need a work visa sponsored
+
+# What to filter jobs by. Leave a field out to place no restriction.
+preferences:
+  employment_types: [full_time, contract]   # full_time, part_time, contract, internship, temporary
+  travel_ok: false
+  on_call_ok: true
+  preferred_domains: [payments]
+  avoided_domains: [ad tech]
+
+# Skills with years of experience. Names are mapped to canonical ones
+# (k8s -> Kubernetes) through src/main/resources/skill_aliases.json, the
+# same table job skills go through.
+skills:
+  - {name: Java, years: 8}
+  - {name: Spring Boot, years: 6}
+  - {name: Kafka, years: 4}
+  - {name: PostgreSQL, years: 7}
+  - {name: Redis, years: 3}
+  - {name: k8s, years: 3}
+  - {name: RabbitMQ, years: 2}
+
+# Jobs held, newest first. List every bullet you might ever use, more than fit
+# on one resume: tailoring picks among them per job.
+#
+# Each bullet:
+#   id      stable and unique, lower case with hyphens. Matches refer to it,
+#           so reword the text freely but keep the id.
+#   text    one sentence, exactly as it should appear on a resume.
+#   skills  what it demonstrates; each should also be in the skills list above.
+#   pinned  true to include it on every tailored resume.
+roles:
+  - id: acme
+    company: Acme Payments
+    title: Senior Software Engineer
+    start: 2021-03
+    end: present             # a month such as 2023-05, or present
+    bullets:
+      - id: acme-payments-latency
+        text: Cut p99 latency of the payments API from 900 ms to 120 ms by redesigning its caching layer.
+        skills: [Java, Redis]
+        pinned: true
+      - id: acme-kafka-migration
+        text: Led the migration of order events from RabbitMQ to Kafka, processing 40k events per second.
+        skills: [Kafka, RabbitMQ]
+      - id: acme-oncall-runbooks
+        text: Wrote runbooks and alerts that cut mean time to recovery for payment incidents by half.
+        skills: []
+
+  - id: initech
+    company: Initech
+    title: Software Engineer
+    start: 2017-06
+    end: 2021-02
+    bullets:
+      - id: initech-reporting-service
+        text: Built a reporting service in Spring Boot and PostgreSQL used by 300 internal analysts.
+        skills: [Spring Boot, PostgreSQL]
+      - id: initech-k8s-rollout
+        text: Moved twelve services onto Kubernetes, cutting deploy time from an hour to five minutes.
+        skills: [k8s]

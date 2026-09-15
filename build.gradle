@@ -25,6 +25,8 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	implementation 'org.springframework.boot:spring-boot-starter-restclient'
+	// Reads the hand-written candidate profile (profile/profile.yaml).
+	implementation 'tools.jackson.dataformat:jackson-dataformat-yaml'
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	// Serves the actuator endpoints (health, prometheus) over HTTP. The app has
 	// no controllers of its own; without a web server the metrics could not be

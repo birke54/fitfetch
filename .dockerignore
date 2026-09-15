@@ -24,3 +24,6 @@ compose*.yml
 # Docs
 HELP.md
 *.md
+
+# Candidate profile: personal data, mounted at runtime, never baked in
+profile
