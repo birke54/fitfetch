@@ -1,10 +1,15 @@
 package org.example.fitfetch.location;
 
+import org.example.fitfetch.metrics.MetricName;
+import org.example.fitfetch.metrics.MetricService;
+import org.example.fitfetch.metrics.TagName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -40,6 +45,7 @@ public class LocationResolver {
     private final LocationExtractor extractor;
     private final LocationPolicy policy;
     private final Geocoder geocoder;
+    private final MetricService metricService;
     private final int maxLocationsPerJob;
 
     /**
@@ -48,6 +54,7 @@ public class LocationResolver {
      * @param policy             the rules that turn an extraction into a
      *                           resolved location
      * @param geocoder           the geocoding chain, cache included
+     * @param metricService      where each resolved label's tier is counted
      * @param maxLocationsPerJob a sanity cap on fan-out. One real posting
      *                           enumerates remote eligibility across fifteen
      *                           states; the cap stops a pathological label from
@@ -57,11 +64,13 @@ public class LocationResolver {
                             LocationExtractor extractor,
                             LocationPolicy policy,
                             Geocoder geocoder,
+                            MetricService metricService,
                             int maxLocationsPerJob) {
         this.curated = Objects.requireNonNull(curated, "curated");
         this.extractor = Objects.requireNonNull(extractor, "extractor");
         this.policy = Objects.requireNonNull(policy, "policy");
         this.geocoder = Objects.requireNonNull(geocoder, "geocoder");
+        this.metricService = Objects.requireNonNull(metricService, "metricService");
         if (maxLocationsPerJob < 1) {
             throw new IllegalArgumentException("maxLocationsPerJob must be at least 1");
         }
@@ -101,6 +110,10 @@ public class LocationResolver {
             // drives presentation only -- matching considers every row.
             out.add(new ResolvedLocation(input, geocode(input), resolved.tier(), i == 0));
         }
+        // Counted only once every location is geocoded: a label that fails here
+        // is retried, and would otherwise be counted again on the next pass.
+        metricService.recordCounter(MetricName.LOCATION_LABELS_RESOLVED_COUNT,
+                Map.of(TagName.TIER, resolved.tier().name().toLowerCase(Locale.ROOT)));
         return out;
     }
 
