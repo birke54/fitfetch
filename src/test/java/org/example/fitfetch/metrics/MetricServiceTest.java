@@ -1,5 +1,6 @@
 package org.example.fitfetch.metrics;
 
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -46,6 +48,19 @@ class MetricServiceTest {
 
         assertEquals(1, registry.get("location.geocode.request").tag("status", "ok").timer().count());
         assertEquals(1, registry.get("location.geocode.request").tag("status", "transport").timer().count());
+    }
+
+    @Test
+    @DisplayName("A gauge reads its current value each time it is collected")
+    void testRegisterGauge() {
+        AtomicLong backlog = new AtomicLong(5);
+        metricService.registerGauge(MetricName.LOCATION_JOBS_BACKLOG,
+                Map.of(TagName.STATUS, "pending"), backlog::get);
+
+        Gauge gauge = registry.get("location.jobs.backlog").tag("status", "pending").gauge();
+        assertEquals(5, gauge.value());
+        backlog.set(9);
+        assertEquals(9, gauge.value());
     }
 
     @Test

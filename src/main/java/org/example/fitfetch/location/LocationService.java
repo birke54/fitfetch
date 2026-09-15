@@ -93,6 +93,13 @@ public class LocationService {
      */
     private final Map<String, Integer> strikes = new ConcurrentHashMap<>();
 
+    /** Jobs pending and failed as of the last successful pass, for the backlog gauge. */
+    private final AtomicLong pendingJobs = new AtomicLong();
+    private final AtomicLong failedJobs = new AtomicLong();
+
+    /** When the pass last ran without stopping, in epoch seconds, for its gauge. */
+    private final AtomicLong lastSuccess = new AtomicLong();
+
     /**
      * @param fetchedJobsRepository source of pending jobs, and where status is
      *                              recorded
@@ -129,6 +136,15 @@ public class LocationService {
         this.enabled = enabled;
         this.pageSize = pageSize;
         this.warmCachesOnly = warmCachesOnly;
+
+        // Starts at startup rather than zero, so the gauge's age is how long the
+        // pass has gone without a successful run, not how long since 1970.
+        lastSuccess.set(clock.instant().getEpochSecond());
+        metricService.registerGauge(MetricName.LOCATION_PASS_LAST_SUCCESS_SECONDS, Map.of(), lastSuccess::get);
+        metricService.registerGauge(MetricName.LOCATION_JOBS_BACKLOG,
+                Map.of(TagName.STATUS, "pending"), pendingJobs::get);
+        metricService.registerGauge(MetricName.LOCATION_JOBS_BACKLOG,
+                Map.of(TagName.STATUS, "failed"), failedJobs::get);
     }
 
     /**
@@ -148,9 +164,10 @@ public class LocationService {
         }
         try {
             int resolved = resolveOnePage();
+            lastSuccess.set(clock.instant().getEpochSecond());
+            refreshBacklog();
             if (resolved > 0) {
-                long remaining = fetchedJobsRepository.countByLocationStatus(LocationStatus.PENDING);
-                LOGGER.info("Resolved locations for {} jobs, {} still pending", resolved, remaining);
+                LOGGER.info("Resolved locations for {} jobs, {} still pending", resolved, pendingJobs.get());
             }
         } catch (GeocodingException e) {
             if (e.isFatal()) {
@@ -170,6 +187,19 @@ public class LocationService {
             // cursor does not move, so the next run retries it.
             LOGGER.error("Location pass failed, will retry", e);
             recordStopped("error");
+        }
+    }
+
+    /**
+     * Updates the backlog gauge. A failure here leaves the gauge as it was: the
+     * page is already written, so it must not count as the pass stopping.
+     */
+    private void refreshBacklog() {
+        try {
+            pendingJobs.set(fetchedJobsRepository.countByLocationStatus(LocationStatus.PENDING));
+            failedJobs.set(fetchedJobsRepository.countByLocationStatus(LocationStatus.FAILED));
+        } catch (RuntimeException e) {
+            LOGGER.warn("Could not count the location backlog: {}", e.getMessage());
         }
     }
 

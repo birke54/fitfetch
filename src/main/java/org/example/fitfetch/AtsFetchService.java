@@ -14,10 +14,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 /**
@@ -39,7 +42,14 @@ public class AtsFetchService {
     private final FetchedJobsRepository fetchedJobsRepository;
     private final List<Ats> atsSites;
     private final MetricService metricService;
+    private final Clock clock;
     private final boolean enableFetching;
+
+    /**
+     * When each ATS's jobs were last fetched and stored without an exception, in
+     * epoch seconds, for its gauge. Filled at construction and never resized.
+     */
+    private final Map<AtsName, AtomicLong> lastSuccess = new EnumMap<>(AtsName.class);
 
     /**
      * @param fetchedJobsRepository repository used for dedup lookups and saving
@@ -47,17 +57,32 @@ public class AtsFetchService {
      * @param atsSites              all {@link Ats} beans discovered by Spring,
      *                              one per configured provider
      * @param metricService         where saved jobs are counted
+     * @param clock                 time source for the last-success gauges
      * @param enableFetching        {@code app.fetch.enable} flag toggling
      *                              whether scheduled fetch cycles run
      */
     public AtsFetchService(FetchedJobsRepository fetchedJobsRepository,
                            List<Ats> atsSites,
                            MetricService metricService,
+                           Clock clock,
                            @Value("${app.fetch.enable}") boolean enableFetching) {
         this.fetchedJobsRepository = fetchedJobsRepository;
         this.atsSites = atsSites;
         this.metricService = metricService;
+        this.clock = clock;
         this.enableFetching = enableFetching;
+
+        for (Ats site : atsSites) {
+            lastSuccess.computeIfAbsent(AtsName.fromBoardClass(site.getClass()), ats -> {
+                // Starts at startup rather than zero, so the gauge's age is how long
+                // the ATS has gone without a successful cycle. The fetch schedule
+                // may be daily, and alerting from the moment of a restart would be noise.
+                AtomicLong since = new AtomicLong(clock.instant().getEpochSecond());
+                metricService.registerGauge(MetricName.FETCH_LAST_SUCCESS_SECONDS,
+                        Map.of(TagName.ATS, ats.stringValue()), since::get);
+                return since;
+            });
+        }
     }
 
     /**
@@ -171,5 +196,10 @@ public class AtsFetchService {
         // cycle that saved nothing shows as no increase rather than no data.
         metricService.recordCounterByIncrement(MetricName.FETCH_JOBS_SAVED_COUNT,
                 Map.of(TagName.ATS, atsName.stringValue()), toSave.size());
+
+        AtomicLong since = lastSuccess.get(atsName);
+        if (since != null) {
+            since.set(clock.instant().getEpochSecond());
+        }
     }
 }

@@ -32,6 +32,14 @@ public enum MetricName {
     /** New jobs saved to {@code fetched_jobs} ({@code fetching.jobs.saved.count}). */
     FETCH_JOBS_SAVED_COUNT("fetching.jobs.saved.count"),
     /**
+     * Gauge: when an ATS's jobs were last fetched and stored without an
+     * exception, in epoch seconds, tagged with the {@code ats}
+     * ({@code fetching.last.success.seconds}). Starts at the time the app
+     * started, so its age is how long the ATS has gone without a successful
+     * cycle.
+     */
+    FETCH_LAST_SUCCESS_SECONDS("fetching.last.success.seconds"),
+    /**
      * A call to the location model produced no usable location, tagged with the
      * {@code reason} ({@code location.llm.extraction.failure.count}). Counted per
      * call, so a label whose output is unusable twice counts twice.
@@ -68,7 +76,20 @@ public enum MetricName {
      * ({@code location.jobs.deferred.count}). Counted on every pass that defers
      * them.
      */
-    LOCATION_JOBS_DEFERRED_COUNT("location.jobs.deferred.count");
+    LOCATION_JOBS_DEFERRED_COUNT("location.jobs.deferred.count"),
+    /**
+     * Gauge: jobs by location status, tagged with the {@code status},
+     * {@code pending} or {@code failed} ({@code location.jobs.backlog}).
+     * {@code failed} is the curation worklist. Refreshed after each successful
+     * location pass, so a scrape never queries the database.
+     */
+    LOCATION_JOBS_BACKLOG("location.jobs.backlog"),
+    /**
+     * Gauge: when the location pass last ran without stopping, in epoch seconds
+     * ({@code location.pass.last.success.seconds}). Starts at the time the app
+     * started, so its age is how long the pass has gone without a successful run.
+     */
+    LOCATION_PASS_LAST_SUCCESS_SECONDS("location.pass.last.success.seconds");
 
     private final String metricName;
 
