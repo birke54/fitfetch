@@ -29,7 +29,9 @@ public enum TagName {
     /** How something was dealt with, e.g. a lookup answered from the cache ({@code result}). */
     RESULT("result"),
     /** Which tier of the location pipeline answered a label ({@code tier}). */
-    TIER("tier");
+    TIER("tier"),
+    /** Which check a result belongs to, e.g. one of a label audit's ({@code check}). */
+    CHECK("check");
 
     private final String key;
 
