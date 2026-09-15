@@ -26,6 +26,10 @@ dependencies {
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	implementation 'org.springframework.boot:spring-boot-starter-restclient'
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	// Serves the actuator endpoints (health, prometheus) over HTTP. The app has
+	// no controllers of its own; without a web server the metrics could not be
+	// scraped.
+	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 	runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
 
 	// Database: PostgreSQL driver + Flyway (runs src/main/resources/db/migration on startup).
