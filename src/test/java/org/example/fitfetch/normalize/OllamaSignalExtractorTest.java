@@ -209,6 +209,65 @@ class OllamaSignalExtractorTest {
     }
 
     @Test
+    @DisplayName("A signal keeps its years only if its text states a number of years, and each one cleared is counted")
+    void testUnstatedYearsCleared() {
+        // As a real posting came back: its one "3+ years" copied onto signals
+        // that state none.
+        respondWith("""
+                {"seniority":"senior","signals":[
+                  {"classification":"required skills","text":"3+ years of experience building distributed systems",
+                   "skills":[],"min_years":3},
+                  {"classification":"required qualifications",
+                   "text":"Hands-on experience with building production-level code. Experience in C++ is required",
+                   "skills":["C++"],"min_years":3},
+                  {"classification":"required qualifications",
+                   "text":"Solid verbal and written communication skills","skills":[],"min_years":3}]}
+                """);
+
+        List<Signal> signals = extractor.extract(TITLE, DESCRIPTION).orElseThrow().signals();
+
+        assertEquals(List.of(3, 0, 0), signals.stream().map(Signal::minYears).toList());
+        verify(metricService, times(2)).recordCounter(MetricName.NORMALIZE_FIELD_FALLBACK_COUNT,
+                Map.of(TagName.FIELD, "min_years"));
+    }
+
+    @Test
+    @DisplayName("Years count as stated however a posting writes them")
+    void testStatedYearsForms() {
+        List<String> texts = List.of("Has 5+ years of Java.", "3-5 years of Go.", "3 – 5 yrs of Rust.",
+                "At least two years of Python.", "Ten years in fintech.", "7+years of C++.", "1 year of Scala.");
+        StringBuilder signals = new StringBuilder();
+        for (String text : texts) {
+            signals.append(signals.isEmpty() ? "" : ",").append("""
+                    {"classification":"required skills","text":"%s","skills":[],"min_years":2}""".formatted(text));
+        }
+        respondWith("""
+                {"seniority":"senior","signals":[%s]}""".formatted(signals));
+
+        List<Signal> read = extractor.extract(TITLE, DESCRIPTION).orElseThrow().signals();
+
+        assertTrue(read.stream().allMatch(signal -> signal.minYears() == 2), read.toString());
+        verify(metricService, never()).recordCounter(MetricName.NORMALIZE_FIELD_FALLBACK_COUNT,
+                Map.of(TagName.FIELD, "min_years"));
+    }
+
+    @Test
+    @DisplayName("Numbers that are not years do not keep a signal's years")
+    void testNumbersNotYears() {
+        respondWith("""
+                {"seniority":"senior","signals":[
+                  {"classification":"required skills","text":"Handles 40k events per second in Go.",
+                   "skills":["Go"],"min_years":3},
+                  {"classification":"required skills","text":"Supports Python 3 and ES2015.",
+                   "skills":[],"min_years":3}]}
+                """);
+
+        List<Signal> read = extractor.extract(TITLE, DESCRIPTION).orElseThrow().signals();
+
+        assertEquals(List.of(0, 0), read.stream().map(Signal::minYears).toList());
+    }
+
+    @Test
     @DisplayName("Job-level fields the model left out or misspelled fall back to the reading that excludes no job")
     void testJobLevelFallbacks() {
         // The signals are still good, so an odd job-level field must not cost the answer.
