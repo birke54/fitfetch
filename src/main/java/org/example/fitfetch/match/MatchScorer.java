@@ -64,7 +64,7 @@ import java.util.stream.Collectors;
 public class MatchScorer {
 
     /** Version of the scoring rules; increment on any change to them. */
-    public static final int VERSION = 4;
+    public static final int VERSION = 5;
 
     /**
      * Below this cosine similarity a bullet says nothing about a signal; at
@@ -152,7 +152,7 @@ public class MatchScorer {
         List<String> matched = new ArrayList<>();
         List<String> missing = new ArrayList<>();
         List<String> ignored = new ArrayList<>();
-        for (String skill : skills.canonicalAll(signal.skills())) {
+        for (String skill : named(signal.skills())) {
             if (!recognized(skill, yearsBySkill)) {
                 ignored.add(skill);
             } else if (heldLongEnough(skill, signal, yearsBySkill)) {
@@ -166,7 +166,7 @@ public class MatchScorer {
 
         // The alternatives are one skill between them: any one held meets it.
         List<String> alternatives = new ArrayList<>();
-        for (String skill : skills.canonicalAll(signal.anyOfSkills())) {
+        for (String skill : named(signal.anyOfSkills())) {
             (recognized(skill, yearsBySkill) ? alternatives : ignored).add(skill);
         }
         List<String> missingAlternatives = List.of();
@@ -184,6 +184,26 @@ public class MatchScorer {
         double bySkills = needed == 0 ? 0 : (double) met / needed;
         return new SignalMatch(index, signal.classification(), Math.max(semantic, bySkills),
                 new ArrayList<>(best), matched, missing, missingAlternatives, ignored);
+    }
+
+    /**
+     * Reads a job's skills as the table spells them, and reads the skills out
+     * of a phrase it does not know as a whole: the model writes "MCP
+     * integrations", "CI workflows" and "JavaScript/TypeScript", each of which
+     * names a skill that would otherwise go unrecognized. A phrase naming none
+     * is kept as written, so the profile can still match it and the match's
+     * reasons can report it.
+     *
+     * @param listed the skills as the job stored them
+     * @return their canonical names, without repeats
+     */
+    private List<String> named(List<String> listed) {
+        List<String> read = new ArrayList<>(listed.size());
+        for (String skill : skills.canonicalAll(listed)) {
+            List<String> inside = skills.isKnown(skill) ? List.of() : skills.skillsNamedIn(skill);
+            read.addAll(inside.isEmpty() ? List.of(skill) : inside);
+        }
+        return skills.canonicalAll(read);
     }
 
     /**
@@ -251,8 +271,8 @@ public class MatchScorer {
     }
 
     /** @return the keys of the skills among these that count as skills at all */
-    private Set<String> recognizedKeys(List<String> named, Map<String, Integer> yearsBySkill) {
-        return skills.canonicalAll(named).stream()
+    private Set<String> recognizedKeys(List<String> listed, Map<String, Integer> yearsBySkill) {
+        return named(listed).stream()
                 .filter(skill -> recognized(skill, yearsBySkill))
                 .map(MatchScorer::key)
                 .collect(Collectors.toCollection(LinkedHashSet::new));

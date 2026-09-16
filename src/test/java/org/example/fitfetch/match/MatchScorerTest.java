@@ -141,6 +141,22 @@ class MatchScorerTest {
     }
 
     @Test
+    @DisplayName("A skill named inside a phrase is read out of it")
+    void testSkillInsidePhrase() {
+        // As qwen3:8b wrote them, where a skill was meant.
+        Signal signal = required("Creates CLIs, libraries, and MCP integrations for CI workflows.",
+                "MCP integrations", "CI workflows", "libraries");
+
+        MatchResult.SignalMatch match = scorer.score(job(signal), signalVectors(1),
+                profile(skills("MCP"), "one"), Map.of("one", similarity(0.1))).signals().getFirst();
+
+        assertEquals(List.of("MCP"), match.matchedSkills());
+        assertEquals(List.of("CI/CD"), match.missingSkills());
+        assertEquals(List.of("libraries"), match.ignoredSkills(), "no skill inside it, so it is kept as written");
+        assertEquals(0.5, match.coverage(), 1e-9, "MCP of MCP and CI/CD");
+    }
+
+    @Test
     @DisplayName("A phrase the profile itself lists counts, since it is a skill to the candidate")
     void testProfileSkillRecognized() {
         Signal signal = required("Builds observability for agents.", "observability", "exit codes");

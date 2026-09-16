@@ -167,8 +167,57 @@ public final class SkillCanonicalizer {
         return names.stream().anyMatch(name -> containsWord(haystack, name));
     }
 
+    /**
+     * The skills a piece of text names, for reading them out of a phrase the
+     * table does not know as a whole: "MCP integrations" names MCP, and
+     * "JavaScript/TypeScript" names both.
+     *
+     * <p>A name inside a longer one does not count: "React Native" names React
+     * Native, not React as well.
+     *
+     * @param text the text to look in
+     * @return their canonical names, in the order they are named, without
+     *         repeats; empty if it names none
+     */
+    public List<String> skillsNamedIn(String text) {
+        if (text == null || text.isBlank()) {
+            return List.of();
+        }
+        String haystack = key(text);
+        List<int[]> spans = new ArrayList<>();
+        List<String> found = new ArrayList<>();
+        canonicalByKey.forEach((spelling, canonical) -> {
+            int at = indexOfWord(haystack, spelling);
+            if (at >= 0) {
+                spans.add(new int[]{at, spelling.length(), found.size()});
+                found.add(canonical);
+            }
+        });
+        // Longest first where two start together, so the outer name wins; a
+        // name overlapping one already taken is part of it, not its own skill.
+        spans.sort((left, right) -> left[0] != right[0] ? Integer.compare(left[0], right[0])
+                : Integer.compare(right[1], left[1]));
+        Map<String, String> byKey = new LinkedHashMap<>();
+        List<int[]> taken = new ArrayList<>();
+        for (int[] span : spans) {
+            int start = span[0];
+            int end = start + span[1];
+            if (taken.stream().noneMatch(other -> start < other[1] && other[0] < end)) {
+                taken.add(new int[]{start, end});
+                String canonical = found.get(span[2]);
+                byKey.putIfAbsent(key(canonical), canonical);
+            }
+        }
+        return List.copyOf(byKey.values());
+    }
+
     /** @return whether {@code word} occurs in {@code text} with no letter or digit either side, bar a plural "s" */
     private static boolean containsWord(String text, String word) {
+        return indexOfWord(text, word) >= 0;
+    }
+
+    /** @return where {@code word} first occurs as whole words in {@code text}, or -1 */
+    private static int indexOfWord(String text, String word) {
         for (int at = text.indexOf(word); at >= 0; at = text.indexOf(word, at + 1)) {
             int end = at + word.length();
             if (end < text.length() && text.charAt(end) == 's') {
@@ -177,10 +226,10 @@ public final class SkillCanonicalizer {
             boolean startsWord = at == 0 || !Character.isLetterOrDigit(text.charAt(at - 1));
             boolean endsWord = end == text.length() || !Character.isLetterOrDigit(text.charAt(end));
             if (startsWord && endsWord) {
-                return true;
+                return at;
             }
         }
-        return false;
+        return -1;
     }
 
     private static String key(String skill) {

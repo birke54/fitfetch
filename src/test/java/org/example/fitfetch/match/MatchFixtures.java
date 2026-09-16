@@ -41,7 +41,9 @@ final class MatchFixtures {
             Map.entry("Routing", List.of()),
             Map.entry("Peering", List.of()),
             Map.entry("PrivateLink", List.of("private link")),
-            Map.entry("Private Service Connect", List.of())));
+            Map.entry("Private Service Connect", List.of()),
+            Map.entry("MCP", List.of("model context protocol")),
+            Map.entry("CI/CD", List.of("ci", "cicd"))));
 
     /** @return a unit vector whose cosine similarity with {@link #SIGNAL} is exactly {@code cosine} */
     static float[] similarity(double cosine) {
