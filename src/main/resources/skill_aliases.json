@@ -74,6 +74,8 @@
     "Domain-Driven Design": ["ddd", "bounded context", "bounded contexts"],
     "Open Source": ["open-source", "oss", "open source contributions", "open-source contributions"],
     "Developer Experience": ["devex", "dx"],
+    "Observability": ["o11y"],
+    "CLI": ["clis", "command-line tools", "command line tools", "command-line interface", "command line interface"],
     "OpenTelemetry": ["open telemetry", "otel"],
     "MCP": ["model context protocol"],
     "Linting": ["linter", "linters", "lint"],

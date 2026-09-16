@@ -127,6 +127,9 @@ class SkillCanonicalizerTest {
                         "bounded contexts", "open-source")));
         assertEquals(List.of("OpenTelemetry", "MCP", "Linting", "Static Analysis"),
                 shipped.canonicalAll(List.of("otel", "Model Context Protocol", "linter", "static code analysis")));
+        // As one posting's signals named them: "Create CLIs, libraries, and MCP
+        // integrations" and "Build agent metrics and observability".
+        assertEquals(List.of("CLI", "Observability"), shipped.canonicalAll(List.of("CLIs", "observability")));
         assertEquals(List.of("Ruby on Rails", "Go", "Bash", "MVC"),
                 shipped.canonicalAll(List.of("Ruby/Rails", "Golang", "shell scripting", "model-view-controller")));
         assertNotEquals(shipped.canonical("Ruby"), shipped.canonical("Ruby/Rails"));
