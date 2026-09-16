@@ -75,6 +75,8 @@
     "Event-Driven Architecture": ["event-driven", "event driven", "event-driven systems", "event-driven workflows"],
     "Message Queues": ["queues", "messaging", "message queue", "message broker", "message brokers"],
     "Distributed Systems": ["distributed system", "distributed computing"],
+    "Consensus": ["consensus protocol", "consensus protocols", "consensus algorithm", "consensus algorithms", "distributed consensus"],
+    "Raft": ["raft consensus", "raft protocol", "raft algorithm"],
     "Schema Migrations": ["schema evolution", "schema migration", "database migrations"],
     "Domain-Driven Design": ["ddd", "bounded context", "bounded contexts"],
     "Open Source": ["open-source", "oss", "open source contributions", "open-source contributions"],
