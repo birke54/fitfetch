@@ -209,6 +209,37 @@ class OllamaSignalExtractorTest {
     }
 
     @Test
+    @DisplayName("Alternatives the model left in skills are read out of the signal's text")
+    void testAlternativesReadFromText() {
+        // As llama3.1:8b and qwen2.5 both answered: a choice, listed as skills.
+        respondWith("""
+                {"seniority":"midlevel","signals":[{"classification":"preferred/nice-to-have skills",
+                  "text":"Experience with Go, Python, Java, or C#.","skills":["Go","Python","Java","C#"],
+                  "any_of_skills":[],"min_years":0}]}
+                """);
+
+        Signal signal = extractor.extract(TITLE, DESCRIPTION).orElseThrow().signals().getFirst();
+
+        assertEquals(List.of(), signal.skills());
+        assertEquals(List.of("Go", "Python", "Java", "C#"), signal.anyOfSkills());
+    }
+
+    @Test
+    @DisplayName("Alternatives the model named itself are kept, not read again from the text")
+    void testModelAlternativesKept() {
+        respondWith("""
+                {"seniority":"senior","signals":[{"classification":"required skills",
+                  "text":"Runs Kubernetes on Postgres or MySQL.","skills":["k8s"],
+                  "any_of_skills":["Postgres","MySQL"],"min_years":0}]}
+                """);
+
+        Signal signal = extractor.extract(TITLE, DESCRIPTION).orElseThrow().signals().getFirst();
+
+        assertEquals(List.of("Kubernetes"), signal.skills());
+        assertEquals(List.of("PostgreSQL", "MySQL"), signal.anyOfSkills());
+    }
+
+    @Test
     @DisplayName("A signal keeps its years only if its text states a number of years, and each one cleared is counted")
     void testUnstatedYearsCleared() {
         // As a real posting came back: its one "3+ years" copied onto signals
