@@ -1,5 +1,6 @@
 package org.example.fitfetch.normalize.records;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import tools.jackson.databind.JsonNode;
 
 /**
@@ -13,6 +14,9 @@ import tools.jackson.databind.JsonNode;
  *                construction
  * @param stream  always {@code false}
  * @param options pinned sampling settings and the context window
+ * @param think   whether a thinking model should reason before answering, or
+ *                {@code null} to leave the field out. Ollama rejects it for a
+ *                model that does not think, so it is sent only when configured
  */
 public record SignalGenerateRequest(
         String model,
@@ -20,6 +24,7 @@ public record SignalGenerateRequest(
         String prompt,
         JsonNode format,
         boolean stream,
-        SignalOptions options
+        SignalOptions options,
+        @JsonInclude(JsonInclude.Include.NON_NULL) Boolean think
 ) {
 }

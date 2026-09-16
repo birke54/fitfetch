@@ -62,6 +62,9 @@ public class OllamaSignalExtractor implements LlmSignalExtractor {
     private final SkillCanonicalizer skills;
     private final MetricService metricService;
 
+    /** What to send as {@code think}, or {@code null} to leave it out. */
+    private final Boolean think;
+
     /**
      * Upper bounds of the prompt-size buckets: a quarter, half, three quarters,
      * nine tenths and all of the context window, so the distribution reads as
@@ -79,14 +82,20 @@ public class OllamaSignalExtractor implements LlmSignalExtractor {
      *                      instructions, the description and the answer; a
      *                      prompt that fills it has been truncated and its
      *                      answer is not used
+     * @param think         {@code false} to stop a thinking model reasoning
+     *                      before it answers, {@code true} to ask it to, or
+     *                      {@code null} to leave the field out. Ollama rejects
+     *                      it for a model that does not think, so it is sent
+     *                      only when set
      * @param skills        maps each signal's skills to canonical names, the
      *                      same ones the candidate profile uses
      * @param metricService where failed calls, prompt sizes and fallbacks are
      *                      recorded
      */
     public OllamaSignalExtractor(RestClient restClient, String baseUrl, String model, int contextLength,
-                                 SkillCanonicalizer skills, MetricService metricService) {
+                                 Boolean think, SkillCanonicalizer skills, MetricService metricService) {
         this.restClient = Objects.requireNonNull(restClient, "restClient");
+        this.think = think;
         this.skills = Objects.requireNonNull(skills, "skills");
         this.metricService = Objects.requireNonNull(metricService, "metricService");
         this.model = requireText(model, "model");
@@ -154,7 +163,7 @@ public class OllamaSignalExtractor implements LlmSignalExtractor {
      */
     private Attempt generate(String title, String jobDescription) {
         SignalGenerateRequest request = new SignalGenerateRequest(model, SignalPrompt.SYSTEM,
-                SignalPrompt.forJob(title, jobDescription), SignalPrompt.schema(), false, options);
+                SignalPrompt.forJob(title, jobDescription), SignalPrompt.schema(), false, options, think);
 
         SignalGenerateResponse response;
         try {
