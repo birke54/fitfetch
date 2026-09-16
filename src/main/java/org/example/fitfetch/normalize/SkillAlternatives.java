@@ -20,6 +20,13 @@ import java.util.regex.Pattern;
  * "one of AWS, Azure, or GCP, e.g. VPCs, subnetting and CDNs" out of the
  * alternatives, where they would otherwise be met by holding any one of them.
  *
+ * <p>A bracket or a dash closes a clause as surely as a colon does, at either
+ * end of the series. The choice in "scripting (Bash or Python) with Terraform"
+ * is between Bash and Python, and the one in "Kubernetes — on AWS, Azure, or
+ * GCP" does not reach back to Kubernetes. Were either allowed to cross, a skill
+ * the posting states outright would join the choice, and holding any one of the
+ * others would meet it.
+ *
  * <p>An open-ended series ("or any other modern language") names examples of a
  * choice with no list, so a candidate with something unnamed meets it and the
  * named ones must not count as missing. Those skills are dropped from both
@@ -29,8 +36,20 @@ import java.util.regex.Pattern;
  */
 public final class SkillAlternatives {
 
+    /**
+     * The characters that end a clause, as the body of a character class. Both
+     * ends of a series are bounded by the same set, so neither can cross one.
+     */
+    private static final String CLAUSE_ENDS = ":;()\\[\\]—–";
+
     /** Ends a clause, so a series never reaches back past one. */
-    private static final Pattern CLAUSE_END = Pattern.compile("[:;()\\[\\]]|\\.\\s");
+    private static final Pattern CLAUSE_END = Pattern.compile("[" + CLAUSE_ENDS + "]|\\.\\s");
+
+    /**
+     * Ends the last item of a series: the next comma, the end of its clause, or
+     * the full stop closing the sentence.
+     */
+    private static final Pattern ITEM_END = Pattern.compile("[," + CLAUSE_ENDS + "]|\\.(\\s|$)");
 
     /** The last item of a series: "…, or CI/CD workflows", "Java or Go". */
     private static final Pattern OR_ITEM = Pattern.compile("(,\\s*)?\\bor\\b\\s", Pattern.CASE_INSENSITIVE);
@@ -103,15 +122,7 @@ public final class SkillAlternatives {
 
     /** @return where the series' last item ends: at the next comma, clause end, or the text's end */
     private static int end(String text, int from) {
-        for (int at = from; at < text.length(); at++) {
-            char character = text.charAt(at);
-            if (character == ',' || character == ';' || character == ':') {
-                return at;
-            }
-            if (character == '.' && (at + 1 == text.length() || Character.isWhitespace(text.charAt(at + 1)))) {
-                return at;
-            }
-        }
-        return text.length();
+        Matcher item = ITEM_END.matcher(text);
+        return item.find(from) ? item.start() : text.length();
     }
 }

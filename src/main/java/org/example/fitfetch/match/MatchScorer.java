@@ -65,7 +65,7 @@ import java.util.stream.Collectors;
 public class MatchScorer {
 
     /** Version of the scoring rules; increment on any change to them. */
-    public static final int VERSION = 6;
+    public static final int VERSION = 7;
 
     /**
      * Below this cosine similarity a bullet says nothing about a signal; at

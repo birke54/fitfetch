@@ -93,4 +93,36 @@ class SkillAlternativesTest {
         assertEquals(List.of("Kubernetes"), split.skills());
         assertEquals(List.of("AWS", "Azure", "GCP"), split.anyOfSkills());
     }
+
+    @Test
+    @DisplayName("A choice made inside an aside ends with it, not with the sentence")
+    void testChoiceEndsWithItsBracket() {
+        // The IT posting words it this way; Terraform is stated outright, after
+        // the aside, and must not become one of the things Bash or Python meet.
+        SkillAlternatives.Split split = split("Assist with scripting (Bash or Python) with Terraform.",
+                "Bash", "Python", "Terraform");
+
+        assertEquals(List.of("Terraform"), split.skills());
+        assertEquals(List.of("Bash", "Python"), split.anyOfSkills());
+    }
+
+    @Test
+    @DisplayName("A dash separates a heading from the list it introduces, so the choice stays in the list")
+    void testChoiceDoesNotReachBackPastADash() {
+        assertEquals(new SkillAlternatives.Split(List.of("Kubernetes"), List.of("AWS", "Azure", "GCP")),
+                split("Operates Kubernetes — on AWS, Azure, or GCP.", "Kubernetes", "AWS", "Azure", "GCP"));
+        // An en dash reads the same way.
+        assertEquals(new SkillAlternatives.Split(List.of("Kubernetes"), List.of("AWS", "Azure", "GCP")),
+                split("Operates Kubernetes – on AWS, Azure, or GCP.", "Kubernetes", "AWS", "Azure", "GCP"));
+    }
+
+    @Test
+    @DisplayName("A choice ends at the dash that follows it")
+    void testChoiceEndsAtADash() {
+        SkillAlternatives.Split split = split("Knows Java or Go — Terraform is a plus.",
+                "Java", "Go", "Terraform");
+
+        assertEquals(List.of("Terraform"), split.skills());
+        assertEquals(List.of("Java", "Go"), split.anyOfSkills());
+    }
 }
