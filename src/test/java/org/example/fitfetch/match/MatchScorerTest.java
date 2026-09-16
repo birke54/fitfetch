@@ -217,7 +217,7 @@ class MatchScorerTest {
     // ------------------------------------------------------ skill and level
 
     @Test
-    @DisplayName("Skill match is the share of required skills held; a job naming none scores it 1")
+    @DisplayName("Skill match is the share of required skills held, and is not scored where a job names none")
     void testSkillMatch() {
         NormalizedData job = job(required("A.", "Java", "Go"), required("B.", "java"),
                 new Signal(SignalClassification.PREFERRED_SKILL, "C.", List.of("Rust"), 0));
@@ -225,8 +225,9 @@ class MatchScorerTest {
 
         assertEquals(0.5, scorer.score(job, signalVectors(3), javaOnly, Map.of("one", similarity(0.1)))
                 .parts().skillMatch(), 1e-9, "Java of Java and Go; Rust is only preferred");
-        assertEquals(1.0, scorer.score(job(required("None named.")), signalVectors(1), javaOnly,
-                Map.of("one", similarity(0.1))).parts().skillMatch());
+        assertNull(scorer.score(job(required("None named.")), signalVectors(1), javaOnly,
+                Map.of("one", similarity(0.1))).parts().skillMatch(),
+                "nothing to compare, so the score is its other parts");
     }
 
     @Test
@@ -240,6 +241,21 @@ class MatchScorerTest {
                 .parts().skillMatch(), 1e-9, "Java, and GCP for the clouds");
         assertEquals(0.5, scorer.score(job, signalVectors(2), profile(skills("Java"), "one"), weak)
                 .parts().skillMatch(), 1e-9, "Java of Java and one cloud");
+    }
+
+    @Test
+    @DisplayName("Where a job names no skills, its share goes to the parts that can tell candidates apart")
+    void testSkillShareRedistributed() {
+        CandidateProfile javaOnly = profile(skills("Java"), "one");
+        // Half-covered by its best bullet, and at the profile's own level.
+        Map<String, float[]> half = Map.of("one", similarity(
+                (MatchScorer.SIMILARITY_FLOOR + MatchScorer.SIMILARITY_FULL) / 2));
+
+        int named = scorer.score(job(required("A.", "Rust")), signalVectors(1), javaOnly, half).score();
+        int unnamed = scorer.score(job(required("A.")), signalVectors(1), javaOnly, half).score();
+
+        assertEquals(50, named, "0.6 x 0.5 + 0.2 x 0 + 0.2 x 1: a skill named and not held counts");
+        assertEquals(63, unnamed, "(0.6 x 0.5 + 0.2 x 1) / 0.8: no skill to count, so the rest decide");
     }
 
     @Test
@@ -262,14 +278,15 @@ class MatchScorerTest {
     // ----------------------------------------------------- score and gates
 
     @Test
-    @DisplayName("A perfect match scores 100, and nothing matching scores only its level fit")
+    @DisplayName("A perfect match scores 100, and nothing matching scores only what its level fit is worth")
     void testScoreBounds() {
         CandidateProfile profile = profile(List.of(), "one");
 
         assertEquals(100, scorer.score(job(required("A.")), signalVectors(1), profile,
                 Map.of("one", similarity(0.95))).score());
-        // No coverage, no required skills named (skill match 1), same level (1).
-        assertEquals(40, scorer.score(job(required("A.")), signalVectors(1), profile,
+        // No coverage and no skills named, so level fit alone: its own weight
+        // against coverage's, since the job's skills cannot tell anyone apart.
+        assertEquals(25, scorer.score(job(required("A.")), signalVectors(1), profile,
                 Map.of("one", similarity(0.1))).score());
     }
 
@@ -282,9 +299,9 @@ class MatchScorerTest {
                 List.of("payments"), List.of("ad tech")), List.of(), "one");
         Map<String, float[]> weak = Map.of("one", similarity(0.1));
 
-        assertEquals(45, score(List.of("b2b payments"), likesPayments, weak));
-        assertEquals(25, score(List.of("ad tech"), likesPayments, weak));
-        assertEquals(25, score(List.of("payments", "ad tech"), likesPayments, weak), "avoiding wins");
+        assertEquals(30, score(List.of("b2b payments"), likesPayments, weak));
+        assertEquals(10, score(List.of("ad tech"), likesPayments, weak));
+        assertEquals(10, score(List.of("payments", "ad tech"), likesPayments, weak), "avoiding wins");
         assertEquals(100, score(List.of("payments"), likesPayments, Map.of("one", similarity(0.95))),
                 "capped at 100");
     }

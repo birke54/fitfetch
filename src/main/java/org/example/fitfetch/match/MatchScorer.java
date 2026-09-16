@@ -37,7 +37,10 @@ import java.util.stream.Collectors;
  *       Azure, or GCP") count as one skill, met by any of them.</li>
  *   <li><strong>Skill match</strong> ({@value #SKILL_WEIGHT}): the share of
  *       the skills named in required signals that the profile has, each set
- *       of alternatives again counting as one.</li>
+ *       of alternatives again counting as one. A job naming none this side
+ *       knows is scored on the other two parts instead, weighed against each
+ *       other: it cannot be told apart by a skill, and handing every candidate
+ *       the full share would only lift it above jobs that can.</li>
  *   <li><strong>Level fit</strong> ({@value #LEVEL_WEIGHT}): how close the
  *       job's seniority band is to the profile's, and the profile's years
  *       against the job's minimum.</li>
@@ -61,7 +64,7 @@ import java.util.stream.Collectors;
 public class MatchScorer {
 
     /** Version of the scoring rules; increment on any change to them. */
-    public static final int VERSION = 3;
+    public static final int VERSION = 4;
 
     /**
      * Below this cosine similarity a bullet says nothing about a signal; at
@@ -121,12 +124,16 @@ public class MatchScorer {
             totalWeight += weight;
         }
         double requirementCoverage = totalWeight == 0 ? 0 : weighted / totalWeight;
-        double skillMatch = skillMatch(job, yearsBySkill);
+        Double skillMatch = skillMatch(job, yearsBySkill);
         double levelFit = levelFit(job, profile.summary());
         int domainAdjustment = domainAdjustment(job, profile.preferences());
 
-        double raw = 100 * (COVERAGE_WEIGHT * requirementCoverage + SKILL_WEIGHT * skillMatch
-                + LEVEL_WEIGHT * levelFit) + domainAdjustment;
+        // A job naming no skill this side knows cannot be told apart by one, so
+        // its share goes to the parts that can, rather than to every candidate.
+        double scored = COVERAGE_WEIGHT * requirementCoverage + LEVEL_WEIGHT * levelFit
+                + (skillMatch == null ? 0 : SKILL_WEIGHT * skillMatch);
+        double weightInPlay = COVERAGE_WEIGHT + LEVEL_WEIGHT + (skillMatch == null ? 0 : SKILL_WEIGHT);
+        double raw = 100 * scored / weightInPlay + domainAdjustment;
         int score = (int) Math.round(Math.max(0, Math.min(100, raw)));
         List<String> gateFailures = Gates.failures(job, profile);
         return new MatchResult(score, gateFailures.isEmpty(), gateFailures,
@@ -217,11 +224,11 @@ public class MatchScorer {
 
     /**
      * @return the share of distinct skills in required signals that the profile
-     *         has at all; 1 if they name none. A signal's alternatives count as
-     *         one skill, held if any of them is. Years are judged per signal, in
-     *         coverage
+     *         has at all, or {@code null} if they name none this side knows. A
+     *         signal's alternatives count as one skill, held if any of them is.
+     *         Years are judged per signal, in coverage
      */
-    private double skillMatch(NormalizedData job, Map<String, Integer> yearsBySkill) {
+    private Double skillMatch(NormalizedData job, Map<String, Integer> yearsBySkill) {
         Set<String> required = new LinkedHashSet<>();
         Set<Set<String>> alternatives = new LinkedHashSet<>();
         for (Signal signal : job.signals()) {
@@ -236,7 +243,7 @@ public class MatchScorer {
         }
         int total = required.size() + alternatives.size();
         if (total == 0) {
-            return 1;
+            return null;
         }
         long held = required.stream().filter(yearsBySkill::containsKey).count()
                 + alternatives.stream().filter(group -> group.stream().anyMatch(yearsBySkill::containsKey)).count();

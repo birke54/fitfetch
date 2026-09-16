@@ -32,4 +32,15 @@ class MatchResultJsonTest {
         assertEquals(signals, readSignals);
         assertEquals(parts, readParts);
     }
+
+    @Test
+    @DisplayName("A job whose skills were never scored keeps that apart from having scored zero")
+    void testUnscoredSkillMatch() {
+        ScoreParts parts = new ScoreParts(0.7, null, 0.85, 0);
+
+        ScoreParts read = MAPPER.readValue(MAPPER.writeValueAsString(parts), ScoreParts.class);
+
+        assertNull(read.skillMatch());
+        assertEquals(parts, read);
+    }
 }
