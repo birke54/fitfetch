@@ -72,6 +72,16 @@ class SkillCanonicalizerTest {
     }
 
     @Test
+    @DisplayName("The skills a phrase names are read out of it, in the order it names them")
+    void testSkillsNamedIn() {
+        assertEquals(List.of("Kubernetes"), table.skillsNamedIn("k8s integrations"));
+        assertEquals(List.of("Go", "PostgreSQL"), table.skillsNamedIn("Go services backed by postgres"));
+        assertEquals(List.of(), table.skillsNamedIn("bounded suppression"));
+        assertEquals(List.of(), table.skillsNamedIn(" "));
+        assertEquals(List.of("Kubernetes"), table.skillsNamedIn("kube and k8s"), "one skill, however it is spelled");
+    }
+
+    @Test
     @DisplayName("An alias claimed by two skills is rejected")
     void testConflictRejected() {
         IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
@@ -151,6 +161,14 @@ class SkillCanonicalizerTest {
             assertTrue(shipped.isNamedIn(skill, networking), skill);
         }
         assertTrue(shipped.isNamedIn("API Design", "Experience designing and building APIs."));
+        // The phrases two models wrote where a skill was meant.
+        assertEquals(List.of("MCP"), shipped.skillsNamedIn("MCP integrations"));
+        assertEquals(List.of("CI/CD"), shipped.skillsNamedIn("CI workflows"));
+        assertEquals(List.of("LLM"), shipped.skillsNamedIn("LLM applications"));
+        assertEquals(List.of("JavaScript", "TypeScript"), shipped.skillsNamedIn("JavaScript/TypeScript"));
+        assertEquals(List.of("GitHub Actions"), shipped.skillsNamedIn("GitHub Actions security"));
+        assertEquals(List.of("React Native"), shipped.skillsNamedIn("React Native"),
+                "not React, which is its own skill");
         assertFalse(shipped.isNamedIn("Rust", languages));
     }
 
