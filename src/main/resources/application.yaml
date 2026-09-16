@@ -112,6 +112,12 @@ app:
       # location labels keep a small one; the same model unless set.
       model: ${OLLAMA_NORMALIZE_MODEL:${OLLAMA_MODEL}}
       read-timeout: PT3M
+      # A thinking model (Qwen3) reasons before it answers, which fills the
+      # context window with tokens the schema-constrained answer does not
+      # need. Set APP_NORMALIZE_LLM_THINK=false for such a model. Left unset,
+      # the field is not sent at all: Ollama rejects it for models that do
+      # not think.
+      think: ${APP_NORMALIZE_LLM_THINK:}
       # Must hold the instructions, the longest description and the answer.
       # Ollama's default is far smaller and truncates silently; a prompt that
       # fills the window is detected and the job marked FAILED.

@@ -55,7 +55,7 @@ class OllamaSignalExtractorTest {
         RestClient.Builder builder = RestClient.builder();
         mockServer = MockRestServiceServer.bindTo(builder).build();
         metricService = mock(MetricService.class);
-        extractor = new OllamaSignalExtractor(builder.build(), BASE_URL + "/", "qwen2.5:14b", CONTEXT,
+        extractor = new OllamaSignalExtractor(builder.build(), BASE_URL + "/", "qwen2.5:14b", CONTEXT, null,
                 new SkillCanonicalizer(Map.of("Kubernetes", List.of("k8s"), "PostgreSQL", List.of("postgres"),
                         "Go", List.of("golang"))),
                 metricService);
@@ -328,6 +328,39 @@ class OllamaSignalExtractorTest {
         extractor.extract(TITLE, DESCRIPTION);
 
         mockServer.verify();
+    }
+
+    @Test
+    @DisplayName("Thinking is left out of the request unless it is configured, since some models reject the field")
+    void testThinkOmittedUnlessSet() {
+        mockServer.expect(requestTo(GENERATE))
+                .andExpect(request -> assertFalse(((MockClientHttpRequest) request).getBodyAsString()
+                        .contains("think"), "the field must not be sent"))
+                .andRespond(withSuccess(ollamaBody(GOOD_ANSWER, "stop", 900), MediaType.APPLICATION_JSON));
+
+        extractor.extract(TITLE, DESCRIPTION);
+
+        mockServer.verify();
+    }
+
+    @Test
+    @DisplayName("A thinking model is told not to reason before answering when so configured")
+    void testThinkSent() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        OllamaSignalExtractor qwen3 = new OllamaSignalExtractor(builder.build(), BASE_URL, "qwen3:8b", CONTEXT,
+                false, SkillCanonicalizer.none(), metricService);
+        server.expect(requestTo(GENERATE))
+                .andExpect(request -> {
+                    JsonNode body = MAPPER.readTree(((MockClientHttpRequest) request).getBodyAsString());
+                    assertTrue(body.has("think"), body.toString());
+                    assertFalse(body.path("think").asBoolean());
+                })
+                .andRespond(withSuccess(ollamaBody(GOOD_ANSWER, "stop", 900), MediaType.APPLICATION_JSON));
+
+        qwen3.extract(TITLE, DESCRIPTION);
+
+        server.verify();
     }
 
     @Test
