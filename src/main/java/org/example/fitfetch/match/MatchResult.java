@@ -38,13 +38,15 @@ public record MatchResult(int score, boolean eligible, List<String> gateFailures
      * @param requirementCoverage how much of the job's weighted signals the
      *                            profile covers
      * @param skillMatch          the share of the job's required skills the
-     *                            profile has; 1 if it names none
+     *                            profile has, or {@code null} where it names
+     *                            none this side knows: the score is then its
+     *                            other parts, weighed against each other
      * @param levelFit            how close the job's level and years are to the
      *                            profile's
      * @param domainAdjustment    points added for a preferred domain or taken
      *                            away for an avoided one
      */
-    public record ScoreParts(double requirementCoverage, double skillMatch, double levelFit,
+    public record ScoreParts(double requirementCoverage, Double skillMatch, double levelFit,
                              int domainAdjustment) {
     }
 
