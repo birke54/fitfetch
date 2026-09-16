@@ -33,7 +33,7 @@ public final class SignalPrompt {
      * job's existing row. Rows from an older version can be found by
      * {@code prompt_version}.
      */
-    public static final int VERSION = 7;
+    public static final int VERSION = 8;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -44,6 +44,8 @@ public final class SignalPrompt {
             Rules:
             - Include ONLY substantive role/technical signals: responsibilities, required skills, qualifications, and preferred/nice-to-have items.
             - EXCLUDE company marketing, mission/culture statements, legal disclaimers, benefits/perks, salary, and pure section headers.
+            - EXCLUDE what the posting says the hire will have done by a date, however phrased: "What success looks like", "Success Measures", "In your first 90 days", "In one month, you'll have fixed a few bugs", "In six months, you'll have taken on primary code review responsibilities". These say what follows from the job, not what it asks for.
+            - EXCLUDE what the team says about itself: its history, what it shipped recently, what it plans next, and its values. "Recently, we integrated OpenTelemetry" and "Own our leadership principles" are not requirements. A technology named only there belongs to no signal.
 
             Seniority (choose exactly one): junior, midlevel, senior, staff, principal, distinguished.
             - First, use the JOB TITLE if it contains a level (including mapping "II"/"III"/"Lead" to the closest band).
@@ -75,7 +77,7 @@ public final class SignalPrompt {
             - Deduplicate signals expressing the same requirement; keep the most specific phrasing.
             - If an item is not explicitly marked as preferred, optional, "a plus", or "nice to have", classify it as required.
             - skills: the things the signal names that a resume would list as a skill: technologies, languages, frameworks, tools, platforms, protocols, and named techniques or concepts ("Kubernetes", "BGP", "subnetting", "RAG", "event-driven architecture"). Each by its common canonical name ("PostgreSQL" not "Postgres", "Kubernetes" not "k8s", "Go" not "Golang").
-              - Include every product, tool, service and protocol the signal names, even where the sentence is about the work rather than about a skill: "Integrate tooling into GitHub Actions and other CI workflows" names GitHub Actions and CI/CD; "Improve PostgreSQL performance by moving suitable workloads to Elasticsearch or ClickHouse" names PostgreSQL, Elasticsearch and ClickHouse; "integrated OpenTelemetry to make issues easier to diagnose" names OpenTelemetry.
+              - Include every product, tool, service and protocol the signal names, even where the sentence is about the work rather than about a skill: "Integrate tooling into GitHub Actions and other CI workflows" names GitHub Actions and CI/CD; "Improve PostgreSQL performance by moving suitable workloads to Elasticsearch or ClickHouse" names PostgreSQL, Elasticsearch and ClickHouse; "You will instrument services with OpenTelemetry so issues are easier to diagnose" names OpenTelemetry.
               - Only what this signal's own text names. Never copy skills from other parts of the posting.
               - Name each separately: "TypeScript/Node" is two skills, TypeScript and Node.js. A name that is one thing, like "CI/CD" or "TCP/IP", stays whole.
               - Leave out general practices and qualities ("programming", "testing", "debugging", "performance", "security", "reliability", "maintainability", "communication", "collaboration", "mentoring"), vague phrases ("modern backend languages", "cloud native technologies"), and team or department names ("Infrastructure", "Data").
