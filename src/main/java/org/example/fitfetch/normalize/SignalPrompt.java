@@ -33,7 +33,7 @@ public final class SignalPrompt {
      * job's existing row. Rows from an older version can be found by
      * {@code prompt_version}.
      */
-    public static final int VERSION = 8;
+    public static final int VERSION = 9;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -45,7 +45,7 @@ public final class SignalPrompt {
             - Include ONLY substantive role/technical signals: responsibilities, required skills, qualifications, and preferred/nice-to-have items.
             - EXCLUDE company marketing, mission/culture statements, legal disclaimers, benefits/perks, salary, and pure section headers.
             - EXCLUDE what the posting says the hire will have done by a date, however phrased: "What success looks like", "Success Measures", "In your first 90 days", "In one month, you'll have fixed a few bugs", "In six months, you'll have taken on primary code review responsibilities". These say what follows from the job, not what it asks for.
-            - EXCLUDE what the team says about itself: its history, what it shipped recently, what it plans next, and its values. "Recently, we integrated OpenTelemetry" and "Own our leadership principles" are not requirements. A technology named only there belongs to no signal.
+            - EXCLUDE what the team says about itself: its history, what it shipped recently, what it plans next, and its values. "Recently, we integrated OpenTelemetry" and "Own our leadership principles" are not requirements.
 
             Seniority (choose exactly one): junior, midlevel, senior, staff, principal, distinguished.
             - First, use the JOB TITLE if it contains a level (including mapping "II"/"III"/"Lead" to the closest band).
