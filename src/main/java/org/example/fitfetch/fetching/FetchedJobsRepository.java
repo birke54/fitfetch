@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Set;
 
@@ -122,5 +123,26 @@ public interface FetchedJobsRepository extends JpaRepository<FetchedJob,Long>, R
     @Modifying
     @Query("update FetchedJob f set f.normalizeStatus = :status where f.id = :id")
     int updateNormalizeStatus(@Param("id") Long id, @Param("status") NormalizeStatus normalizeStatus);
+
+    /**
+     * Marks every pending job the ATS posted before the cutoff as
+     * {@code TOO_OLD}, so the normalization pass never considers it again.
+     *
+     * <p>Unlike the out-of-range sweep this ignores {@link LocationStatus}: a
+     * job's age does not depend on where it is, so there is nothing to wait for
+     * the location pass to answer. It runs first for the same reason, and marks
+     * jobs the radius sweep would otherwise have to resolve a location for.
+     *
+     * <p>Not in {@link RadiusQueries}, which exists to keep one copy of the
+     * radius SQL; this needs none of it. Must run inside a transaction.
+     *
+     * @param cutoff jobs posted strictly before this are marked
+     * @return how many jobs were marked
+     */
+    @Modifying
+    @Query("update FetchedJob f set f.normalizeStatus = org.example.fitfetch.domain.NormalizeStatus.TOO_OLD "
+            + "where f.normalizeStatus = org.example.fitfetch.domain.NormalizeStatus.PENDING "
+            + "and f.postedAt < :cutoff")
+    int markTooOldForNormalization(@Param("cutoff") OffsetDateTime cutoff);
 }
 

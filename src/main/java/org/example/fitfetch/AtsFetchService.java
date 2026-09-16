@@ -15,6 +15,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -176,14 +178,29 @@ public class AtsFetchService {
         Set<String> existingJobIds = fetchedJobsRepository.findJobIdsByAtsNameAndJobIdIn(atsName, incomingJobIds);
 
         // 3. Filter the incoming stream to only include jobs NOT in the existing list
-        List<FetchedJob> toSave = jobs.stream()
-                .filter(job -> !existingJobIds.contains(job.id().toString()))
-                .map(job -> new FetchedJob(
-                        atsName,
-                        job.id().toString(),
-                        job.slug(),
-                        job))
-                .toList();
+        OffsetDateTime fetchedAt = OffsetDateTime.now(clock);
+        int undated = 0;
+        List<FetchedJob> toSave = new ArrayList<>();
+        for (AtsJobEntry job : jobs) {
+            if (existingJobIds.contains(job.id().toString())) {
+                continue;
+            }
+            // A board that publishes no date leaves the job aged from now, which
+            // is when it was fetched. That is the most generous reading: it can
+            // only keep a job in the pipeline longer, never age it out early.
+            OffsetDateTime postedAt = job.postedAt();
+            if (postedAt == null) {
+                postedAt = fetchedAt;
+                undated++;
+            }
+            toSave.add(new FetchedJob(atsName, job.id().toString(), job.slug(), job, postedAt));
+        }
+        if (undated > 0) {
+            LOGGER.info("{} of {} new jobs from {} carried no posting date; aged from the fetch time instead",
+                    undated, toSave.size(), atsName);
+            metricService.recordCounterByIncrement(MetricName.FETCH_JOBS_MISSING_POSTED_COUNT,
+                    Map.of(TagName.ATS, atsName.stringValue(), TagName.RESULT, "fetched_at"), undated);
+        }
 
         if (!toSave.isEmpty()) {
             fetchedJobsRepository.saveAll(toSave);

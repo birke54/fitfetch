@@ -24,6 +24,7 @@ import org.springframework.dao.DataAccessResourceFailureException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -183,6 +184,58 @@ public class AtsFetchServiceTest {
         assertEquals("company-a", savedJob.getSlug());
         verify(metricService).recordCounterByIncrement(MetricName.FETCH_JOBS_SAVED_COUNT,
                 Map.of(TagName.ATS, AtsName.GREENHOUSE.stringValue()), 1);
+    }
+
+    /**
+     * @param firstPublished the board's {@code first_published}, possibly null
+     * @param updatedAt      the board's {@code updated_at}, possibly null
+     * @return the one job saved by a cycle fetching a job dated that way
+     */
+    private FetchedJob savedJobDated(OffsetDateTime firstPublished, OffsetDateTime updatedAt) {
+        AtsJobEntry entry = new GreenhouseJobEntry(
+                "https://example.com", "Bachelors", 1L, 101L, updatedAt, "REQ-001", "Software Engineer",
+                "Company A", firstPublished, "en", null, "This is the JD of the posting",
+                new Location("Remote - US"), List.of(), List.of(), List.of(), "company-a");
+        when(mockGreenhouseAts.fetchJobs()).thenReturn(List.of(entry));
+        when(fetchedJobsRepository.findJobIdsByAtsNameAndJobIdIn(eq(AtsName.GREENHOUSE), anySet()))
+                .thenReturn(Set.of());
+        ArgumentCaptor<Iterable<FetchedJob>> saved = ArgumentCaptor.captor();
+
+        atsFetchService.fetchAtsBoards(directExecutor());
+
+        verify(fetchedJobsRepository).saveAll(saved.capture());
+        return saved.getValue().iterator().next();
+    }
+
+    @Test
+    @DisplayName("A job is dated by when the board first published it")
+    void testPostedAtIsFirstPublished() {
+        OffsetDateTime published = OffsetDateTime.parse("2026-09-01T09:00:00Z");
+        OffsetDateTime touched = OffsetDateTime.parse("2026-09-13T09:00:00Z");
+
+        // updated_at is the later of the two and is deliberately not used: a
+        // recruiter touching a year-old posting must not make it new again.
+        assertEquals(published, savedJobDated(published, touched).getPostedAt());
+    }
+
+    @Test
+    @DisplayName("A job the board never dated as published falls back to when it was last changed")
+    void testPostedAtFallsBackToUpdatedAt() {
+        OffsetDateTime touched = OffsetDateTime.parse("2026-09-13T09:00:00Z");
+
+        assertEquals(touched, savedJobDated(null, touched).getPostedAt());
+
+        verify(metricService, never()).recordCounterByIncrement(eq(MetricName.FETCH_JOBS_MISSING_POSTED_COUNT),
+                anyMap(), anyInt());
+    }
+
+    @Test
+    @DisplayName("A job the board dated not at all is aged from the fetch time, and counted")
+    void testPostedAtFallsBackToFetchTimeAndIsCounted() {
+        assertEquals(OffsetDateTime.ofInstant(START, ZoneOffset.UTC), savedJobDated(null, null).getPostedAt());
+
+        verify(metricService).recordCounterByIncrement(MetricName.FETCH_JOBS_MISSING_POSTED_COUNT,
+                Map.of(TagName.ATS, AtsName.GREENHOUSE.stringValue(), TagName.RESULT, "fetched_at"), 1);
     }
 
     @Test

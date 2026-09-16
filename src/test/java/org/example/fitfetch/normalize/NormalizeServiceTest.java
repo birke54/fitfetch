@@ -43,6 +43,10 @@ class NormalizeServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-09-13T10:00:00Z");
     private static final OriginRadius RADIUS = OriginRadius.of(47.7231d, -122.2967d, 50);
+    private static final int MAX_AGE_DAYS = 30;
+    /** The oldest posting the pass will normalize, given {@link #NOW}. */
+    private static final OffsetDateTime CUTOFF =
+            OffsetDateTime.ofInstant(NOW, ZoneOffset.UTC).minusDays(MAX_AGE_DAYS);
     private static final String TITLE = "Backend Engineer";
     private static final NormalizedData ANSWER = new NormalizedData(Seniority.SENIOR, Track.IC,
             EmploymentType.FULL_TIME, 5,
@@ -75,38 +79,44 @@ class NormalizeServiceTest {
         return newService(enabled, Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
-    @SuppressWarnings("unchecked")
     private NormalizeService newService(boolean enabled, Clock clock) {
+        return new NormalizeService(fetchedJobs, normalizedJobs, extractor, radiusSearch, inlineTransactions(),
+                clock, metricService, enabled, 5, 50, MAX_AGE_DAYS);
+    }
+
+    /**
+     * @return a template that runs its callbacks inline, so the write path is
+     *         exercised without a transaction manager
+     */
+    @SuppressWarnings("unchecked")
+    private TransactionTemplate inlineTransactions() {
         TransactionTemplate template = mock(TransactionTemplate.class);
-        // Run callbacks inline so the write path is exercised without a
-        // transaction manager.
         doAnswer(invocation -> {
             invocation.getArgument(0, Consumer.class).accept(null);
             return null;
         }).when(template).executeWithoutResult(any());
         when(template.execute(any())).thenAnswer(
                 invocation -> invocation.getArgument(0, TransactionCallback.class).doInTransaction(null));
-
-        return new NormalizeService(fetchedJobs, normalizedJobs, extractor, radiusSearch, template,
-                clock, metricService, enabled, 5, 50);
+        return template;
     }
 
     private FetchedJob job(String content) {
         GreenhouseJobEntry entry = new GreenhouseJobEntry(
                 "https://example.com", null, nextId, null, null, null, TITLE,
                 "Co", null, "en", null, content, null, List.of(), List.of(), List.of(), "co");
-        FetchedJob fetched = new FetchedJob(AtsName.GREENHOUSE, String.valueOf(nextId), "co", entry);
+        FetchedJob fetched = new FetchedJob(AtsName.GREENHOUSE, String.valueOf(nextId), "co", entry,
+                OffsetDateTime.ofInstant(NOW, ZoneOffset.UTC));
         fetched.setId(nextId++);
         return fetched;
     }
 
     private void pageContains(FetchedJob... jobs) {
-        when(fetchedJobs.findPendingNormalizationWithinRadius(eq(RADIUS), anyLong(), eq(5)))
+        when(fetchedJobs.findPendingNormalizationWithinRadius(eq(RADIUS), eq(CUTOFF), anyLong(), eq(5)))
                 .thenReturn(List.of(jobs));
     }
 
     private void pageAfter(long afterId, FetchedJob... jobs) {
-        when(fetchedJobs.findPendingNormalizationWithinRadius(RADIUS, afterId, 5)).thenReturn(List.of(jobs));
+        when(fetchedJobs.findPendingNormalizationWithinRadius(RADIUS, CUTOFF, afterId, 5)).thenReturn(List.of(jobs));
     }
 
     private void runs(int count) {
@@ -140,8 +150,67 @@ class NormalizeServiceTest {
 
         InOrder order = inOrder(fetchedJobs);
         order.verify(fetchedJobs).markOutOfRangeForNormalization(RADIUS);
-        order.verify(fetchedJobs).findPendingNormalizationWithinRadius(RADIUS, 0L, 5);
+        order.verify(fetchedJobs).findPendingNormalizationWithinRadius(RADIUS, CUTOFF, 0L, 5);
         verifyNoInteractions(extractor);
+    }
+
+    // ------------------------------------------------------------------ age
+
+    @Test
+    @DisplayName("Old jobs are swept before the radius sweep, which has to resolve a location to judge one")
+    void testAgeSweptBeforeRange() {
+        pageContains();
+
+        service.normalizeOnePage();
+
+        InOrder order = inOrder(fetchedJobs);
+        order.verify(fetchedJobs).markTooOldForNormalization(CUTOFF);
+        order.verify(fetchedJobs).markOutOfRangeForNormalization(RADIUS);
+        order.verify(fetchedJobs).findPendingNormalizationWithinRadius(RADIUS, CUTOFF, 0L, 5);
+    }
+
+    @Test
+    @DisplayName("The cutoff moves with the clock, so the same pass sweeps a different set the next day")
+    void testCutoffFollowsTheClock() {
+        MutableClock clock = new MutableClock(NOW);
+        NormalizeService aging = newService(true, clock);
+        when(fetchedJobs.findPendingNormalizationWithinRadius(eq(RADIUS), any(), anyLong(), eq(5)))
+                .thenReturn(List.of());
+
+        aging.normalizeOnePage();
+        clock.advance(Duration.ofDays(1));
+        aging.normalizeOnePage();
+
+        InOrder order = inOrder(fetchedJobs);
+        order.verify(fetchedJobs).markTooOldForNormalization(CUTOFF);
+        order.verify(fetchedJobs).markTooOldForNormalization(CUTOFF.plusDays(1));
+    }
+
+    @Test
+    @DisplayName("Jobs swept as too old are counted and reported")
+    void testTooOldJobsAreCounted() {
+        when(fetchedJobs.markTooOldForNormalization(CUTOFF)).thenReturn(4);
+        pageContains();
+
+        service.normalizeOnePage();
+
+        verify(metricService).recordCounterByIncrement(MetricName.NORMALIZE_JOBS_COUNT,
+                Map.of(TagName.RESULT, "too_old"), 4);
+    }
+
+    @Test
+    @DisplayName("No age limit lets every job through, however old")
+    void testNoAgeLimitNormalizesEverything() {
+        NormalizeService ageless = new NormalizeService(fetchedJobs, normalizedJobs, extractor, radiusSearch,
+                inlineTransactions(), Clock.fixed(NOW, ZoneOffset.UTC), metricService, true, 5, 50, 0);
+        OffsetDateTime epoch = OffsetDateTime.ofInstant(Instant.EPOCH, ZoneOffset.UTC);
+        when(fetchedJobs.findPendingNormalizationWithinRadius(eq(RADIUS), any(), anyLong(), eq(5)))
+                .thenReturn(List.of());
+
+        ageless.normalizeOnePage();
+
+        verify(fetchedJobs).markTooOldForNormalization(epoch);
+        verify(fetchedJobs).findPendingNormalizationWithinRadius(RADIUS, epoch, 0L, 5);
     }
 
     @Test
@@ -313,9 +382,9 @@ class NormalizeServiceTest {
         service.normalizeOnePage();
 
         InOrder order = inOrder(fetchedJobs);
-        order.verify(fetchedJobs).findPendingNormalizationWithinRadius(RADIUS, 0L, 5);
-        order.verify(fetchedJobs).findPendingNormalizationWithinRadius(RADIUS, second.getId(), 5);
-        order.verify(fetchedJobs).findPendingNormalizationWithinRadius(RADIUS, 0L, 5);
+        order.verify(fetchedJobs).findPendingNormalizationWithinRadius(RADIUS, CUTOFF, 0L, 5);
+        order.verify(fetchedJobs).findPendingNormalizationWithinRadius(RADIUS, CUTOFF, second.getId(), 5);
+        order.verify(fetchedJobs).findPendingNormalizationWithinRadius(RADIUS, CUTOFF, 0L, 5);
     }
 
     @Test
@@ -326,7 +395,7 @@ class NormalizeServiceTest {
 
         runs(2);
 
-        verify(fetchedJobs, times(2)).findPendingNormalizationWithinRadius(RADIUS, 0L, 5);
+        verify(fetchedJobs, times(2)).findPendingNormalizationWithinRadius(RADIUS, CUTOFF, 0L, 5);
     }
 
     // -------------------------------------------------------------- strikes

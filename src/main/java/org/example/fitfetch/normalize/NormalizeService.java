@@ -20,7 +20,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -34,6 +36,10 @@ import java.util.concurrent.atomic.AtomicLong;
  * <p>Each run does two things:
  *
  * <ol>
+ *   <li><strong>Age sweep.</strong> Every pending job the ATS posted longer ago
+ *       than {@code app.normalize.max-age-days} is marked {@code TOO_OLD}, in
+ *       one statement. It runs first because a job's age is known whatever its
+ *       location, so marking it here spares the radius sweep the work.</li>
  *   <li><strong>Sweep.</strong> Every pending job whose location is resolved
  *       but outside the radius is marked {@code OUT_OF_RANGE}, in one statement.
  *       The pass only reads pending jobs, so it never looks at those again.</li>
@@ -41,6 +47,10 @@ import java.util.concurrent.atomic.AtomicLong;
  *       radius is sent to the model, one job at a time, and each is written as
  *       soon as it is answered.</li>
  * </ol>
+ *
+ * <p>A job ages while it waits, so one held up behind a backlog can cross the
+ * limit before the model ever sees it. That is the page size to turn up, not a
+ * reason to date a job by when it was fetched.
  *
  * <p>So every job reaches the model at most once. A job whose location is still
  * pending, or failed and awaiting curation, is left alone until the location
@@ -87,6 +97,7 @@ public class NormalizeService {
     private final boolean enabled;
     private final int pageSize;
     private final double radiusMiles;
+    private final int maxAgeDays;
 
     /**
      * Id of the last job the pass looked at. Held in memory only: after a
@@ -99,6 +110,7 @@ public class NormalizeService {
     private final AtomicLong pendingJobs = new AtomicLong();
     private final AtomicLong failedJobs = new AtomicLong();
     private final AtomicLong outOfRangeJobs = new AtomicLong();
+    private final AtomicLong tooOldJobs = new AtomicLong();
 
     /** When the pass last ran without stopping, in epoch seconds, for its gauge. */
     private final AtomicLong lastSuccess = new AtomicLong();
@@ -125,6 +137,8 @@ public class NormalizeService {
      * @param enabled                 {@code app.normalize.enable}
      * @param pageSize                {@code app.normalize.page-size}
      * @param radiusMiles             {@code app.normalize.radius-miles}
+     * @param maxAgeDays              {@code app.normalize.max-age-days}; zero or
+     *                                less to normalize a job however old it is
      */
     public NormalizeService(FetchedJobsRepository fetchedJobsRepository,
                             NormalizedJobRepository normalizedJobRepository,
@@ -135,7 +149,8 @@ public class NormalizeService {
                             MetricService metricService,
                             @Value("${app.normalize.enable}") boolean enabled,
                             @Value("${app.normalize.page-size}") int pageSize,
-                            @Value("${app.normalize.radius-miles}") double radiusMiles) {
+                            @Value("${app.normalize.radius-miles}") double radiusMiles,
+                            @Value("${app.normalize.max-age-days}") int maxAgeDays) {
         this.fetchedJobsRepository = fetchedJobsRepository;
         this.normalizedJobRepository = normalizedJobRepository;
         this.extractor = extractor;
@@ -146,6 +161,7 @@ public class NormalizeService {
         this.enabled = enabled;
         this.pageSize = pageSize;
         this.radiusMiles = radiusMiles;
+        this.maxAgeDays = maxAgeDays;
 
         // Starts at startup rather than zero, so the gauge's age is how long the
         // pass has gone without a successful run, not how long since 1970.
@@ -157,6 +173,8 @@ public class NormalizeService {
                 Map.of(TagName.STATUS, "failed"), failedJobs::get);
         metricService.registerGauge(MetricName.NORMALIZE_JOBS_BACKLOG,
                 Map.of(TagName.STATUS, "out_of_range"), outOfRangeJobs::get);
+        metricService.registerGauge(MetricName.NORMALIZE_JOBS_BACKLOG,
+                Map.of(TagName.STATUS, "too_old"), tooOldJobs::get);
     }
 
     /**
@@ -203,6 +221,7 @@ public class NormalizeService {
                     NormalizeStatus.PENDING, LocationStatus.RESOLVED));
             failedJobs.set(fetchedJobsRepository.countByNormalizeStatus(NormalizeStatus.FAILED));
             outOfRangeJobs.set(fetchedJobsRepository.countByNormalizeStatus(NormalizeStatus.OUT_OF_RANGE));
+            tooOldJobs.set(fetchedJobsRepository.countByNormalizeStatus(NormalizeStatus.TOO_OLD));
         } catch (RuntimeException e) {
             LOGGER.warn("Could not count the normalization backlog: {}", e.getMessage());
         }
@@ -235,7 +254,21 @@ public class NormalizeService {
      *                                   starts from the same place
      */
     int normalizeOnePage() {
+        // The origin is read first even though the age sweep does not need it:
+        // without it the run stops, and a pass that stops must not have written
+        // anything, or the backlog gauges describe a run that never finished.
         OriginRadius radius = radiusSearch.around(radiusMiles);
+        OffsetDateTime postedAfter = postedAfter();
+
+        // Before the radius sweep, which has to resolve a location to judge a
+        // job: an old job is skipped whatever its location, so marking it here
+        // saves that work.
+        Integer stale = transactionTemplate.execute(
+                status -> fetchedJobsRepository.markTooOldForNormalization(postedAfter));
+        if (stale != null && stale > 0) {
+            LOGGER.info("{} jobs were posted more than {} days ago and will not be normalized", stale, maxAgeDays);
+            recordJobs("too_old", stale);
+        }
 
         Integer excluded = transactionTemplate.execute(
                 status -> fetchedJobsRepository.markOutOfRangeForNormalization(radius));
@@ -244,7 +277,7 @@ public class NormalizeService {
             recordJobs("out_of_range", excluded);
         }
 
-        List<FetchedJob> page = nextPage(radius);
+        List<FetchedJob> page = nextPage(radius, postedAfter);
         if (page.isEmpty()) {
             return 0;
         }
@@ -319,14 +352,25 @@ public class NormalizeService {
      * repeated failures, which stay {@code PENDING}. Wrapping is what brings them
      * round again.
      */
-    private List<FetchedJob> nextPage(OriginRadius radius) {
+    private List<FetchedJob> nextPage(OriginRadius radius, OffsetDateTime postedAfter) {
         List<FetchedJob> page = fetchedJobsRepository.findPendingNormalizationWithinRadius(
-                radius, cursor.get(), pageSize);
+                radius, postedAfter, cursor.get(), pageSize);
         if (page.isEmpty() && cursor.get() > 0) {
             cursor.set(0);
-            page = fetchedJobsRepository.findPendingNormalizationWithinRadius(radius, 0, pageSize);
+            page = fetchedJobsRepository.findPendingNormalizationWithinRadius(radius, postedAfter, 0, pageSize);
         }
         return page;
+    }
+
+    /**
+     * @return the oldest posting date still worth a model call, or the epoch if
+     *         {@code app.normalize.max-age-days} is zero or less, which lets
+     *         every job through however old it is
+     */
+    private OffsetDateTime postedAfter() {
+        return maxAgeDays <= 0
+                ? OffsetDateTime.ofInstant(Instant.EPOCH, ZoneOffset.UTC)
+                : OffsetDateTime.now(clock).minusDays(maxAgeDays);
     }
 
     /**

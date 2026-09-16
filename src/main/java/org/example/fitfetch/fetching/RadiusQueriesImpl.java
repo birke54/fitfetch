@@ -7,6 +7,7 @@ import org.example.fitfetch.domain.FetchedJob;
 import org.example.fitfetch.location.BoundingBox;
 import org.example.fitfetch.location.OriginRadius;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 
 /**
@@ -62,6 +63,7 @@ class RadiusQueriesImpl implements RadiusQueries {
             FROM fetched_jobs fj
             WHERE fj.normalize_status = 'PENDING'
               AND fj.location_status = 'RESOLVED'
+              AND fj.posted_at >= :postedAfter
               AND fj.id > :afterId
               AND fj.id IN (%s)
             ORDER BY fj.id
@@ -97,9 +99,11 @@ class RadiusQueriesImpl implements RadiusQueries {
 
     @Override
     @SuppressWarnings("unchecked")
-    public List<FetchedJob> findPendingNormalizationWithinRadius(OriginRadius radius, long afterId, int limit) {
+    public List<FetchedJob> findPendingNormalizationWithinRadius(OriginRadius radius, OffsetDateTime postedAfter,
+                                                                 long afterId, int limit) {
         Query query = entityManager.createNativeQuery(FIND_PENDING_NORMALIZATION, FetchedJob.class);
         return bind(query, radius)
+                .setParameter("postedAfter", postedAfter)
                 .setParameter("afterId", afterId)
                 .setParameter("pageSize", limit)
                 .getResultList();

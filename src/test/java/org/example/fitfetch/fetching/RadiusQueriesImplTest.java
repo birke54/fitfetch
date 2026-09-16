@@ -10,6 +10,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -81,10 +82,12 @@ class RadiusQueriesImplTest {
     void testFindPendingNormalizationBindsEveryParameter() {
         when(query.getResultList()).thenReturn(List.of());
 
-        queries.findPendingNormalizationWithinRadius(SEATTLE, 42L, 5);
+        OffsetDateTime cutoff = OffsetDateTime.parse("2026-08-14T10:00:00Z");
+        queries.findPendingNormalizationWithinRadius(SEATTLE, cutoff, 42L, 5);
 
         verify(entityManager).createNativeQuery(RadiusQueriesImpl.FIND_PENDING_NORMALIZATION, FetchedJob.class);
         assertEquals(parametersIn(RadiusQueriesImpl.FIND_PENDING_NORMALIZATION), bound.keySet());
+        assertEquals(cutoff, bound.get("postedAfter"));
         assertEquals(42L, bound.get("afterId"));
         assertEquals(5, bound.get("pageSize"));
     }

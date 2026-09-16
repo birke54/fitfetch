@@ -101,6 +101,19 @@ public record GreenhouseJobEntry (
         return location == null ? null : location.name();
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Greenhouse publishes both dates. {@code first_published} is the one
+     * that matters: {@code updated_at} moves whenever a recruiter touches the
+     * posting, so a job open for a year can carry yesterday's date. It stands
+     * in only when the board omitted {@code first_published} altogether.
+     */
+    @Override
+    public OffsetDateTime postedAt() {
+        return firstPublished != null ? firstPublished : updatedAt;
+    }
+
     @Override
     public GreenhouseJobEntry withSlug(String slug) {
         return new GreenhouseJobEntry(absoluteUrl, education, id, internalJobId, updatedAt, requisitionId, title,

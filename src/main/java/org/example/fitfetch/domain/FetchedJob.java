@@ -40,6 +40,8 @@ import java.time.OffsetDateTime;
         indexes = {
                 @Index(name = "idx_fetched_jobs_normalize_status",
                         columnList = "normalize_status, location_status, id"),
+                @Index(name = "idx_fetched_jobs_normalize_status_posted_at",
+                        columnList = "normalize_status, posted_at"),
         }
 
 )
@@ -85,6 +87,28 @@ public class FetchedJob {
     @ColumnDefault("'PENDING'")
     private NormalizeStatus normalizeStatus = NormalizeStatus.PENDING;
 
+    /**
+     * When the ATS put this job on its board, and what the normalization pass
+     * ages a job by.
+     *
+     * <p>Promoted out of {@link #jobData} into a column of its own so it can be
+     * indexed: {@code (job_data->>'first_published')::timestamptz} cannot be,
+     * since casting text to {@code timestamptz} is only {@code STABLE} and
+     * PostgreSQL will not index a non-immutable expression.
+     *
+     * <p>It is {@link AtsJobEntry#postedAt()} where the provider gave a date,
+     * and the fetch time where it gave none, so every job stored has an age
+     * whatever its provider publishes.
+     *
+     * <p>Mapped {@code nullable = false} because that is what every job written
+     * by this application is. The column itself is nullable until the rows
+     * fetched before {@code V8} have been backfilled by hand, and such a row
+     * reads back here as null: it matches neither the normalization page read
+     * nor the age sweep, so it waits rather than being normalized or marked.
+     */
+    @Column(name = "posted_at", nullable = false)
+    private OffsetDateTime postedAt;
+
     @CreationTimestamp
     @Column(name = "fetched_at", nullable = false, updatable = false)
     private OffsetDateTime fetchedAt;
@@ -104,12 +128,16 @@ public class FetchedJob {
      *                     that provider
      * @param slug         the ATS board slug the job was fetched from
      * @param jobData      the raw provider payload, stored as JSON
+     * @param postedAt     when the ATS put the job on its board; must not be
+     *                     null, so a provider that published no date needs the
+     *                     fetch time passing in its place
      */
-    public FetchedJob(AtsName atsName, String jobId, String slug, AtsJobEntry jobData) {
+    public FetchedJob(AtsName atsName, String jobId, String slug, AtsJobEntry jobData, OffsetDateTime postedAt) {
         this.atsName = atsName;
         this.jobId = jobId;
         this.slug = slug;
         this.jobData = jobData;
+        this.postedAt = postedAt;
     }
 
     /** @return the generated primary key, or {@code null} before persistence */
@@ -180,6 +208,16 @@ public class FetchedJob {
     /** @param normalizeStatus the normalization state to set */
     public void setNormalizeStatus(NormalizeStatus normalizeStatus) {
         this.normalizeStatus = normalizeStatus;
+    }
+
+    /** @return when the ATS put this job on its board; never null */
+    public OffsetDateTime getPostedAt() {
+        return postedAt;
+    }
+
+    /** @param postedAt the board-posting date to set */
+    public void setPostedAt(OffsetDateTime postedAt) {
+        this.postedAt = postedAt;
     }
 
     /** @return when the job was fetched; set by Hibernate on insert */
