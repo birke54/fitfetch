@@ -3,6 +3,8 @@ package org.example.fitfetch.fetching.records;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
+import java.time.OffsetDateTime;
+
 /**
  * Provider-agnostic view of a single job posting fetched from an ATS.
  *
@@ -73,6 +75,22 @@ public sealed interface AtsJobEntry permits GreenhouseJobEntry {
      *         {@code null} if the provider supplied none
      */
     String title();
+
+    /**
+     * Returns when the provider says this job was put on the board.
+     *
+     * <p>Every ATS dates a posting differently, and not all of them date it at
+     * all, so an implementation answers with the best date it has: when the job
+     * was first published, failing that when it was last changed. A
+     * {@code null} means the payload carried neither, and the caller supplies
+     * the fetch time in its place &mdash; see
+     * {@link org.example.fitfetch.domain.FetchedJob#getPostedAt()}, which is
+     * never null and is what the normalization pass ages a job by.
+     *
+     * @return the provider's own date for the posting, or {@code null} if it
+     *         published none
+     */
+    OffsetDateTime postedAt();
 
     /**
      * Returns a copy of this entry with {@link #slug()} set to the given value.

@@ -32,6 +32,15 @@ public enum MetricName {
     /** New jobs saved to {@code fetched_jobs} ({@code fetching.jobs.saved.count}). */
     FETCH_JOBS_SAVED_COUNT("fetching.jobs.saved.count"),
     /**
+     * Jobs saved whose ATS published no posting date, tagged by the {@code ats}
+     * and by the {@code result}: which date stood in for it
+     * ({@code fetching.jobs.missing.posted.count}). A board that dates nothing
+     * has every one of its jobs aged from the fetch time instead, so this is
+     * what says whether {@code app.normalize.max-age-days} is measuring what it
+     * is meant to.
+     */
+    FETCH_JOBS_MISSING_POSTED_COUNT("fetching.jobs.missing.posted.count"),
+    /**
      * Gauge: when an ATS's jobs were last fetched and stored without an
      * exception, in epoch seconds, tagged with the {@code ats}
      * ({@code fetching.last.success.seconds}). Starts at the time the app

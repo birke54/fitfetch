@@ -106,6 +106,19 @@ app:
     # normalized; the rest are marked OUT_OF_RANGE once and never sent to the
     # model. After widening this, requeue them (see NormalizeStatus.OUT_OF_RANGE).
     radius-miles: 60
+    # Only jobs the ATS posted within this many days are normalized; the rest
+    # are marked TOO_OLD once and never sent to the model. 0 or less normalizes
+    # a job however old it is. After raising this, requeue them (see
+    # NormalizeStatus.TOO_OLD); lowering it needs no requeue.
+    #
+    # Age is measured from fetched_jobs.posted_at, which is the board's own
+    # publish date where it gave one and the fetch time where it did not; watch
+    # fetching.jobs.missing.posted.count for boards that date nothing.
+    #
+    # A job ages while it waits, so a backlog and a tight limit together can age
+    # jobs out before the model ever sees them. Raise page-size until the
+    # backlog clears, then lower it again.
+    max-age-days: ${NORMALIZE_MAX_AGE_DAYS:30}
     llm:
       base-url: ${OLLAMA_BASE_URL}
       # Its own setting so a larger model can read descriptions while the

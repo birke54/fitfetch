@@ -44,6 +44,29 @@ public enum NormalizeStatus {
     OUT_OF_RANGE,
 
     /**
+     * Posted to the ATS longer ago than {@code app.normalize.max-age-days}, so
+     * deliberately never normalized.
+     *
+     * <p>Judged on {@link org.example.fitfetch.domain.FetchedJob#getPostedAt()
+     * postedAt}, which is the provider's own date where it published one and
+     * the fetch time where it did not. Unlike {@link #OUT_OF_RANGE} this is
+     * swept whatever the job's {@link LocationStatus}: a job's age does not
+     * depend on where it is, and a job too old to normalize is not worth
+     * geocoding either.
+     *
+     * <p>Relative to the limit in force when the job was checked. After raising
+     * it, requeue these and the next run checks them again:
+     *
+     * <pre>{@code
+     * UPDATE fetched_jobs SET normalize_status = 'PENDING' WHERE normalize_status = 'TOO_OLD';
+     * }</pre>
+     *
+     * <p>Lowering the limit needs no requeue: the sweep marks the newly-old on
+     * its next run.
+     */
+    TOO_OLD,
+
+    /**
      * The model could not produce a usable answer, or the description was
      * empty. Retrying gives the same result, since sampling is deterministic;
      * these jobs are what to look at after changing the prompt.

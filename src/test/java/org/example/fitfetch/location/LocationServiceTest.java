@@ -29,6 +29,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
@@ -113,7 +114,8 @@ class LocationServiceTest {
                 "Co", null, "en", null, "jd",
                 locationName == null ? null : new Location(locationName),
                 List.of(), List.of(), List.of(), "co");
-        FetchedJob fetched = new FetchedJob(AtsName.GREENHOUSE, String.valueOf(nextId), "co", entry);
+        FetchedJob fetched = new FetchedJob(AtsName.GREENHOUSE, String.valueOf(nextId), "co", entry,
+                OffsetDateTime.ofInstant(NOW, ZoneOffset.UTC));
         fetched.setId(nextId++);
         return fetched;
     }
