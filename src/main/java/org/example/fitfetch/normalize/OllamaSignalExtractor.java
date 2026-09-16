@@ -272,6 +272,10 @@ public class OllamaSignalExtractor implements LlmSignalExtractor {
      * the narrower claim: kept in {@code skills} it would count as required. A
      * single alternative is no choice at all, so it joins the required skills.
      *
+     * <p>Where the model named no alternatives at all, which so far is every
+     * model on every posting, {@link SkillAlternatives} reads them out of the
+     * text.
+     *
      * <p>Years are kept only if the signal's text states a number of years. The
      * model copies a posting's one "3+ years" onto most of its signals, and
      * scoring would then ask for 3 years of every skill they name.
@@ -293,6 +297,13 @@ public class OllamaSignalExtractor implements LlmSignalExtractor {
                     .map(skill -> skill.toLowerCase(Locale.ROOT)).collect(Collectors.toSet());
             required = required.stream()
                     .filter(skill -> !alternatives.contains(skill.toLowerCase(Locale.ROOT))).toList();
+        }
+        if (anyOf.isEmpty()) {
+            // No model tried has ever filled any_of_skills, so read the choice
+            // out of the text itself.
+            SkillAlternatives.Split split = SkillAlternatives.of(text, required, skills);
+            required = split.skills();
+            anyOf = split.anyOfSkills();
         }
         int minYears = years(item.minYears());
         if (minYears > 0 && !STATES_YEARS.matcher(text).find()) {

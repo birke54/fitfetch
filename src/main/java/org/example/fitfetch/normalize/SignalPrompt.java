@@ -33,7 +33,7 @@ public final class SignalPrompt {
      * job's existing row. Rows from an older version can be found by
      * {@code prompt_version}.
      */
-    public static final int VERSION = 5;
+    public static final int VERSION = 6;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -74,6 +74,7 @@ public final class SignalPrompt {
             - Deduplicate signals expressing the same requirement; keep the most specific phrasing.
             - If an item is not explicitly marked as preferred, optional, "a plus", or "nice to have", classify it as required.
             - skills: the things the signal names that a resume would list as a skill: technologies, languages, frameworks, tools, platforms, protocols, and named techniques or concepts ("Kubernetes", "BGP", "subnetting", "RAG", "event-driven architecture"). Each by its common canonical name ("PostgreSQL" not "Postgres", "Kubernetes" not "k8s", "Go" not "Golang").
+              - Include every product, tool, service and protocol the signal names, even where the sentence is about the work rather than about a skill: "Integrate tooling into GitHub Actions and other CI workflows" names GitHub Actions and CI/CD; "Improve PostgreSQL performance by moving suitable workloads to Elasticsearch or ClickHouse" names PostgreSQL, Elasticsearch and ClickHouse; "integrated OpenTelemetry to make issues easier to diagnose" names OpenTelemetry.
               - Only what this signal's own text names. Never copy skills from other parts of the posting.
               - Name each separately: "TypeScript/Node" is two skills, TypeScript and Node.js. A name that is one thing, like "CI/CD" or "TCP/IP", stays whole.
               - Leave out general practices and qualities ("programming", "testing", "debugging", "performance", "security", "reliability", "maintainability", "communication", "collaboration", "mentoring"), vague phrases ("modern backend languages", "cloud native technologies"), and team or department names ("Infrastructure", "Data").
