@@ -115,11 +115,27 @@ class MatchServiceTest {
     }
 
     @Test
-    @DisplayName("With no profile there is nothing to score against")
+    @DisplayName("With no profile there is nothing to score against, and the pass says so")
     void testNoProfile() {
         ProfileSource none = ProfileSource.load("", new ProfileLoader(SkillCanonicalizer.none()));
 
-        assertEquals(0, service(true, none).scoreOnePage());
+        assertThrows(MissingProfileException.class, () -> service(true, none).scoreOnePage());
+        verifyNoInteractions(matches, cache, embeddingService);
+    }
+
+    @Test
+    @DisplayName("A run with no profile is recorded as stopped, not as a quiet success")
+    void testNoProfileIsRecordedAsStopped() {
+        ProfileSource none = ProfileSource.load("", new ProfileLoader(SkillCanonicalizer.none()));
+        MatchService service = service(true, none);
+
+        // The scheduled entry point swallows it: the run is over, but enabled
+        // with nothing to score against must not read as a pass with nothing
+        // left to do, or nothing would ever show that matching is not running.
+        assertDoesNotThrow(service::scorePending);
+
+        verify(metricService).recordCounter(MetricName.MATCH_PASS_STOPPED_COUNT,
+                Map.of(TagName.REASON, "no_profile"));
         verifyNoInteractions(matches, cache, embeddingService);
     }
 
