@@ -118,7 +118,7 @@ app:
     # A job ages while it waits, so a backlog and a tight limit together can age
     # jobs out before the model ever sees them. Raise page-size until the
     # backlog clears, then lower it again.
-    max-age-days: ${NORMALIZE_MAX_AGE_DAYS:30}
+    max-age-days: ${NORMALIZE_MAX_AGE_DAYS:14}
     llm:
       base-url: ${OLLAMA_BASE_URL}
       # Its own setting so a larger model can read descriptions while the
