@@ -33,7 +33,7 @@ public final class SignalPrompt {
      * job's existing row. Rows from an older version can be found by
      * {@code prompt_version}.
      */
-    public static final int VERSION = 6;
+    public static final int VERSION = 7;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -69,8 +69,9 @@ public final class SignalPrompt {
             domains: up to three business or industry domains the work is in, as short lower-case phrases such as "payments", "healthcare", "ad tech". Empty if the posting names none beyond software itself.
 
             Signal handling:
-            - Normalize each signal to one crisp sentence. Strip label prefixes like "Drive Technical Direction:" and keep the actual requirement.
-            - If a bullet contains multiple distinct requirements, split it into separate signals.
+            - Normalize each signal to one crisp sentence that stands on its own, with its own subject. Strip label prefixes like "Drive Technical Direction:" and keep the actual requirement. Never write a fragment: "defining architecture, coordinating cross-functional launches" and "ensuring safe rollouts" are not signals.
+            - Keep the whole requirement in its sentence, the clauses naming technologies above all. "You are experienced in launching backend systems at scale using technologies like Python, Kotlin, AWS, MySQL, and Kubernetes" keeps that list, and "shipping web apps using declarative UI frameworks like React or Vue" keeps React and Vue. A technology dropped from the sentence is lost for good.
+            - Split a bullet only where it states requirements that could be met separately, one sentence each, not at every comma. A bullet naming one requirement is one signal, however long.
             - Deduplicate signals expressing the same requirement; keep the most specific phrasing.
             - If an item is not explicitly marked as preferred, optional, "a plus", or "nice to have", classify it as required.
             - skills: the things the signal names that a resume would list as a skill: technologies, languages, frameworks, tools, platforms, protocols, and named techniques or concepts ("Kubernetes", "BGP", "subnetting", "RAG", "event-driven architecture"). Each by its common canonical name ("PostgreSQL" not "Postgres", "Kubernetes" not "k8s", "Go" not "Golang").
