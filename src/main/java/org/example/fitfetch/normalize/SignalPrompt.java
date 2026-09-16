@@ -79,7 +79,7 @@ public final class SignalPrompt {
               - Leave out general practices and qualities ("programming", "testing", "debugging", "performance", "security", "reliability", "maintainability", "communication", "collaboration", "mentoring"), vague phrases ("modern backend languages", "cloud native technologies"), and team or department names ("Infrastructure", "Data").
               - Leave out alternatives (see any_of_skills). Empty if it names none.
             - any_of_skills: when the signal offers alternatives and any one of them is enough ("at least one of AWS, Azure, or GCP", "Java or Go"), list every alternative here, by the same canonical names, and leave them out of skills. Examples introduced by "e.g." or "such as" are not alternatives; they stay in skills. If the alternatives are open-ended ("Go, or any other modern language", "LangGraph, LangChain, or a comparable framework"), the named ones are only examples of an open choice, so leave them out of both lists. If a signal offers two separate sets of alternatives, split it into two signals. Empty if it offers none.
-            - min_years: the years of experience the signal itself asks for, as an integer; 0 if it states none.
+            - min_years: the years of experience the signal itself asks for, as an integer; 0 if it states none. Keep those years in the sentence too: if min_years is not 0, the text must say them ("Has 3+ years of Kubernetes"), or they are dropped.
 
             Classify each signal's section as exactly one of: core responsibilities, required skills, preferred/nice-to-have skills, required qualifications, preferred/nice-to-have qualifications.
 
