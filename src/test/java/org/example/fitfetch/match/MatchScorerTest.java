@@ -141,6 +141,50 @@ class MatchScorerTest {
     }
 
     @Test
+    @DisplayName("A signal's own sentence names its skills, whatever the model listed")
+    void testSkillsReadFromSentence() {
+        // As one posting came back under prompt 8: every skills list empty.
+        Signal listedNothing = new Signal(SignalClassification.REQUIRED_SKILL,
+                "Runs Kafka and Spark on Kubernetes.", List.of(), List.of(), 0);
+
+        MatchResult.SignalMatch match = scorer.score(job(listedNothing), signalVectors(1),
+                profile(skills("Kafka"), "one"), Map.of("one", similarity(0.1))).signals().getFirst();
+
+        assertEquals(List.of("Kafka"), match.matchedSkills());
+        assertEquals(List.of("Spark"), match.missingSkills(), "Kubernetes is not in this table");
+        assertEquals(0.5, match.coverage(), 1e-9);
+    }
+
+    @Test
+    @DisplayName("A choice in the sentence stays a choice, even where the model listed nothing")
+    void testChoiceReadFromSentence() {
+        Signal listedNothing = new Signal(SignalClassification.REQUIRED_SKILL,
+                "Experience with Go, Java, or Rust.", List.of(), List.of(), 0);
+
+        MatchResult result = scorer.score(job(listedNothing), signalVectors(1),
+                profile(skills("Go"), "one"), Map.of("one", similarity(0.1)));
+        MatchResult.SignalMatch match = result.signals().getFirst();
+
+        assertEquals(List.of("Go"), match.matchedSkills(), "one of the three is enough");
+        assertEquals(List.of(), match.missingSkills());
+        assertEquals(1.0, match.coverage(), "the choice is met");
+        assertEquals(1.0, result.parts().skillMatch(), 1e-9, "and it is one skill in the pool, not three");
+    }
+
+    @Test
+    @DisplayName("What the model listed is kept alongside what the sentence names")
+    void testModelListKeptWithSentence() {
+        Signal signal = required("Builds pipelines with Kafka.", "bounded suppression", "Spark");
+
+        MatchResult.SignalMatch match = scorer.score(job(signal), signalVectors(1),
+                profile(skills("Kafka", "Spark"), "one"), Map.of("one", similarity(0.1))).signals().getFirst();
+
+        assertEquals(List.of("Spark", "Kafka"), match.matchedSkills(), "the model's, then the sentence's");
+        assertEquals(List.of("bounded suppression"), match.ignoredSkills());
+        assertEquals(1.0, match.coverage());
+    }
+
+    @Test
     @DisplayName("A skill named inside a phrase is read out of it")
     void testSkillInsidePhrase() {
         // As qwen3:8b wrote them, where a skill was meant.

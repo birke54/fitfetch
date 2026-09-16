@@ -27,7 +27,7 @@ import java.util.regex.Pattern;
  *
  * <p>This is a stateless holder; all members are static.
  */
-final class SkillAlternatives {
+public final class SkillAlternatives {
 
     /** Ends a clause, so a series never reaches back past one. */
     private static final Pattern CLAUSE_END = Pattern.compile("[:;()\\[\\]]|\\.\\s");
@@ -48,7 +48,7 @@ final class SkillAlternatives {
      * @param skills      the skills it requires
      * @param anyOfSkills the skills it offers as alternatives, empty if none
      */
-    record Split(List<String> skills, List<String> anyOfSkills) {
+    public record Split(List<String> skills, List<String> anyOfSkills) {
     }
 
     /**
@@ -58,7 +58,7 @@ final class SkillAlternatives {
      * @return the skills split into required ones and alternatives. Unchanged
      *         if the text offers no choice of two or more of them
      */
-    static Split of(String text, List<String> skills, SkillCanonicalizer canonicalizer) {
+    public static Split of(String text, List<String> skills, SkillCanonicalizer canonicalizer) {
         if (skills.size() < 2) {
             return new Split(skills, List.of());
         }

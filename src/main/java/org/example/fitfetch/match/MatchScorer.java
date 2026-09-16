@@ -7,6 +7,7 @@ import org.example.fitfetch.match.MatchResult.SignalMatch;
 import org.example.fitfetch.normalize.NormalizedData;
 import org.example.fitfetch.normalize.Signal;
 import org.example.fitfetch.normalize.SignalClassification;
+import org.example.fitfetch.normalize.SkillAlternatives;
 import org.example.fitfetch.profile.CandidateProfile;
 import org.example.fitfetch.skills.SkillCanonicalizer;
 
@@ -64,7 +65,7 @@ import java.util.stream.Collectors;
 public class MatchScorer {
 
     /** Version of the scoring rules; increment on any change to them. */
-    public static final int VERSION = 5;
+    public static final int VERSION = 6;
 
     /**
      * Below this cosine similarity a bullet says nothing about a signal; at
@@ -149,10 +150,11 @@ public class MatchScorer {
         List<BulletMatch> best = ranked.subList(0, Math.min(BEST_BULLETS, ranked.size()));
         double semantic = best.isEmpty() ? 0 : ramp(best.getFirst().similarity());
 
+        Demanded demanded = demanded(signal);
         List<String> matched = new ArrayList<>();
         List<String> missing = new ArrayList<>();
         List<String> ignored = new ArrayList<>();
-        for (String skill : named(signal.skills())) {
+        for (String skill : demanded.skills()) {
             if (!recognized(skill, yearsBySkill)) {
                 ignored.add(skill);
             } else if (heldLongEnough(skill, signal, yearsBySkill)) {
@@ -166,7 +168,7 @@ public class MatchScorer {
 
         // The alternatives are one skill between them: any one held meets it.
         List<String> alternatives = new ArrayList<>();
-        for (String skill : named(signal.anyOfSkills())) {
+        for (String skill : demanded.alternatives()) {
             (recognized(skill, yearsBySkill) ? alternatives : ignored).add(skill);
         }
         List<String> missingAlternatives = List.of();
@@ -184,6 +186,48 @@ public class MatchScorer {
         double bySkills = needed == 0 ? 0 : (double) met / needed;
         return new SignalMatch(index, signal.classification(), Math.max(semantic, bySkills),
                 new ArrayList<>(best), matched, missing, missingAlternatives, ignored);
+    }
+
+    /**
+     * What a signal asks for: the skills it requires, and the ones it offers a
+     * choice between.
+     *
+     * @param skills       every skill required, the model's and the sentence's
+     * @param alternatives the choice it offers, empty if it offers none
+     */
+    private record Demanded(List<String> skills, List<String> alternatives) {
+    }
+
+    /**
+     * Reads what a signal asks for from its own sentence as well as from the
+     * model's lists.
+     *
+     * <p>The model is an unreliable witness to its own answer: across versions
+     * 4 to 9 of the prompt it has named sixty phrases for one posting and none
+     * at all for the next, while the sentence it wrote said the same thing
+     * either way. The sentence is read with the same table scoring uses, so
+     * what it yields is exactly what could be counted, and an alias added later
+     * reaches every job without normalizing it again.
+     *
+     * <p>The model's own lists are kept: they carry skills the table does not
+     * know, which the profile may still list, and a choice it marked. Skills
+     * read from the sentence are split by {@link SkillAlternatives} in turn, so
+     * "Go, Python, or C#" is a choice however the model filed it.
+     */
+    private Demanded demanded(Signal signal) {
+        List<String> listed = named(signal.skills());
+        List<String> alternatives = named(signal.anyOfSkills());
+        List<String> known = new ArrayList<>(listed);
+        known.addAll(alternatives);
+        List<String> fromText = skills.skillsNamedIn(signal.text()).stream()
+                .filter(skill -> known.stream().noneMatch(skill::equalsIgnoreCase))
+                .toList();
+        SkillAlternatives.Split split = SkillAlternatives.of(signal.text(), fromText, skills);
+
+        List<String> required = new ArrayList<>(listed);
+        required.addAll(split.skills());
+        return new Demanded(skills.canonicalAll(required),
+                alternatives.isEmpty() ? split.anyOfSkills() : alternatives);
     }
 
     /**
@@ -254,8 +298,9 @@ public class MatchScorer {
         for (Signal signal : job.signals()) {
             if (signal.classification() == SignalClassification.REQUIRED_SKILL
                     || signal.classification() == SignalClassification.REQUIRED_QUALIFICATION) {
-                recognizedKeys(signal.skills(), yearsBySkill).forEach(required::add);
-                Set<String> group = recognizedKeys(signal.anyOfSkills(), yearsBySkill);
+                Demanded demanded = demanded(signal);
+                recognizedKeys(demanded.skills(), yearsBySkill).forEach(required::add);
+                Set<String> group = recognizedKeys(demanded.alternatives(), yearsBySkill);
                 if (!group.isEmpty()) {
                     alternatives.add(group);
                 }
