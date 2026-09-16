@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -44,6 +45,15 @@ public class OllamaSignalExtractor implements LlmSignalExtractor {
     private static final Logger LOGGER = LoggerFactory.getLogger(OllamaSignalExtractor.class);
     private static final String GENERATE_PATH = "/api/generate";
     private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    /**
+     * A number of years, as postings write it: "5+ years", "3-5 years", "3 to 5
+     * yrs", "two years".
+     */
+    private static final Pattern STATES_YEARS = Pattern.compile(
+            "\\b(?:\\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten)\\s*\\+?"
+                    + "\\s*(?:(?:-|–|to)\\s*\\d{1,2}\\s*\\+?\\s*)?(?:years?|yrs?)\\b",
+            Pattern.CASE_INSENSITIVE);
 
     private final RestClient restClient;
     private final String baseUrl;
@@ -252,6 +262,10 @@ public class OllamaSignalExtractor implements LlmSignalExtractor {
      * <p>A skill the model put in both lists is an alternative, since that is
      * the narrower claim: kept in {@code skills} it would count as required. A
      * single alternative is no choice at all, so it joins the required skills.
+     *
+     * <p>Years are kept only if the signal's text states a number of years. The
+     * model copies a posting's one "3+ years" onto most of its signals, and
+     * scoring would then ask for 3 years of every skill they name.
      */
     private Signal signal(SignalPayload.Item item) {
         SignalClassification classification = SignalClassification.fromLabel(item.classification());
@@ -271,7 +285,13 @@ public class OllamaSignalExtractor implements LlmSignalExtractor {
             required = required.stream()
                     .filter(skill -> !alternatives.contains(skill.toLowerCase(Locale.ROOT))).toList();
         }
-        return new Signal(classification, text, required, anyOf, years(item.minYears()));
+        int minYears = years(item.minYears());
+        if (minYears > 0 && !STATES_YEARS.matcher(text).find()) {
+            LOGGER.debug("Cleared {} years from a signal that states none: {}", minYears, text);
+            recordFallback("min_years");
+            minYears = 0;
+        }
+        return new Signal(classification, text, required, anyOf, minYears);
     }
 
     /** @return the skills the text names, in order, having counted each one dropped */

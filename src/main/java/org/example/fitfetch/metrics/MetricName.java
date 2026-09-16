@@ -161,7 +161,8 @@ public enum MetricName {
      * A job-level field or signal section the model left out or answered outside
      * the schema, so a fallback was used, tagged with the {@code field}
      * ({@code normalize.field.fallback.count}). An early sign of the model
-     * drifting from the schema.
+     * drifting from the schema. {@code min_years} counts a signal's years
+     * cleared because its text states none.
      */
     NORMALIZE_FIELD_FALLBACK_COUNT("normalize.field.fallback.count"),
     /**
