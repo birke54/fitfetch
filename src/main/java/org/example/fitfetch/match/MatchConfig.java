@@ -1,5 +1,6 @@
 package org.example.fitfetch.match;
 
+import org.example.fitfetch.skills.SkillCanonicalizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -7,9 +8,12 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class MatchConfig {
 
-    /** @return the scoring rules */
+    /**
+     * @param skills the same table normalization and the profile go through
+     * @return the scoring rules
+     */
     @Bean
-    public MatchScorer matchScorer() {
-        return new MatchScorer();
+    public MatchScorer matchScorer(SkillCanonicalizer skills) {
+        return new MatchScorer(skills);
     }
 }

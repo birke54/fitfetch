@@ -22,7 +22,7 @@ class MatchResultJsonTest {
     void testRoundTrip() {
         List<SignalMatch> signals = List.of(new SignalMatch(0, SignalClassification.REQUIRED_SKILL, 0.75,
                 List.of(new BulletMatch("acme-kafka-migration", 0.83)), List.of("Kafka"), List.of("Spark"),
-                List.of("AWS", "Azure", "GCP")));
+                List.of("AWS", "Azure", "GCP"), List.of("bounded suppression")));
         ScoreParts parts = new ScoreParts(0.7, 0.5, 0.85, -15);
 
         List<SignalMatch> readSignals = MAPPER.readValue(MAPPER.writeValueAsString(signals), new TypeReference<>() {

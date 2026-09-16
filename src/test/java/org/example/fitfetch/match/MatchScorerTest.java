@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class MatchScorerTest {
 
-    private final MatchScorer scorer = new MatchScorer();
+    private final MatchScorer scorer = new MatchScorer(MatchFixtures.SKILLS);
 
     private static Signal required(String text, String... skills) {
         return new Signal(SignalClassification.REQUIRED_SKILL, text, List.of(skills), 0);
@@ -111,16 +111,73 @@ class MatchScorerTest {
                 profile(skills("VPCs", "subnetting", "VPNs", "routing"), "one"), weak).signals().getFirst();
 
         assertEquals(4.0 / 9, noCloud.coverage(), 1e-9, "four of eight skills, and none of the alternatives");
-        assertEquals(List.of("VPCs", "subnetting", "routing", "VPNs"), noCloud.matchedSkills());
-        assertEquals(List.of("peering", "private link", "private service connect", "CDNs"), noCloud.missingSkills());
+        assertEquals(List.of("VPC", "Subnetting", "Routing", "VPN"), noCloud.matchedSkills(),
+                "reported by the table's names, whatever the job and profile spelled");
+        assertEquals(List.of("Peering", "PrivateLink", "Private Service Connect", "CDN"), noCloud.missingSkills());
         assertEquals(List.of("AWS", "Azure", "GCP"), noCloud.missingAlternatives());
 
         MatchResult.SignalMatch onAws = scorer.score(job(cloudNetworking()), signalVectors(1),
                 profile(skills("VPCs", "subnetting", "VPNs", "routing", "aws"), "one"), weak).signals().getFirst();
 
         assertEquals(5.0 / 9, onAws.coverage(), 1e-9, "AWS alone meets the alternatives");
-        assertEquals(List.of("VPCs", "subnetting", "routing", "VPNs", "AWS"), onAws.matchedSkills());
+        assertEquals(List.of("VPC", "Subnetting", "Routing", "VPN", "AWS"), onAws.matchedSkills());
         assertEquals(List.of(), onAws.missingAlternatives());
+    }
+
+    @Test
+    @DisplayName("Phrases that are not skills count neither way, and are reported as ignored")
+    void testUnrecognizedSkillsIgnored() {
+        // A real posting's signal, whose "skills" are phrases from its own text.
+        Signal signal = required("Design safety and quality gates for agent-authored content.",
+                "Kafka", "bounded suppression", "structured verdicts");
+
+        MatchResult.SignalMatch match = scorer.score(job(signal), signalVectors(1),
+                profile(skills("Kafka"), "one"), Map.of("one", similarity(0.1))).signals().getFirst();
+
+        assertEquals(1.0, match.coverage(), "Kafka is the only skill among them, and the profile has it");
+        assertEquals(List.of("Kafka"), match.matchedSkills());
+        assertEquals(List.of(), match.missingSkills());
+        assertEquals(List.of("bounded suppression", "structured verdicts"), match.ignoredSkills());
+    }
+
+    @Test
+    @DisplayName("A phrase the profile itself lists counts, since it is a skill to the candidate")
+    void testProfileSkillRecognized() {
+        Signal signal = required("Builds observability for agents.", "observability", "exit codes");
+
+        MatchResult.SignalMatch match = scorer.score(job(signal), signalVectors(1),
+                profile(skills("observability"), "one"), Map.of("one", similarity(0.1))).signals().getFirst();
+
+        assertEquals(1.0, match.coverage());
+        assertEquals(List.of("observability"), match.matchedSkills());
+        assertEquals(List.of("exit codes"), match.ignoredSkills());
+    }
+
+    @Test
+    @DisplayName("Skill match counts only recognized skills, and alternatives only where one is")
+    void testSkillMatchIgnoresPhrases() {
+        NormalizedData job = job(required("A.", "Java", "right abstraction", "aligning stakeholders"),
+                new Signal(SignalClassification.REQUIRED_SKILL, "B.", List.of(),
+                        List.of("AWS", "Azure", "GCP"), 0),
+                new Signal(SignalClassification.REQUIRED_SKILL, "C.", List.of(),
+                        List.of("prototypes", "feedback"), 0));
+        Map<String, float[]> weak = Map.of("one", similarity(0.1));
+
+        assertEquals(0.5, scorer.score(job, signalVectors(3), profile(skills("Java"), "one"), weak)
+                .parts().skillMatch(), 1e-9, "Java of Java and one cloud; the phrases count for nothing");
+        assertEquals(1.0, scorer.score(job, signalVectors(3), profile(skills("Java", "GCP"), "one"), weak)
+                .parts().skillMatch(), 1e-9);
+    }
+
+    @Test
+    @DisplayName("A job's skills go through the table as they are read, so older spellings still match")
+    void testStoredSpellingCanonicalized() {
+        // As a job normalized before the alias existed stored it.
+        MatchResult.SignalMatch match = scorer.score(job(required("Knows Golang.", "golang")), signalVectors(1),
+                profile(skills("Go"), "one"), Map.of("one", similarity(0.1))).signals().getFirst();
+
+        assertEquals(List.of("Go"), match.matchedSkills());
+        assertEquals(1.0, match.coverage());
     }
 
     @Test

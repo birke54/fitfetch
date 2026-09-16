@@ -63,16 +63,22 @@ public record MatchResult(int score, boolean eligible, List<String> gateFailures
      * @param missingAlternatives its alternatives, when the profile has none of
      *                            them with enough years; empty if it has one or
      *                            the signal offers none
+     * @param ignoredSkills       what it listed as skills that neither the skill
+     *                            table nor the profile knows, which count
+     *                            neither way. A growing list of real ones means
+     *                            the table needs them
      */
     public record SignalMatch(int index, SignalClassification classification, double coverage,
                               List<BulletMatch> bestBullets, List<String> matchedSkills,
-                              List<String> missingSkills, List<String> missingAlternatives) {
+                              List<String> missingSkills, List<String> missingAlternatives,
+                              List<String> ignoredSkills) {
 
         public SignalMatch {
             bestBullets = List.copyOf(bestBullets);
             matchedSkills = List.copyOf(matchedSkills);
             missingSkills = List.copyOf(missingSkills);
             missingAlternatives = missingAlternatives == null ? List.of() : List.copyOf(missingAlternatives);
+            ignoredSkills = ignoredSkills == null ? List.of() : List.copyOf(ignoredSkills);
         }
     }
 

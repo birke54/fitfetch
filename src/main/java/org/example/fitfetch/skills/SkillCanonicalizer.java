@@ -138,6 +138,15 @@ public final class SkillCanonicalizer {
     }
 
     /**
+     * @param skill a skill, as written or canonical
+     * @return whether the table knows it, by either spelling
+     */
+    public boolean isKnown(String skill) {
+        Objects.requireNonNull(skill, "skill");
+        return canonicalByKey.containsKey(key(skill));
+    }
+
+    /**
      * Whether a text names a skill, by its canonical name or any alias of it.
      *
      * <p>A name must stand as whole words, ignoring case and runs of
