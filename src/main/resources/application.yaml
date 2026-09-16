@@ -65,7 +65,7 @@ app:
     connect-timeout: PT2S
     read-timeout: PT5S
   fetch:
-    enable: true
+    enable: ${FETCH_ENABLE:false}
     schedule: ${FETCH_CRON_SCHEDULE}
     read-slugs-list-in-parallel: false
     # Per-ATS fetch limits. Every ATS gets the defaults unless it has an entry
@@ -92,16 +92,16 @@ app:
       #   greenhouse:
       #     requests-per-second: 5
   normalize:
-    # Off by default: each job costs one model call over its whole description.
-    # Start small with environment variables, e.g. APP_NORMALIZE_ENABLE=true,
-    # APP_NORMALIZE_PAGESIZE=2 and APP_NORMALIZE_SCHEDULE="0 */10 * * * *",
-    # then raise them once the answers in normalized_jobs and the Ollama
-    # timings (http.client.requests) look right.
-    enable: true
-    schedule: "0 */10 * * * *"
+    # Each job costs one model call over its whole description, so start small
+    # with NORMALIZE_PAGE_SIZE and NORMALIZE_SCHEDULE, then raise them once the
+    # answers in normalized_jobs and the Ollama timings (http.client.requests)
+    # look right. A requeue is the time to raise the page size; lower it again
+    # afterwards.
+    enable: ${NORMALIZE_ENABLE:false}
+    schedule: "${NORMALIZE_SCHEDULE:0 */10 * * * *}"
     # Jobs per run. Each is one model call over a whole description, far slower
     # than a location label.
-    page-size: 2
+    page-size: ${NORMALIZE_PAGE_SIZE:2}
     # Only jobs with a location this close to app.location.default-origin are
     # normalized; the rest are marked OUT_OF_RANGE once and never sent to the
     # model. After widening this, requeue them (see NormalizeStatus.OUT_OF_RANGE).
@@ -127,13 +127,13 @@ app:
     # Ollama first (ollama pull nomic-embed-text). Embeds the profile's bullets
     # and one page of normalized jobs' signals per run; vectors are cached in
     # the embeddings table, so a restart or a repeated text costs no model call.
-    enable: false
-    schedule: "0 */10 * * * *"
+    enable: ${EMBEDDING_ENABLE:false}
+    schedule: "${EMBEDDING_SCHEDULE:0 */10 * * * *}"
     # Normalized jobs per run. A job is one batched call for its signals, far
     # cheaper than normalizing it.
-    page-size: 20
+    page-size: ${EMBEDDING_PAGE_SIZE:20}
     # Texts per call to the model.
-    batch-size: 32
+    batch-size: ${EMBEDDING_BATCH_SIZE:32}
     llm:
       base-url: ${OLLAMA_BASE_URL}
       model: ${OLLAMA_EMBED_MODEL:nomic-embed-text}
@@ -149,20 +149,20 @@ app:
     # job_matches, so it needs a profile and the embedding pass. Scoring is
     # local arithmetic, so a page can be large; a changed profile rescores
     # every job a page at a time.
-    enable: false
-    schedule: "0 */10 * * * *"
-    page-size: 100
+    enable: ${MATCH_ENABLE:false}
+    schedule: "${MATCH_SCHEDULE:0 */10 * * * *}"
+    page-size: ${MATCH_PAGE_SIZE:100}
   location:
     # On, but in warm-up only (below): with geocoding on, this fills the
     # interpretation and geocode caches and nothing else. The pass is a no-op
     # while disabled.
-    enable: true
+    enable: ${LOCATION_ENABLE:false}
     # Warm-up: resolve labels into the interpretation and geocode caches
     # without writing job_locations or changing any job's status, so model
     # answers and geocode queries can be checked first. Needs enable: true.
     # Switch it off to start writing; waiting jobs resolve from the caches.
-    warm-caches-only: false
-    schedule: "0 */5 * * * *"
+    warm-caches-only: ${LOCATION_WARM_CACHES_ONLY:false}
+    schedule: "${LOCATION_SCHEDULE:0 */5 * * * *}"
     # One page per run: a backlog clears steadily instead of a single invocation
     # holding the model and the geocoding budget for as long as it takes.
     page-size: ${LOCATION_PAGE_SIZE}
