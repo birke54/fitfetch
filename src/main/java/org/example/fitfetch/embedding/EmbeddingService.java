@@ -1,6 +1,9 @@
 package org.example.fitfetch.embedding;
 
 import org.example.fitfetch.domain.NormalizedJob;
+import org.example.fitfetch.metrics.MetricName;
+import org.example.fitfetch.metrics.MetricService;
+import org.example.fitfetch.metrics.TagName;
 import org.example.fitfetch.normalize.NormalizedJobRepository;
 import org.example.fitfetch.normalize.Signal;
 import org.example.fitfetch.profile.CandidateProfile;
@@ -14,6 +17,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -44,7 +48,13 @@ public class EmbeddingService {
     private final ProfileSource profileSource;
     private final ProfileEmbeddings profileEmbeddings;
     private final TransactionTemplate transactionTemplate;
+    private final MetricService metricService;
+    private final Clock clock;
     private final boolean enabled;
+
+    /** When the pass last ran without stopping, in epoch seconds, for its gauge. */
+    private final AtomicLong lastSuccess = new AtomicLong();
+
     private final int pageSize;
 
     /** Id of the last job the pass looked at; in memory only, like the other passes. */
@@ -58,6 +68,9 @@ public class EmbeddingService {
      * @param profileSource           the profile whose bullets are embedded
      * @param profileEmbeddings       where the bullet vectors are held
      * @param transactionTemplate     scopes the mark on each job
+     * @param metricService           where stops and the pass's liveness are
+     *                                recorded
+     * @param clock                   time source
      * @param enabled                 {@code app.embedding.enable}
      * @param pageSize                {@code app.embedding.page-size}
      */
@@ -67,6 +80,8 @@ public class EmbeddingService {
                             ProfileSource profileSource,
                             ProfileEmbeddings profileEmbeddings,
                             TransactionTemplate transactionTemplate,
+                            MetricService metricService,
+                            Clock clock,
                             @Value("${app.embedding.enable}") boolean enabled,
                             @Value("${app.embedding.page-size}") int pageSize) {
         this.normalizedJobRepository = normalizedJobRepository;
@@ -75,8 +90,15 @@ public class EmbeddingService {
         this.profileSource = profileSource;
         this.profileEmbeddings = profileEmbeddings;
         this.transactionTemplate = transactionTemplate;
+        this.metricService = metricService;
+        this.clock = clock;
         this.enabled = enabled;
         this.pageSize = pageSize;
+
+        // Starts at startup rather than zero, so the gauge's age is how long the
+        // pass has gone without a successful run, not how long since 1970.
+        lastSuccess.set(clock.instant().getEpochSecond());
+        metricService.registerGauge(MetricName.EMBEDDING_PASS_LAST_SUCCESS_SECONDS, Map.of(), lastSuccess::get);
     }
 
     /** Cron entry point (schedule from {@code app.embedding.schedule}). */
@@ -89,14 +111,21 @@ public class EmbeddingService {
         try {
             embedProfile();
             int embedded = embedOnePage();
+            lastSuccess.set(clock.instant().getEpochSecond());
             if (embedded > 0) {
                 LOGGER.info("Embedded the signals of {} jobs", embedded);
             }
         } catch (EmbeddingException e) {
             LOGGER.warn("Embedding pass stopped early, model unavailable: {}", e.getMessage());
+            recordStopped("model_unavailable");
         } catch (RuntimeException e) {
             LOGGER.error("Embedding pass failed, will retry", e);
+            recordStopped("error");
         }
+    }
+
+    private void recordStopped(String reason) {
+        metricService.recordCounter(MetricName.EMBEDDING_PASS_STOPPED_COUNT, Map.of(TagName.REASON, reason));
     }
 
     /**

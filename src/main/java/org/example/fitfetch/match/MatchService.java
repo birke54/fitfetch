@@ -26,6 +26,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Scheduled pass that scores embedded jobs against the candidate profile and
@@ -56,6 +57,10 @@ public class MatchService {
     private final MetricService metricService;
     private final Clock clock;
     private final boolean enabled;
+
+    /** When the pass last ran without stopping, in epoch seconds, for its gauge. */
+    private final AtomicLong lastSuccess = new AtomicLong();
+
     private final int pageSize;
 
     /** Id of the last job the pass looked at; in memory only, like the other passes. */
@@ -99,6 +104,11 @@ public class MatchService {
         this.clock = clock;
         this.enabled = enabled;
         this.pageSize = pageSize;
+
+        // Starts at startup rather than zero, so the gauge's age is how long the
+        // pass has gone without a successful run, not how long since 1970.
+        lastSuccess.set(clock.instant().getEpochSecond());
+        metricService.registerGauge(MetricName.MATCH_PASS_LAST_SUCCESS_SECONDS, Map.of(), lastSuccess::get);
     }
 
     /** Cron entry point (schedule from {@code app.match.schedule}). */
@@ -110,14 +120,27 @@ public class MatchService {
         }
         try {
             int scored = scoreOnePage();
+            lastSuccess.set(clock.instant().getEpochSecond());
             if (scored > 0) {
                 LOGGER.info("Scored {} jobs against the profile", scored);
             }
+        } catch (MissingProfileException e) {
+            // Not an error, but not a working pass either: enabled with nothing
+            // to score against produces no matches at all, and without this it
+            // would look exactly like a pass with nothing left to do.
+            LOGGER.info("Matching pass has no candidate profile; nothing to score against");
+            recordStopped("no_profile");
         } catch (EmbeddingException e) {
             LOGGER.warn("Matching pass stopped early, embedding model unavailable: {}", e.getMessage());
+            recordStopped("model_unavailable");
         } catch (RuntimeException e) {
             LOGGER.error("Matching pass failed, will retry", e);
+            recordStopped("error");
         }
+    }
+
+    private void recordStopped(String reason) {
+        metricService.recordCounter(MetricName.MATCH_PASS_STOPPED_COUNT, Map.of(TagName.REASON, reason));
     }
 
     /**
@@ -126,11 +149,8 @@ public class MatchService {
      * @return how many jobs were scored
      */
     int scoreOnePage() {
-        LoadedProfile loaded = profileSource.current().orElse(null);
-        if (loaded == null) {
-            LOGGER.info("No candidate profile; nothing to score against");
-            return 0;
-        }
+        LoadedProfile loaded = profileSource.current()
+                .orElseThrow(() -> new MissingProfileException("no candidate profile is loaded"));
         embeddingService.embedProfile();
         String key = settings.key();
         Map<String, float[]> bulletVectors = profileEmbeddings.current()

@@ -116,10 +116,34 @@ public enum MetricName {
      */
     EMBEDDING_INPUTS_COUNT("embedding.inputs.count"),
     /**
+     * Seconds since the embedding pass last finished a run without stopping
+     * ({@code embedding.pass.last.success.seconds}). Starts at the time the app
+     * started, so a pass that has never run reads as stale rather than as 1970.
+     */
+    EMBEDDING_PASS_LAST_SUCCESS_SECONDS("embedding.pass.last.success.seconds"),
+    /**
+     * An embedding run ended early, tagged by {@code reason}
+     * ({@code embedding.pass.stopped.count}).
+     */
+    EMBEDDING_PASS_STOPPED_COUNT("embedding.pass.stopped.count"),
+    /**
      * Jobs scored against the profile, tagged with the {@code result}:
      * {@code eligible} or {@code excluded} by a gate ({@code match.jobs.scored.count}).
      */
     MATCH_JOBS_SCORED_COUNT("match.jobs.scored.count"),
+    /**
+     * Seconds since the matching pass last finished a run without stopping
+     * ({@code match.pass.last.success.seconds}). Starts at the time the app
+     * started, so a pass that has never run reads as stale rather than as 1970.
+     */
+    MATCH_PASS_LAST_SUCCESS_SECONDS("match.pass.last.success.seconds"),
+    /**
+     * A matching run ended early, tagged by {@code reason}
+     * ({@code match.pass.stopped.count}). {@code no_profile} is one of them:
+     * matching is enabled but has nothing to score against, which produces no
+     * matches and would otherwise look exactly like a quiet pass.
+     */
+    MATCH_PASS_STOPPED_COUNT("match.pass.stopped.count"),
     /**
      * Jobs the normalization pass dealt with, tagged with the {@code result}:
      * {@code normalized}, {@code failed}, {@code out_of_range} (swept without a

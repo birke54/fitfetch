@@ -10,6 +10,7 @@ import org.example.fitfetch.normalize.Signal;
 import org.example.fitfetch.normalize.SignalClassification;
 import org.example.fitfetch.normalize.Track;
 import org.example.fitfetch.profile.ProfileLoader;
+import org.example.fitfetch.metrics.MetricService;
 import org.example.fitfetch.profile.ProfileSource;
 import org.example.fitfetch.skills.SkillCanonicalizer;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,6 +23,9 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.nio.file.Path;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -34,9 +38,12 @@ class EmbeddingServiceTest {
             new EmbeddingSettings("nomic-embed-text", "search_query: ", "search_document: ");
     private static final String KEY = SETTINGS.key();
 
+    private static final Instant NOW = Instant.parse("2026-09-14T10:00:00Z");
+
     private NormalizedJobRepository normalizedJobs;
     private EmbeddingCache cache;
     private ProfileEmbeddings profileEmbeddings;
+    private MetricService metricService;
     private long nextId = 1L;
 
     @BeforeEach
@@ -44,6 +51,7 @@ class EmbeddingServiceTest {
         normalizedJobs = mock(NormalizedJobRepository.class);
         cache = mock(EmbeddingCache.class);
         profileEmbeddings = new ProfileEmbeddings();
+        metricService = mock(MetricService.class);
         when(cache.vectorsFor(anyList())).thenAnswer(invocation -> {
             List<String> inputs = invocation.getArgument(0);
             return inputs.stream().map(text -> new float[]{text.length()}).toList();
@@ -57,7 +65,7 @@ class EmbeddingServiceTest {
             return null;
         }).when(template).executeWithoutResult(any());
         return new EmbeddingService(normalizedJobs, cache, SETTINGS, profile, profileEmbeddings, template,
-                enabled, 20);
+                metricService, Clock.fixed(NOW, ZoneOffset.UTC), enabled, 20);
     }
 
     private static ProfileSource noProfile() {

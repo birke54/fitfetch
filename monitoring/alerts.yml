@@ -4,8 +4,10 @@
 # unit suffix (location.geocode.request -> location_geocode_request_seconds_count).
 #
 # The last-success gauges are registered even when a pass is disabled and then
-# never move, so silence FetchStale or LocationPassStale while app.fetch.enable
-# or app.location.enable is false.
+# never move, so silence a pass's staleness alert while its enable flag is
+# false: FetchStale, LocationPassStale, NormalizePassStale, EmbeddingPassStale
+# and MatchPassStale, against app.fetch.enable, app.location.enable,
+# app.normalize.enable, app.embedding.enable and app.match.enable.
 groups:
   - name: fitfetch
     rules:
@@ -158,3 +160,120 @@ groups:
           severity: ticket
         annotations:
           summary: "{{ $value | humanizePercentage }} of jobs from {{ $labels.ats }} were invalid in the last day"
+
+      # --- Normalize pass (runs every 10 minutes) ---
+
+      # Catch-all for any stop reason: model down, origin unavailable, database.
+      - alert: NormalizePassStale
+        expr: time() - normalize_pass_last_success_seconds{application="FitFetch"} > 60 * 60
+        labels:
+          severity: page
+        annotations:
+          summary: The normalization pass has not succeeded in over an hour
+          description: See normalize_pass_stopped_count_total by reason for why.
+
+      # Sampling is deterministic, so a FAILED job gives the same answer on every
+      # retry and is never tried again. They accumulate silently; these are what
+      # to look at after changing the prompt.
+      - alert: NormalizeFailuresClimbing
+        expr: increase(normalize_jobs_count_total{application="FitFetch", result="failed"}[1h]) > 5
+        labels:
+          severity: ticket
+        annotations:
+          summary: "{{ $value | printf \"%.0f\" }} jobs failed normalization in the last hour"
+          description: See normalize_jobs_failed_count_total by reason.
+
+      # prompt_too_long is refused before the call, cut_off means the answer ran
+      # past the window. Either needs context-length or the prompt changing.
+      - alert: NormalizeModelTruncating
+        expr: |
+          sum(increase(normalize_extraction_failure_count_total{application="FitFetch",
+              reason=~"prompt_too_long|cut_off"}[1h])) > 0
+        labels:
+          severity: ticket
+        annotations:
+          summary: The normalization model ran out of context
+
+      # Leaves out transport, which NormalizePassStale covers.
+      - alert: NormalizeModelBadOutput
+        expr: |
+          sum(increase(normalize_extraction_failure_count_total{application="FitFetch",
+              reason=~"unparseable_json|empty_body|no_seniority|no_signals"}[1h])) > 10
+        labels:
+          severity: ticket
+        annotations:
+          summary: "{{ $value | printf \"%.0f\" }} unusable normalization answers in the last hour"
+
+      # A job that has stopped the run STRIKE_LIMIT times is skipped but stays
+      # PENDING, so it never leaves the backlog and nothing else would show it.
+      - alert: NormalizeJobsSetAside
+        expr: increase(normalize_jobs_count_total{application="FitFetch", result="set_aside"}[6h]) > 0
+        labels:
+          severity: warn
+        annotations:
+          summary: Jobs are being set aside after repeated failures and will stay pending
+
+      - alert: NormalizeBacklogNotDraining
+        expr: |
+          normalize_jobs_backlog{application="FitFetch", status="pending"} > 0
+            and normalize_jobs_backlog{application="FitFetch", status="pending"}
+              >= normalize_jobs_backlog{application="FitFetch", status="pending"} offset 1d
+        for: 1h
+        labels:
+          severity: ticket
+        annotations:
+          summary: "{{ $value | printf \"%.0f\" }} jobs pending normalization, no fewer than a day ago"
+
+      # --- Posting age ---
+
+      # Aging out is a trickle once the first sweep is done. A sustained spike
+      # means app.normalize.max-age-days is tighter than the pipeline is fast,
+      # and jobs are crossing it while they queue rather than on the board.
+      - alert: NormalizeAgingOutJobs
+        expr: increase(normalize_jobs_count_total{application="FitFetch", result="too_old"}[1d]) > 50
+        labels:
+          severity: warn
+        annotations:
+          summary: "{{ $value | printf \"%.0f\" }} jobs aged out in the last day"
+          description: Compare max-age-days with how long the normalize backlog takes to clear.
+
+      # Greenhouse dates every posting, so this stays at zero. Nonzero means a
+      # board changed its payload and those jobs are aged from when we fetched
+      # them, which quietly defeats the age limit.
+      - alert: JobsMissingPostingDate
+        expr: increase(fetching_jobs_missing_posted_count_total{application="FitFetch"}[1d]) > 0
+        labels:
+          severity: ticket
+        annotations:
+          summary: "{{ $labels.ats }} published no posting date for {{ $value | printf \"%.0f\" }} jobs"
+
+      # --- Embedding pass (runs every 10 minutes) ---
+
+      - alert: EmbeddingPassStale
+        expr: time() - embedding_pass_last_success_seconds{application="FitFetch"} > 60 * 60
+        labels:
+          severity: page
+        annotations:
+          summary: The embedding pass has not succeeded in over an hour
+          description: See embedding_pass_stopped_count_total by reason for why.
+
+      # --- Match pass (runs every 10 minutes) ---
+
+      - alert: MatchPassStale
+        expr: time() - match_pass_last_success_seconds{application="FitFetch"} > 60 * 60
+        labels:
+          severity: page
+        annotations:
+          summary: The matching pass has not succeeded in over an hour
+          description: See match_pass_stopped_count_total by reason for why.
+
+      # Enabled with no profile scores nothing at all, and without this it looks
+      # exactly like a pass with nothing left to do. MatchPassStale fires too;
+      # this one says which fix is needed.
+      - alert: MatchHasNoProfile
+        expr: increase(match_pass_stopped_count_total{application="FitFetch", reason="no_profile"}[1h]) > 0
+        labels:
+          severity: ticket
+        annotations:
+          summary: Matching is enabled but no candidate profile is loaded
+          description: Set APP_PROFILE_PATH to a valid profile.yaml.
