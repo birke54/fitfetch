@@ -27,6 +27,7 @@
     "NoSQL": ["no sql", "no-sql"],
     "PostgreSQL": ["postgres", "postgre", "psql"],
     "MySQL": [],
+    "SQL Server": ["mssql", "ms sql", "microsoft sql server", "sqlserver", "t-sql", "tsql"],
     "MongoDB": ["mongo"],
     "Redis": [],
     "Caching": ["cache"],
