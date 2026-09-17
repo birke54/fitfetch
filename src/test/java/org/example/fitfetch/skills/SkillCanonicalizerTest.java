@@ -128,7 +128,7 @@ class SkillCanonicalizerTest {
 
         // As backend and AI postings' signals named them. Queues and messaging
         // are one skill, so the repeat is dropped.
-        assertEquals(List.of("PostgreSQL", "Schema Migrations", "caching", "Message Queues",
+        assertEquals(List.of("PostgreSQL", "Schema Migrations", "Caching", "Message Queues",
                         "Event-Driven Architecture"),
                 shipped.canonicalAll(List.of("PostgreSQL", "schema evolution", "caching", "queues", "messaging",
                         "event-driven workflows")));
