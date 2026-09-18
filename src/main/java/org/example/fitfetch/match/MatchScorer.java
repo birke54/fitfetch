@@ -65,7 +65,7 @@ import java.util.stream.Collectors;
 public class MatchScorer {
 
     /** Version of the scoring rules; increment on any change to them. */
-    public static final int VERSION = 7;
+    public static final int VERSION = 8;
 
     /**
      * Below this cosine similarity a bullet says nothing about a signal; at
@@ -210,9 +210,15 @@ public class MatchScorer {
      * reaches every job without normalizing it again.
      *
      * <p>The model's own lists are kept: they carry skills the table does not
-     * know, which the profile may still list, and a choice it marked. Skills
-     * read from the sentence are split by {@link SkillAlternatives} in turn, so
-     * "Go, Python, or C#" is a choice however the model filed it.
+     * know, which the profile may still list, and a choice it marked.
+     *
+     * <p>Where it marked no choice, its skills go through
+     * {@link SkillAlternatives} alongside the ones read from the sentence, so
+     * "Go, Python, or C#" is a choice however the model filed it. Reading only
+     * the sentence's own skills left the splitter blind to the case it exists
+     * for: every model tried files a choice under {@code skills}, and each
+     * option was then required outright, marking a candidate down for the ones
+     * they lack.
      */
     private Demanded demanded(Signal signal) {
         List<String> listed = named(signal.skills());
@@ -222,12 +228,20 @@ public class MatchScorer {
         List<String> fromText = skills.skillsNamedIn(signal.text()).stream()
                 .filter(skill -> known.stream().noneMatch(skill::equalsIgnoreCase))
                 .toList();
-        SkillAlternatives.Split split = SkillAlternatives.of(signal.text(), fromText, skills);
 
-        List<String> required = new ArrayList<>(listed);
-        required.addAll(split.skills());
-        return new Demanded(skills.canonicalAll(required),
-                alternatives.isEmpty() ? split.anyOfSkills() : alternatives);
+        if (!alternatives.isEmpty()) {
+            // The model marked the choice itself, so its skills list stands as
+            // written; only what it left out of both lists is still to be read.
+            List<String> required = new ArrayList<>(listed);
+            required.addAll(SkillAlternatives.of(signal.text(), fromText, skills).skills());
+            return new Demanded(skills.canonicalAll(required), alternatives);
+        }
+        // It marked none, so the sentence is the only witness to a choice, and
+        // the skills it listed are as likely to hold one as the ones it missed.
+        List<String> candidates = new ArrayList<>(listed);
+        candidates.addAll(fromText);
+        SkillAlternatives.Split split = SkillAlternatives.of(signal.text(), candidates, skills);
+        return new Demanded(skills.canonicalAll(split.skills()), split.anyOfSkills());
     }
 
     /**

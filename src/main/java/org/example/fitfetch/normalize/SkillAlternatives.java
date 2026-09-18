@@ -32,6 +32,13 @@ import java.util.regex.Pattern;
  * named ones must not count as missing. Those skills are dropped from both
  * lists; the signal's text still carries them for similarity.
  *
+ * <p>Two of the series' items must name a skill, or it is a choice of
+ * something else. Postings offer one constantly between verbs, and the skills
+ * they govern sit in a single item: "building, deploying, or securing AI/ML
+ * systems" chooses among the verbs, and holding one of AI and ML meets
+ * neither. A choice of skills puts one in each item, as "AWS, Azure, or GCP"
+ * does.
+ *
  * <p>This is a stateless holder; all members are static.
  */
 public final class SkillAlternatives {
@@ -53,6 +60,10 @@ public final class SkillAlternatives {
 
     /** The last item of a series: "…, or CI/CD workflows", "Java or Go". */
     private static final Pattern OR_ITEM = Pattern.compile("(,\\s*)?\\bor\\b\\s", Pattern.CASE_INSENSITIVE);
+
+    /** What separates the items of a series: its commas, and its "or". */
+    private static final Pattern ITEM_SEPARATOR = Pattern.compile(",\\s*|\\s+\\bor\\b\\s+",
+            Pattern.CASE_INSENSITIVE);
 
     /** A series left open, so the items named are only examples of it. */
     private static final Pattern OPEN_ENDED = Pattern.compile(
@@ -86,13 +97,29 @@ public final class SkillAlternatives {
             return new Split(skills, List.of());
         }
         List<String> named = skills.stream().filter(skill -> canonicalizer.isNamedIn(skill, series)).toList();
-        if (named.size() < 2) {
+        if (named.size() < 2 || !isChoiceOfSkills(series, named, canonicalizer)) {
             return new Split(skills, List.of());
         }
         List<String> required = new ArrayList<>(skills);
         required.removeAll(named);
         // An open-ended series names examples, so neither list should hold them.
         return new Split(required, OPEN_ENDED.matcher(series).find() ? List.of() : named);
+    }
+
+    /**
+     * @return whether the series chooses between skills rather than between
+     *         something else that happens to carry them: two of its items name
+     *         one. Every skill in one item means the choice is of what governs
+     *         them, and each option demands them all
+     */
+    private static boolean isChoiceOfSkills(String series, List<String> named, SkillCanonicalizer canonicalizer) {
+        int naming = 0;
+        for (String item : ITEM_SEPARATOR.split(series)) {
+            if (named.stream().anyMatch(skill -> canonicalizer.isNamedIn(skill, item))) {
+                naming++;
+            }
+        }
+        return naming >= 2;
     }
 
     /**

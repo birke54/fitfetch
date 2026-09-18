@@ -54,6 +54,31 @@ class SkillAlternativesTest {
     }
 
     @Test
+    @DisplayName("A choice between verbs is not a choice between the skills one of them governs")
+    void testVerbSeriesIsNotAChoice() {
+        // A real posting's signal: the "or" chooses among building, deploying
+        // and securing, and both skills sit in the one item that names any.
+        SkillAlternatives.Split split = split(
+                "Hands-on experience building, deploying, or securing AI/ML systems, "
+                        + "including LLM-based applications and agentic workflows",
+                "AI", "Machine Learning", "LLM");
+
+        assertEquals(List.of("AI", "Machine Learning", "LLM"), split.skills(),
+                "securing AI/ML systems demands both, whichever verb the reader picks");
+        assertEquals(List.of(), split.anyOfSkills());
+    }
+
+    @Test
+    @DisplayName("A skill in each item is a choice of skills, whatever introduces the series")
+    void testASkillInEachItem() {
+        SkillAlternatives.Split split = split("Experience with a major cloud platform: AWS, Azure, or GCP.",
+                "AWS", "Azure", "GCP");
+
+        assertEquals(List.of(), split.skills());
+        assertEquals(List.of("AWS", "Azure", "GCP"), split.anyOfSkills());
+    }
+
+    @Test
     @DisplayName("An open-ended choice names examples, so neither list keeps them")
     void testOpenEnded() {
         assertEquals(new SkillAlternatives.Split(List.of(), List.of()),
