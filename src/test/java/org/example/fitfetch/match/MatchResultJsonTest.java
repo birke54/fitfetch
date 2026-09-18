@@ -23,7 +23,7 @@ class MatchResultJsonTest {
         List<SignalMatch> signals = List.of(new SignalMatch(0, SignalClassification.REQUIRED_SKILL, 0.75,
                 List.of(new BulletMatch("acme-kafka-migration", 0.83)), List.of("Kafka"), List.of("Spark"),
                 List.of("AWS", "Azure", "GCP"), List.of("bounded suppression")));
-        ScoreParts parts = new ScoreParts(0.7, 0.5, 0.85, -15);
+        ScoreParts parts = new ScoreParts(0.7, 0.5, 0.85, -15, 4);
 
         List<SignalMatch> readSignals = MAPPER.readValue(MAPPER.writeValueAsString(signals), new TypeReference<>() {
         });
@@ -36,7 +36,7 @@ class MatchResultJsonTest {
     @Test
     @DisplayName("A job whose skills were never scored keeps that apart from having scored zero")
     void testUnscoredSkillMatch() {
-        ScoreParts parts = new ScoreParts(0.7, null, 0.85, 0);
+        ScoreParts parts = new ScoreParts(0.7, null, 0.85, 0, 1);
 
         ScoreParts read = MAPPER.readValue(MAPPER.writeValueAsString(parts), ScoreParts.class);
 

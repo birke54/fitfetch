@@ -40,10 +40,11 @@ import java.util.stream.Collectors;
  *       profile holds it.</li>
  *   <li><strong>Skill match</strong> ({@value #SKILL_WEIGHT}): the share of
  *       the skills named in required signals that the profile has, each set
- *       of alternatives again counting as one. A job naming none this side
- *       knows is scored on the other two parts instead, weighed against each
- *       other: it cannot be told apart by a skill, and handing every candidate
- *       the full share would only lift it above jobs that can.</li>
+ *       of alternatives again counting as one. A job naming fewer than
+ *       {@value #MIN_SKILLS_SCORED} this side knows is scored on the other two
+ *       parts instead, weighed against each other: it cannot be told apart by
+ *       a skill, and handing every candidate the full share would only lift it
+ *       above jobs that can.</li>
  *   <li><strong>Level fit</strong> ({@value #LEVEL_WEIGHT}): how close the
  *       job's seniority band is to the profile's, and the profile's years
  *       against the job's minimum.</li>
@@ -67,7 +68,7 @@ import java.util.stream.Collectors;
 public class MatchScorer {
 
     /** Version of the scoring rules; increment on any change to them. */
-    public static final int VERSION = 9;
+    public static final int VERSION = 10;
 
     /**
      * Below this cosine similarity a bullet says nothing about a signal; at
@@ -88,6 +89,20 @@ public class MatchScorer {
 
     /** Bullets kept per signal: enough to tailor a resume from, few enough to store. */
     static final int BEST_BULLETS = 3;
+
+    /**
+     * Skills a job's required signals must name, of the ones this side knows,
+     * before their share is worth scoring.
+     *
+     * <p>A share is only as good as what it is taken over, and most postings
+     * name one or two skills the table can read however many they list. One of
+     * one is not a match, it is a single observation: a posting asking for an
+     * API and nothing else this side knows would hand the full share to anyone
+     * who has built one, and outrank a posting that named nine skills of which
+     * the profile holds six. Below this, the share is not scored at all, the
+     * same answer already given to a posting that names none.
+     */
+    static final int MIN_SKILLS_SCORED = 2;
 
     private final SkillCanonicalizer skills;
 
@@ -127,12 +142,13 @@ public class MatchScorer {
             totalWeight += weight;
         }
         double requirementCoverage = totalWeight == 0 ? 0 : weighted / totalWeight;
-        Double skillMatch = skillMatch(job, yearsBySkill);
+        SkillShare skillShare = skillMatch(job, yearsBySkill);
+        Double skillMatch = skillShare.share();
         double levelFit = levelFit(job, profile.summary());
         int domainAdjustment = domainAdjustment(job, profile.preferences());
 
-        // A job naming no skill this side knows cannot be told apart by one, so
-        // its share goes to the parts that can, rather than to every candidate.
+        // A job naming too few skills this side knows cannot be told apart by
+        // one, so its share goes to the parts that can, not to every candidate.
         double scored = COVERAGE_WEIGHT * requirementCoverage + LEVEL_WEIGHT * levelFit
                 + (skillMatch == null ? 0 : SKILL_WEIGHT * skillMatch);
         double weightInPlay = COVERAGE_WEIGHT + LEVEL_WEIGHT + (skillMatch == null ? 0 : SKILL_WEIGHT);
@@ -140,7 +156,8 @@ public class MatchScorer {
         int score = (int) Math.round(Math.max(0, Math.min(100, raw)));
         List<String> gateFailures = Gates.failures(job, profile);
         return new MatchResult(score, gateFailures.isEmpty(), gateFailures,
-                new ScoreParts(requirementCoverage, skillMatch, levelFit, domainAdjustment), signals);
+                new ScoreParts(requirementCoverage, skillMatch, levelFit, domainAdjustment, skillShare.named()),
+                signals);
     }
 
     private SignalMatch matchSignal(int index, Signal signal, float[] vector,
@@ -321,14 +338,26 @@ public class MatchScorer {
     }
 
     /**
-     * @return the share of distinct skills in required signals that the profile
-     *         has at all, or {@code null} if they name none this side knows. A
-     *         signal's alternatives count as one skill, held if any of them is.
-     *         Skills a signal will take an equivalent for are left out: there
-     *         is no share to hold of a requirement something unnamed can meet.
-     *         Years are judged per signal, in coverage
+     * A job's skill match and what it was taken over.
+     *
+     * @param share how much of what it named the profile holds, or {@code null}
+     *              where it named too few for a share to mean anything
+     * @param named how many it named that this side knows
      */
-    private Double skillMatch(NormalizedData job, Map<String, Integer> yearsBySkill) {
+    private record SkillShare(Double share, int named) {
+    }
+
+    /**
+     * @return the share of distinct skills in required signals that the profile
+     *         has at all, with how many there were. The share is {@code null}
+     *         below {@value #MIN_SKILLS_SCORED} of them: one of one says no
+     *         more than none of none. A signal's alternatives count as one
+     *         skill, held if any of them is. Skills a signal will take an
+     *         equivalent for are left out: there is no share to hold of a
+     *         requirement something unnamed can meet. Years are judged per
+     *         signal, in coverage
+     */
+    private SkillShare skillMatch(NormalizedData job, Map<String, Integer> yearsBySkill) {
         Set<String> required = new LinkedHashSet<>();
         Set<Set<String>> alternatives = new LinkedHashSet<>();
         for (Signal signal : job.signals()) {
@@ -343,12 +372,12 @@ public class MatchScorer {
             }
         }
         int total = required.size() + alternatives.size();
-        if (total == 0) {
-            return null;
+        if (total < MIN_SKILLS_SCORED) {
+            return new SkillShare(null, total);
         }
         long held = required.stream().filter(yearsBySkill::containsKey).count()
                 + alternatives.stream().filter(group -> group.stream().anyMatch(yearsBySkill::containsKey)).count();
-        return (double) held / total;
+        return new SkillShare((double) held / total, total);
     }
 
     /** @return the keys of the skills among these that count as skills at all */
