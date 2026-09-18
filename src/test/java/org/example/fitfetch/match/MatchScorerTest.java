@@ -98,6 +98,13 @@ class MatchScorerTest {
                 List.of("AWS", "Azure", "GCP"), 0);
     }
 
+    /** The same choice as {@link #cloudNetworking()}, filed where every model tried puts it. */
+    private static Signal cloudChoiceInSkills() {
+        return new Signal(SignalClassification.REQUIRED_SKILL,
+                "Experience with a major cloud platform: AWS, Azure, or GCP.",
+                List.of("AWS", "Azure", "GCP"), List.of(), 0);
+    }
+
     private static List<CandidateProfile.Skill> skills(String... names) {
         return java.util.Arrays.stream(names).map(name -> new CandidateProfile.Skill(name, 3)).toList();
     }
@@ -122,6 +129,26 @@ class MatchScorerTest {
         assertEquals(5.0 / 9, onAws.coverage(), 1e-9, "AWS alone meets the alternatives");
         assertEquals(List.of("VPC", "Subnetting", "Routing", "VPN", "AWS"), onAws.matchedSkills());
         assertEquals(List.of(), onAws.missingAlternatives());
+    }
+
+    @Test
+    @DisplayName("A choice the model filed under skills is still one skill, met by any of them")
+    void testAlternativesListedAsSkills() {
+        Map<String, float[]> weak = Map.of("one", similarity(0.1));
+
+        MatchResult.SignalMatch onAws = scorer.score(job(cloudChoiceInSkills()), signalVectors(1),
+                profile(skills("aws"), "one"), weak).signals().getFirst();
+
+        assertEquals(1.0, onAws.coverage(), 1e-9, "AWS alone meets the choice, as when the model marks it");
+        assertEquals(List.of("AWS"), onAws.matchedSkills());
+        assertEquals(List.of(), onAws.missingSkills(), "the options it did not hold are not each a miss");
+        assertEquals(List.of(), onAws.missingAlternatives());
+
+        MatchResult.SignalMatch none = scorer.score(job(cloudChoiceInSkills()), signalVectors(1),
+                profile(skills("Java"), "one"), weak).signals().getFirst();
+
+        assertEquals(0.0, none.coverage(), 1e-9, "holding none of them leaves the one skill they stand for unmet");
+        assertEquals(List.of("AWS", "Azure", "GCP"), none.missingAlternatives());
     }
 
     @Test
