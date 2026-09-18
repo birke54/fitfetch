@@ -152,6 +152,26 @@ class MatchScorerTest {
     }
 
     @Test
+    @DisplayName("A skill the posting takes an equivalent for credits the holder and costs everyone else nothing")
+    void testOpenEndedSkill() {
+        Map<String, float[]> weak = Map.of("one", similarity(0.1));
+        Signal signal = required("Familiarity with event streaming platforms (Kafka or similar).", "Kafka");
+
+        MatchResult.SignalMatch held = scorer.score(job(signal), signalVectors(1),
+                profile(skills("Kafka"), "one"), weak).signals().getFirst();
+
+        assertEquals(1.0, held.coverage(), 1e-9, "holding the named one meets the signal");
+        assertEquals(List.of("Kafka"), held.matchedSkills());
+
+        MatchResult.SignalMatch lacked = scorer.score(job(signal), signalVectors(1),
+                profile(skills("Java"), "one"), weak).signals().getFirst();
+
+        assertEquals(List.of(), lacked.missingSkills(), "what meets it may be something the posting never named");
+        assertEquals(List.of(), lacked.missingAlternatives());
+        assertEquals(0.0, lacked.coverage(), 1e-9, "nothing to count either way, so the bullets answer alone");
+    }
+
+    @Test
     @DisplayName("Phrases that are not skills count neither way, and are reported as ignored")
     void testUnrecognizedSkillsIgnored() {
         // A real posting's signal, whose "skills" are phrases from its own text.
