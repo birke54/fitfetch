@@ -81,12 +81,33 @@ class SkillAlternativesTest {
     @Test
     @DisplayName("An open-ended choice names examples, so neither list keeps them")
     void testOpenEnded() {
-        assertEquals(new SkillAlternatives.Split(List.of(), List.of()),
+        assertEquals(new SkillAlternatives.Split(List.of(), List.of(), List.of("Ruby on Rails", "Go")),
                 split("Experience with Ruby on Rails, Go, or any other modern backend language.",
                         "Ruby on Rails", "Go"));
-        assertEquals(new SkillAlternatives.Split(List.of(), List.of()),
+        assertEquals(new SkillAlternatives.Split(List.of(), List.of(), List.of("LangGraph", "LangChain")),
                 split("Experience with LangGraph, LangChain, or a comparable agent framework.",
                         "LangGraph", "LangChain"));
+    }
+
+    @Test
+    @DisplayName("One example is an open-ended choice too, which is how most postings write one")
+    void testOneOpenEndedExample() {
+        assertEquals(new SkillAlternatives.Split(List.of(), List.of(), List.of("Kafka")),
+                split("Familiarity with event streaming platforms (Kafka or similar).", "Kafka"));
+        assertEquals(new SkillAlternatives.Split(List.of(), List.of(), List.of("Kubernetes")),
+                split("Experience with Kubernetes, or similar orchestration systems.", "Kubernetes"));
+        // The bracket still ends a clause: in "Terraform (or any similar IaC
+        // tool)" the series is the parenthetical alone, and Terraform is outside
+        // it, as it is outside the choice in "Kubernetes - on AWS, Azure, or GCP".
+        assertEquals(new SkillAlternatives.Split(List.of("Terraform"), List.of(), List.of()),
+                split("Provisions infrastructure using Terraform (or any similar IaC tool)", "Terraform"));
+    }
+
+    @Test
+    @DisplayName("A lone skill the series does not open up stays required")
+    void testOneSkillClosedSeries() {
+        assertEquals(new SkillAlternatives.Split(List.of("Kafka"), List.of(), List.of()),
+                split("Build and operate the streaming platform or its consumers on Kafka.", "Kafka"));
     }
 
     @Test
@@ -134,10 +155,10 @@ class SkillAlternativesTest {
     @Test
     @DisplayName("A dash separates a heading from the list it introduces, so the choice stays in the list")
     void testChoiceDoesNotReachBackPastADash() {
-        assertEquals(new SkillAlternatives.Split(List.of("Kubernetes"), List.of("AWS", "Azure", "GCP")),
+        assertEquals(new SkillAlternatives.Split(List.of("Kubernetes"), List.of("AWS", "Azure", "GCP"), List.of()),
                 split("Operates Kubernetes — on AWS, Azure, or GCP.", "Kubernetes", "AWS", "Azure", "GCP"));
         // An en dash reads the same way.
-        assertEquals(new SkillAlternatives.Split(List.of("Kubernetes"), List.of("AWS", "Azure", "GCP")),
+        assertEquals(new SkillAlternatives.Split(List.of("Kubernetes"), List.of("AWS", "Azure", "GCP"), List.of()),
                 split("Operates Kubernetes – on AWS, Azure, or GCP.", "Kubernetes", "AWS", "Azure", "GCP"));
     }
 

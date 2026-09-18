@@ -35,7 +35,9 @@ import java.util.stream.Collectors;
  *       many of the signal's skills the profile has, weighted by the signal's
  *       section. A required skill counts more than a responsibility, which
  *       counts more than a nice-to-have. A signal's alternatives ("one of AWS,
- *       Azure, or GCP") count as one skill, met by any of them.</li>
+ *       Azure, or GCP") count as one skill, met by any of them, and a skill it
+ *       will take an equivalent for ("Kafka or similar") counts only where the
+ *       profile holds it.</li>
  *   <li><strong>Skill match</strong> ({@value #SKILL_WEIGHT}): the share of
  *       the skills named in required signals that the profile has, each set
  *       of alternatives again counting as one. A job naming none this side
@@ -65,7 +67,7 @@ import java.util.stream.Collectors;
 public class MatchScorer {
 
     /** Version of the scoring rules; increment on any change to them. */
-    public static final int VERSION = 8;
+    public static final int VERSION = 9;
 
     /**
      * Below this cosine similarity a bullet says nothing about a signal; at
@@ -183,19 +185,34 @@ public class MatchScorer {
                 met++;
             }
         }
+        // A skill the posting will take an equivalent for counts only when it is
+        // held: holding it meets the signal, and holding none of them is no
+        // miss, since what meets it may be something the posting never named.
+        for (String skill : demanded.openEnded()) {
+            if (!recognized(skill, yearsBySkill)) {
+                ignored.add(skill);
+            } else if (heldLongEnough(skill, signal, yearsBySkill)) {
+                matched.add(skill);
+                needed++;
+                met++;
+            }
+        }
+
         double bySkills = needed == 0 ? 0 : (double) met / needed;
         return new SignalMatch(index, signal.classification(), Math.max(semantic, bySkills),
                 new ArrayList<>(best), matched, missing, missingAlternatives, ignored);
     }
 
     /**
-     * What a signal asks for: the skills it requires, and the ones it offers a
-     * choice between.
+     * What a signal asks for: the skills it requires, the ones it offers a
+     * choice between, and the ones it will take an equivalent for.
      *
      * @param skills       every skill required, the model's and the sentence's
      * @param alternatives the choice it offers, empty if it offers none
+     * @param openEnded    what it names as examples of what it will take an
+     *                     equivalent for, empty if it names none
      */
-    private record Demanded(List<String> skills, List<String> alternatives) {
+    private record Demanded(List<String> skills, List<String> alternatives, List<String> openEnded) {
     }
 
     /**
@@ -232,16 +249,19 @@ public class MatchScorer {
         if (!alternatives.isEmpty()) {
             // The model marked the choice itself, so its skills list stands as
             // written; only what it left out of both lists is still to be read.
+            SkillAlternatives.Split marked = SkillAlternatives.of(signal.text(), fromText, skills);
             List<String> required = new ArrayList<>(listed);
-            required.addAll(SkillAlternatives.of(signal.text(), fromText, skills).skills());
-            return new Demanded(skills.canonicalAll(required), alternatives);
+            required.addAll(marked.skills());
+            return new Demanded(skills.canonicalAll(required), alternatives,
+                    skills.canonicalAll(marked.openEndedSkills()));
         }
         // It marked none, so the sentence is the only witness to a choice, and
         // the skills it listed are as likely to hold one as the ones it missed.
         List<String> candidates = new ArrayList<>(listed);
         candidates.addAll(fromText);
         SkillAlternatives.Split split = SkillAlternatives.of(signal.text(), candidates, skills);
-        return new Demanded(skills.canonicalAll(split.skills()), split.anyOfSkills());
+        return new Demanded(skills.canonicalAll(split.skills()), split.anyOfSkills(),
+                skills.canonicalAll(split.openEndedSkills()));
     }
 
     /**
@@ -304,6 +324,8 @@ public class MatchScorer {
      * @return the share of distinct skills in required signals that the profile
      *         has at all, or {@code null} if they name none this side knows. A
      *         signal's alternatives count as one skill, held if any of them is.
+     *         Skills a signal will take an equivalent for are left out: there
+     *         is no share to hold of a requirement something unnamed can meet.
      *         Years are judged per signal, in coverage
      */
     private Double skillMatch(NormalizedData job, Map<String, Integer> yearsBySkill) {

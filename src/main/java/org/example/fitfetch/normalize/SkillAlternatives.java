@@ -27,10 +27,12 @@ import java.util.regex.Pattern;
  * the posting states outright would join the choice, and holding any one of the
  * others would meet it.
  *
- * <p>An open-ended series ("or any other modern language") names examples of a
- * choice with no list, so a candidate with something unnamed meets it and the
- * named ones must not count as missing. Those skills are dropped from both
- * lists; the signal's text still carries them for similarity.
+ * <p>An open-ended series ("or any other modern language", "Kafka or similar")
+ * names examples of a choice with no list, so a candidate with something
+ * unnamed meets it and the named ones must not count as missing. They come
+ * back in their own list rather than in either of the other two: holding one
+ * meets the signal, and holding none is no miss. One example is enough, since
+ * a choice needs two options only where the posting names them all.
  *
  * <p>Two of the series' items must name a skill, or it is a choice of
  * something else. Postings offer one constantly between verbs, and the skills
@@ -73,37 +75,63 @@ public final class SkillAlternatives {
     }
 
     /**
-     * What a signal requires and what it offers a choice of.
+     * What a signal requires, what it offers a choice of, and what it will take
+     * an equivalent for.
      *
-     * @param skills      the skills it requires
-     * @param anyOfSkills the skills it offers as alternatives, empty if none
+     * @param skills          the skills it requires
+     * @param anyOfSkills     the skills it offers as alternatives, empty if
+     *                        none. One of them meets the signal; none of them
+     *                        misses it
+     * @param openEndedSkills the skills it names as examples of what it will
+     *                        take an equivalent for, empty if none. One of them
+     *                        meets the signal; none of them is no miss, since
+     *                        what meets it may be something it never named
      */
-    public record Split(List<String> skills, List<String> anyOfSkills) {
+    public record Split(List<String> skills, List<String> anyOfSkills, List<String> openEndedSkills) {
     }
 
     /**
      * @param text          the signal's text
      * @param skills        its skills, canonical and named in the text
      * @param canonicalizer knows every spelling of a skill
-     * @return the skills split into required ones and alternatives. Unchanged
-     *         if the text offers no choice of two or more of them
+     * @return the skills split into the ones required outright, the ones the
+     *         text offers a choice between, and the ones it will take an
+     *         equivalent for. All required where it offers neither
      */
     public static Split of(String text, List<String> skills, SkillCanonicalizer canonicalizer) {
-        if (skills.size() < 2) {
-            return new Split(skills, List.of());
+        if (skills.isEmpty()) {
+            return allRequired(skills);
         }
         String series = series(text);
         if (series == null) {
-            return new Split(skills, List.of());
+            return allRequired(skills);
         }
         List<String> named = skills.stream().filter(skill -> canonicalizer.isNamedIn(skill, series)).toList();
-        if (named.size() < 2 || !isChoiceOfSkills(series, named, canonicalizer)) {
-            return new Split(skills, List.of());
+        if (named.isEmpty()) {
+            return allRequired(skills);
         }
-        List<String> required = new ArrayList<>(skills);
-        required.removeAll(named);
-        // An open-ended series names examples, so neither list should hold them.
-        return new Split(required, OPEN_ENDED.matcher(series).find() ? List.of() : named);
+        boolean openEnded = OPEN_ENDED.matcher(series).find();
+        if (named.size() < 2) {
+            // One option is no choice. Only an open-ended series leaves a lone
+            // skill anything but required, since what meets it need not be named.
+            return openEnded ? new Split(without(skills, named), List.of(), named) : allRequired(skills);
+        }
+        if (!isChoiceOfSkills(series, named, canonicalizer)) {
+            return allRequired(skills);
+        }
+        return openEnded
+                ? new Split(without(skills, named), List.of(), named)
+                : new Split(without(skills, named), named, List.of());
+    }
+
+    private static Split allRequired(List<String> skills) {
+        return new Split(skills, List.of(), List.of());
+    }
+
+    private static List<String> without(List<String> skills, List<String> named) {
+        List<String> rest = new ArrayList<>(skills);
+        rest.removeAll(named);
+        return rest;
     }
 
     /**
