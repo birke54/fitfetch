@@ -29,10 +29,11 @@ import java.time.OffsetDateTime;
         defaultImpl = GreenhouseJobEntry.class
 )
 @JsonSubTypes({
-        @JsonSubTypes.Type(value = GreenhouseJobEntry.class, name = "GREENHOUSE")
+        @JsonSubTypes.Type(value = GreenhouseJobEntry.class, name = "GREENHOUSE"),
+        @JsonSubTypes.Type(value = AshbyJobEntry.class, name = "ASHBY")
         // Add future integrations here (e.g. Lever, Workday)
 })
-public sealed interface AtsJobEntry permits GreenhouseJobEntry {
+public sealed interface AtsJobEntry permits GreenhouseJobEntry, AshbyJobEntry {
 
     /** @return the human-readable ATS provider name (e.g. {@code "Greenhouse"}) */
     String atsName();
@@ -41,18 +42,16 @@ public sealed interface AtsJobEntry permits GreenhouseJobEntry {
     String content();
 
     /**
-     * Returns the identifier this job is known by, the sole identity on this
-     * interface: providers do not agree on a shape, Greenhouse numbering its
-     * postings and others using a UUID, so the string is the only form they
-     * share.
+     * Returns the provider's own identifier for this job.
      *
-     * <p>Combined with {@link #atsName()} it uniquely identifies a job and is
-     * what dedup checks use. May be {@code null} when the payload carried no
-     * identifier at all, which makes the entry unusable; callers drop such an
-     * entry rather than store it.
+     * <p>This is the sole identifier on the contract: providers disagree on its
+     * shape &mdash; Greenhouse numbers its jobs, others use opaque strings
+     * &mdash; so it is carried as a {@code String} rather than a numeric type.
+     * Combined with {@link #atsName()} it uniquely identifies a job, and it is
+     * what dedup checks key on.
      *
      * @return the provider job identifier, or {@code null} if the payload
-     *         carried none
+     *         carried none; callers drop such an entry as unusable
      */
     String jobId();
 

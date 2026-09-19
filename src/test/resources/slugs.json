@@ -2,13 +2,18 @@
   "crawl": "https://index.commoncrawl.org/CC-MAIN-2026-21-index",
   "max_pages": 1000,
   "counts": {
-    "greenhouse": 5
+    "greenhouse": 2,
+    "ashby": 2
   },
-  "total_unique_slugs": 5,
+  "total_unique_slugs": 4,
   "ats": {
     "greenhouse": [
       "1uphealth",
       "warp"
+    ],
+    "ashby": [
+      "acmerobotics",
+      "northwind"
     ]
   },
   "fusions": [
