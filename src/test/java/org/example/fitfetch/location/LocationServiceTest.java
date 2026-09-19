@@ -18,6 +18,7 @@ import org.example.fitfetch.metrics.TagName;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.stubbing.OngoingStubbing;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.slf4j.LoggerFactory;
@@ -792,11 +793,17 @@ class LocationServiceTest {
     void testSuccessClearsStrikes() {
         FetchedJob flaky = job("Flaky");
         pageContains(flaky);
-        when(resolver.resolve("Flaky"))
-                .thenThrow(new LocationExtractionException("HTTP 500"))
-                .thenThrow(new LocationExtractionException("HTTP 500"))
-                .thenThrow(new LocationExtractionException("HTTP 500"))
-                .thenReturn(List.of(resolved("Flaky", Resolution.PLACE, POINT)))
+        // Stubbed from STRIKE_LIMIT rather than a literal run of thenThrow: it
+        // takes exactly STRIKE_LIMIT failures to strike a label out, and the
+        // retry that follows is the run this test is about. Spelling the
+        // failures out meant that lowering the limit left the success stub
+        // unreachable, and the test failed on a change to a constant it was
+        // supposed to be describing.
+        OngoingStubbing<List<ResolvedLocation>> stub = when(resolver.resolve("Flaky"));
+        for (int i = 0; i < LocationService.STRIKE_LIMIT; i++) {
+            stub = stub.thenThrow(new LocationExtractionException("HTTP 500"));
+        }
+        stub.thenReturn(List.of(resolved("Flaky", Resolution.PLACE, POINT)))
                 .thenThrow(new LocationExtractionException("HTTP 500"));
 
         runs(LocationService.STRIKE_LIMIT + 1);

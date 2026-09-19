@@ -1,0 +1,49 @@
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A second push to the same branch makes the first run's answer irrelevant.
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # The toolchain asks for 26; installing it here means Gradle uses this JDK
+      # rather than downloading one of its own on every run.
+      - name: Set up JDK 26
+        uses: actions/setup-java@v4
+        with:
+          java-version: '26'
+          distribution: temurin
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # FitFetchApplicationTests starts a Postgres container through
+      # Testcontainers, using the Docker daemon the runner already provides.
+      # Nothing else in the suite needs a service.
+      - name: Test
+        run: ./gradlew test --no-daemon
+
+      # The grep-able summary is in the log; this is for reading a failure in
+      # detail without rerunning anything locally.
+      - name: Upload test report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: build/reports/tests/test
+          retention-days: 7
