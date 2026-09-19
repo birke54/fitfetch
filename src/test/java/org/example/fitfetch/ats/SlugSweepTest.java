@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.TimeUnit;
@@ -54,6 +55,10 @@ class SlugSweepTest {
 
     private SlugSweep<GreenhouseJobEntry> sweep(Fetch<GreenhouseJobEntry> fetch, int maxConcurrent) {
         return new SlugSweep<>(AtsName.GREENHOUSE, fetch, metricService, maxConcurrent);
+    }
+
+    private SlugSweep<GreenhouseJobEntry> sweep(int maxConcurrent, Predicate<GreenhouseJobEntry> keep) {
+        return new SlugSweep<>(AtsName.GREENHOUSE, fetcher, metricService, maxConcurrent, keep);
     }
 
     private GreenhouseJobEntry job(Long id, String title) {
@@ -264,6 +269,69 @@ class SlugSweepTest {
 
         verify(metricService).recordCounter(MetricName.SLUG_FETCH_ERROR_COUNT, ATS_TAG);
         verify(metricService, never()).recordCounter(eq(MetricName.SLUG_FETCH_MISSING_COUNT), anyMap());
+    }
+
+    @Test
+    @DisplayName("A job the board's own predicate rejects is left out and counted as filtered")
+    void testKeepPredicateRejects() {
+        when(fetcher.fetchJobs("alpha")).thenReturn(jobs(
+                job(1L, "Backend Engineer"),
+                job(2L, "Backend Engineer"),        // rejected by the board's rule
+                job(3L, "Backend Engineer")));
+
+        // Typed on the provider's own record, so the rule reads its own fields.
+        List<AtsJobEntry> kept = sweep(1, entry -> entry.id() != 2L).run(List.of("alpha"), Set.of());
+
+        assertEquals(List.of("1", "3"), kept.stream().map(AtsJobEntry::jobId).toList());
+        verifyJobs("new", 2);
+        // Counted with the title rejections: both mean fetched, new and not wanted.
+        verifyJobs("filtered_title", 1);
+        verifyJobs("known", 0);
+        verifyJobs("invalid", 0);
+    }
+
+    @Test
+    @DisplayName("The predicate is offered only entries that are usable and new")
+    void testKeepPredicateSeesOnlyUsableNewJobs() {
+        // It runs last, so it may read the entry's fields without null-checking
+        // them and is never asked about a job that was going to be dropped anyway.
+        when(fetcher.fetchJobs("alpha")).thenReturn(jobs(
+                job(1L, "Backend Engineer"),
+                job(2L, "Backend Engineer"),        // already stored
+                job(3L, "Account Executive"),       // filtered by title
+                job(4L, null),                      // no title
+                job(null, "Backend Engineer"),      // no id
+                null));
+        List<Long> offered = java.util.Collections.synchronizedList(new ArrayList<>());
+
+        List<AtsJobEntry> kept = sweep(1, entry -> {
+            offered.add(entry.id());
+            return true;
+        }).run(List.of("alpha"), Set.of("2"));
+
+        assertEquals(List.of(1L), offered);
+        assertEquals(List.of("1"), kept.stream().map(AtsJobEntry::jobId).toList());
+        verifyJobs("invalid", 3);
+    }
+
+    @Test
+    @DisplayName("Without a predicate every job passing the shared checks is kept")
+    void testNoKeepPredicateKeepsEverything() {
+        when(fetcher.fetchJobs("alpha")).thenReturn(jobs(
+                job(1L, "Backend Engineer"),
+                job(2L, "Backend Engineer")));
+
+        List<AtsJobEntry> kept = sweep(1).run(List.of("alpha"), Set.of());
+
+        assertEquals(List.of("1", "2"), kept.stream().map(AtsJobEntry::jobId).toList());
+        verifyJobs("new", 2);
+        verifyJobs("filtered_title", 0);
+    }
+
+    @Test
+    @DisplayName("A null predicate is rejected")
+    void testNullKeepPredicate() {
+        assertThrows(NullPointerException.class, () -> sweep(1, null));
     }
 
     // ------------------------------------------------------------ throttling
