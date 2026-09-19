@@ -16,7 +16,9 @@ import java.util.Arrays;
  */
 public enum AtsName {
     /** The Greenhouse ATS (<a href="https://www.greenhouse.io/">greenhouse.io</a>). */
-    GREENHOUSE("Greenhouse");
+    GREENHOUSE("Greenhouse"),
+    /** The Ashby ATS (<a href="https://www.ashbyhq.com/">ashbyhq.com</a>). */
+    ASHBY("Ashby");
     // Add additional ATSs once implemented
 
     private final String stringValue;
