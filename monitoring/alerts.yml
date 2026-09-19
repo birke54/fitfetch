@@ -139,16 +139,37 @@ groups:
           summary: "{{ $labels.ats }} saved no new jobs in 2 days"
 
       # The name regex copes with a counter that has not been created yet. Dead
-      # slugs give a nonzero baseline; measure it and set the threshold above it.
+      # slugs are counted as fetching_missing_count_total, not as errors, so they
+      # no longer inflate this rate -- but they stay in the denominator. Leaving
+      # them out of both halves would make a board path change read 0/0, which
+      # never fires: see FetchBoardsMostlyMissing, which is what catches that.
       - alert: FetchErrorRateHigh
         expr: |
           sum by (ats) (increase({__name__=~"fetching_(error|null_response)_count_total", application="FitFetch"}[1d]))
-            / sum by (ats) (increase({__name__=~"fetching_(success|error|null_response)_count_total", application="FitFetch"}[1d]))
+            / sum by (ats) (increase({__name__=~"fetching_(success|error|null_response|missing)_count_total", application="FitFetch"}[1d]))
             > 0.10
         labels:
           severity: warn
         annotations:
           summary: "{{ $value | humanizePercentage }} of {{ $labels.ats }} slug fetches failed in the last day"
+
+      # A 404 is ordinary one slug at a time -- harvested slug lists go stale, and
+      # roughly a fifth of the stored Ashby boards no longer exist. A provider
+      # answering 404 for *most* of its boards is not slug rot, it is the board
+      # path having moved, and nothing else catches it: a 404 leaves the cycle
+      # fetched=true, so storeFetchedJobs still bumps fetching_last_success_seconds
+      # and FetchStale stays quiet. Threshold clears the ~20% Ashby baseline with
+      # room to spare; FetchSavedNothing would otherwise be the only signal, at
+      # severity warn, two days later.
+      - alert: FetchBoardsMostlyMissing
+        expr: |
+          sum by (ats) (increase(fetching_missing_count_total{application="FitFetch"}[1d]))
+            / sum by (ats) (increase({__name__=~"fetching_(success|error|null_response|missing)_count_total", application="FitFetch"}[1d]))
+            > 0.50
+        labels:
+          severity: page
+        annotations:
+          summary: "{{ $value | humanizePercentage }} of {{ $labels.ats }} boards answered 404 in the last day; the board path may have moved"
 
       # A jump in invalid jobs usually means the ATS changed its payload.
       - alert: FetchInvalidJobsSpike

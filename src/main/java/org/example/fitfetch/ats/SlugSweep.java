@@ -10,6 +10,7 @@ import org.example.fitfetch.metrics.TagName;
 import org.example.fitfetch.utilities.TitleFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClientException;
@@ -165,6 +166,18 @@ public final class SlugSweep<T extends AtsJobEntry> {
             stoppedBy.compareAndSet(null, e);
             return Outcome.NOT_FETCHED;
         } catch (HttpStatusCodeException e) {
+            if (HttpStatus.NOT_FOUND.isSameCodeAs(e.getStatusCode())) {
+                // A board that has been taken down, or a slug that was never a
+                // board at all. Ordinary at volume, since the slug lists are
+                // harvested and go stale, so it is counted on its own rather
+                // than drowning the real failures in fetching.error.count.
+                // Debug, not error: the count is what a sweep is watched by, and
+                // the per-slug line matters only when pruning the list, which is
+                // when it can be switched on to name the dead slugs.
+                LOGGER.debug("{} has no board for {}", ats.stringValue(), slug);
+                metricService.recordCounter(MetricName.SLUG_FETCH_MISSING_COUNT, tags());
+                return Outcome.NOTHING_NEW;
+            }
             LOGGER.error("{} answered {} for {}", ats.stringValue(), e.getStatusCode(), slug);
             recordError();
             return Outcome.NOTHING_NEW;
@@ -184,9 +197,9 @@ public final class SlugSweep<T extends AtsJobEntry> {
         int known = 0;
         int filtered = 0;
         for (AtsJobEntry job : response.jobs()) {
-            if (job == null || job.id() == null || job.title() == null) {
+            if (job == null || job.jobId() == null || job.title() == null) {
                 invalid++;
-            } else if (knownJobIds.contains(job.id().toString())) {
+            } else if (knownJobIds.contains(job.jobId())) {
                 known++;
             } else if (!TitleFilter.keep(job.title())) {
                 filtered++;

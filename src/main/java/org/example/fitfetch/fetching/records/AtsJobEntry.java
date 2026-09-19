@@ -34,9 +34,6 @@ import java.time.OffsetDateTime;
 })
 public sealed interface AtsJobEntry permits GreenhouseJobEntry {
 
-    /** @return the provider's native numeric identifier for the job */
-    Long id();
-
     /** @return the human-readable ATS provider name (e.g. {@code "Greenhouse"}) */
     String atsName();
 
@@ -44,8 +41,18 @@ public sealed interface AtsJobEntry permits GreenhouseJobEntry {
     String content();
 
     /**
-     * @return the provider job identifier as a string; combined with the ATS
-     *         name this uniquely identifies a job and is what dedup checks use
+     * Returns the identifier this job is known by, the sole identity on this
+     * interface: providers do not agree on a shape, Greenhouse numbering its
+     * postings and others using a UUID, so the string is the only form they
+     * share.
+     *
+     * <p>Combined with {@link #atsName()} it uniquely identifies a job and is
+     * what dedup checks use. May be {@code null} when the payload carried no
+     * identifier at all, which makes the entry unusable; callers drop such an
+     * entry rather than store it.
+     *
+     * @return the provider job identifier, or {@code null} if the payload
+     *         carried none
      */
     String jobId();
 

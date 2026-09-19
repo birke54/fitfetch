@@ -22,7 +22,8 @@ import java.util.List;
  *
  * @param absoluteUrl         public URL of the job posting ({@code absolute_url})
  * @param education           education requirement classification, if provided
- * @param id                  the public job ID; primary identifier for this entry
+ * @param id                  the public job ID; Greenhouse's own identifier for
+ *                            the posting and the value {@link #jobId()} derives from
  * @param internalJobId       the employer-facing job ID, distinct from {@link #id()}
  *                            ({@code internal_job_id})
  * @param updatedAt           last modification timestamp ({@code updated_at})
@@ -78,12 +79,19 @@ public record GreenhouseJobEntry (
     }
 
     /**
-     * @return the string form of {@link #id()}; combined with {@link #atsName()}
-     *         this is the key dedup checks use
+     * Returns the string form of {@link #id()}, guarding against a {@code null}
+     * {@code id}.
+     *
+     * <p>Combined with {@link #atsName()} this is the key dedup checks use. A
+     * {@code null} result means the payload carried no {@code id} at all, which
+     * makes the entry unusable; callers drop such an entry rather than store it.
+     *
+     * @return the job identifier as a string, or {@code null} if {@link #id()}
+     *         is {@code null}
      */
     @Override
     public String jobId() {
-        return id.toString();
+        return id == null ? null : id.toString();
     }
 
     /**
