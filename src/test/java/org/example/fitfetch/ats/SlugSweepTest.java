@@ -97,7 +97,7 @@ class SlugSweepTest {
 
         List<AtsJobEntry> kept = sweep(1).run(List.of("alpha"), Set.of("2"));
 
-        assertEquals(List.of(1L), kept.stream().map(AtsJobEntry::id).toList());
+        assertEquals(List.of("1"), kept.stream().map(AtsJobEntry::jobId).toList());
         assertEquals(List.of("alpha"), slugsOf(kept));
         verify(metricService).recordCounter(MetricName.SLUG_FETCH_SUCCESS_COUNT,
                 ATS_TAG);

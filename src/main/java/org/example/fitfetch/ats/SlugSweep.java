@@ -184,9 +184,9 @@ public final class SlugSweep<T extends AtsJobEntry> {
         int known = 0;
         int filtered = 0;
         for (AtsJobEntry job : response.jobs()) {
-            if (job == null || job.id() == null || job.title() == null) {
+            if (job == null || job.jobId() == null || job.title() == null) {
                 invalid++;
-            } else if (knownJobIds.contains(job.id().toString())) {
+            } else if (knownJobIds.contains(job.jobId())) {
                 known++;
             } else if (!TitleFilter.keep(job.title())) {
                 filtered++;
