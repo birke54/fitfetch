@@ -235,6 +235,37 @@ class SlugSweepTest {
                 ATS_TAG);
     }
 
+    @Test
+    @DisplayName("A slug whose board is gone is counted as missing, not as an error")
+    void testNotFoundCountedApartFromErrors() {
+        when(fetcher.fetchJobs("alpha")).thenReturn(oneJob());
+        when(fetcher.fetchJobs("beta")).thenThrow(
+                HttpClientErrorException.create(HttpStatus.NOT_FOUND, "Not Found", new HttpHeaders(),
+                        new byte[0], StandardCharsets.UTF_8));
+        when(fetcher.fetchJobs("gamma")).thenReturn(oneJob());
+
+        List<AtsJobEntry> jobs = sweep(2).run(List.of("alpha", "beta", "gamma"), Set.of());
+
+        assertEquals(List.of("alpha", "gamma"), slugsOf(jobs));
+        verify(metricService).recordCounter(MetricName.SLUG_FETCH_MISSING_COUNT, ATS_TAG);
+        // The point of the split: a dead board must not move the counter that a
+        // real failure is alerted on.
+        verify(metricService, never()).recordCounter(eq(MetricName.SLUG_FETCH_ERROR_COUNT), anyMap());
+    }
+
+    @Test
+    @DisplayName("A client error that is not a 404 is still an error")
+    void testOtherClientErrorStillCountedAsError() {
+        when(fetcher.fetchJobs("alpha")).thenThrow(
+                HttpClientErrorException.create(HttpStatus.FORBIDDEN, "Forbidden", new HttpHeaders(),
+                        new byte[0], StandardCharsets.UTF_8));
+
+        sweep(1).run(List.of("alpha"), Set.of());
+
+        verify(metricService).recordCounter(MetricName.SLUG_FETCH_ERROR_COUNT, ATS_TAG);
+        verify(metricService, never()).recordCounter(eq(MetricName.SLUG_FETCH_MISSING_COUNT), anyMap());
+    }
+
     // ------------------------------------------------------------ throttling
 
     @Test
