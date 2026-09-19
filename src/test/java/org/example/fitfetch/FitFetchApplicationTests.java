@@ -23,10 +23,23 @@ import org.testcontainers.junit.jupiter.Testcontainers;
  * the URL, user and password in {@code application.yaml} are overridden here
  * and no test-only copy of them has to be kept in step.
  *
+ * <p>Every pass is disabled by default, so nothing the schedules name is ever
+ * invoked and no model is ever called; the values exist only so the context can
+ * be built.
+ *
  * <p>Needs a working Docker daemon. Without one the test fails rather than
  * silently passing, since a context that was never started has proved nothing.
  */
-@SpringBootTest
+@SpringBootTest(properties = {
+		// application.yaml leaves these without a default, so a deployment must
+		// supply them and the context cannot start without them. Supplied here in
+		// their own names rather than as the properties they feed, so the wiring
+		// in application.yaml is still what is under test.
+		"FETCH_CRON_SCHEDULE=0 0 3 * * *",
+		"LOCATION_PAGE_SIZE=1",
+		"OLLAMA_BASE_URL=http://localhost:11434",
+		"OLLAMA_MODEL=test-model"
+})
 @Testcontainers
 class FitFetchApplicationTests {
 
