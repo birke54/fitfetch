@@ -41,6 +41,22 @@ dependencies {
 	runtimeOnly 'org.postgresql:postgresql'
 	implementation 'org.springframework.boot:spring-boot-starter-flyway'
 	runtimeOnly 'org.flywaydb:flyway-database-postgresql'
+
+	// The context test boots Flyway and JPA against a real Postgres. The
+	// migrations are Postgres-specific -- JSONB columns, sequences -- so an
+	// in-memory stand-in would either fail to apply them or verify a schema
+	// the application never runs on.
+	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+	testImplementation 'org.testcontainers:junit-jupiter'
+	testImplementation 'org.testcontainers:postgresql'
+}
+
+// Spring Boot 4.1 does not manage the Testcontainers versions, so the BOM is
+// imported here to keep junit-jupiter and postgresql on one version.
+dependencyManagement {
+	imports {
+		mavenBom 'org.testcontainers:testcontainers-bom:1.21.3'
+	}
 }
 
 tasks.named('test') {
