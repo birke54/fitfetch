@@ -170,7 +170,7 @@ public class AtsFetchService {
 
         // 1. Gather all the incoming unique job IDs
         Set<String> incomingJobIds = jobs.stream()
-                .map(job -> job.id().toString())
+                .map(AtsJobEntry::jobId)
                 .collect(Collectors.toSet());
 
         // 2. Query the DB to find which of these IDs already exist for this ATS
@@ -182,7 +182,7 @@ public class AtsFetchService {
         int undated = 0;
         List<FetchedJob> toSave = new ArrayList<>();
         for (AtsJobEntry job : jobs) {
-            if (existingJobIds.contains(job.id().toString())) {
+            if (existingJobIds.contains(job.jobId())) {
                 continue;
             }
             // A board that publishes no date leaves the job aged from now, which
@@ -193,7 +193,7 @@ public class AtsFetchService {
                 postedAt = fetchedAt;
                 undated++;
             }
-            toSave.add(new FetchedJob(atsName, job.id().toString(), job.slug(), job, postedAt));
+            toSave.add(new FetchedJob(atsName, job.jobId(), job.slug(), job, postedAt));
         }
         if (undated > 0) {
             LOGGER.info("{} of {} new jobs from {} carried no posting date; aged from the fetch time instead",

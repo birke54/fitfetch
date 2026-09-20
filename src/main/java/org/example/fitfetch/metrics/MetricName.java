@@ -14,6 +14,19 @@ public enum MetricName {
     SLUG_FETCH_SUCCESS_COUNT("fetching.success.count"),
     /** A slug fetch failed with an HTTP client or server error ({@code fetching.error.count}). */
     SLUG_FETCH_ERROR_COUNT("fetching.error.count"),
+    /**
+     * A slug's board is gone: the ATS answered {@code 404 Not Found}
+     * ({@code fetching.missing.count}).
+     *
+     * <p>Kept apart from {@link #SLUG_FETCH_ERROR_COUNT} because a dead board is
+     * a stale slug list rather than a fetch failure, and at volume it is
+     * routine: the slug lists are harvested, and roughly a fifth of the stored
+     * Ashby boards no longer exist. Counted separately so
+     * {@code fetching.error.count} stays small enough to alert on, and so this
+     * one can be watched on its own for the slow drift that says a slug list
+     * wants pruning.
+     */
+    SLUG_FETCH_MISSING_COUNT("fetching.missing.count"),
     /** A slug fetch returned a {@code null} or bodyless response ({@code fetching.null.response.count}). */
     SLUG_FETCH_NULL_RESPONSE_COUNT("fetching.null.response.count"),
     /** An ATS answered {@code 429 Too Many Requests}, pausing requests to it ({@code fetching.throttled.count}). */
