@@ -1,0 +1,151 @@
+{
+    "jobs": [
+        {
+            "id": "9ed929b8-3089-452b-88e1-5910f53d82c9",
+            "title": "Senior Software Engineer",
+            "department": "Engineering",
+            "team": "Engineering",
+            "employmentType": "FullTime",
+            "location": "Copenhagen",
+            "shouldDisplayCompensationOnJobPostings": true,
+            "secondaryLocations": [],
+            "publishedAt": "2026-07-13T13:12:46.299+00:00",
+            "isListed": true,
+            "isRemote": false,
+            "workplaceType": "OnSite",
+            "address": {
+                "postalAddress": {
+                    "addressRegion": "Capital Region of Denmark",
+                    "addressCountry": "Denmark",
+                    "addressLocality": "Copenhagen"
+                }
+            },
+            "jobUrl": "https://jobs.ashbyhq.com/subsets/9ed929b8-3089-452b-88e1-5910f53d82c9",
+            "applyUrl": "https://jobs.ashbyhq.com/subsets/9ed929b8-3089-452b-88e1-5910f53d82c9/application",
+            "descriptionHtml": "<p style=\"min-height:1.5em\"><strong>Subsets (YC S23)</strong> is an early-stage startup building the future of AI-driven subscription growth. As a Senior Software Engineer, you’ll join the early team building the future of subscription lifecycle management, helping brands create audiences, run experiments, and optimize how messaging impacts churn, retention, upsell and more!</p><p style=\"min-height:1.5em\"></p><p style=\"min-height:1.5em\"><strong>What you will do</strong></p><ul style=\"min-height:1.5em\"><li><p style=\"min-height:1.5em\">own and ship new features from idea to production</p></li><li><p style=\"min-height:1.5em\">build product and platform capabilities for audience creation, experimentation, and lifecycle insights</p></li><li><p style=\"min-height:1.5em\">work closely with the founders and team to shape product direction and technical decisions</p></li><li><p style=\"min-height:1.5em\">improve the performance, reliability, and scalability of systems that power customer messaging workflows</p></li><li><p style=\"min-height:1.5em\">use customer problems and data to inform what we build next</p></li></ul><p style=\"min-height:1.5em\"></p><p style=\"min-height:1.5em\"><strong>Tech Stack:</strong></p><ul style=\"min-height:1.5em\"><li><p style=\"min-height:1.5em\"><strong>backend</strong>: .NET 10, Entity Framework Core, PostgreSQL, Redis</p></li><li><p style=\"min-height:1.5em\"><strong>frontend</strong>: React.js, Vite, Tailwind CSS, shadcn/ui.</p></li><li><p style=\"min-height:1.5em\"><strong>infrastructure &amp; CI/CD</strong>: Google Cloud Platform (GCP), Terraform, GitHub Actions.</p></li></ul><p style=\"min-height:1.5em\">It's <strong>not</strong> required to have prior experience with our chosen technologies.</p><p style=\"min-height:1.5em\"></p><p style=\"min-height:1.5em\"><strong>You may be a good fit if</strong></p><ul style=\"min-height:1.5em\"><li><p style=\"min-height:1.5em\">you have a strong bias toward action and the ability to work autonomously in fast-paced, loosely defined environments.</p></li><li><p style=\"min-height:1.5em\">you have experience with Claude Code or similar</p></li><li><p style=\"min-height:1.5em\">you have an \"anti-meeting\" culture mindset and value focused work time.</p></li><li><p style=\"min-height:1.5em\">you prefer a primarily in-office way of working</p></li><li><p style=\"min-height:1.5em\">you’re energized by the pace and intensity of early-stage startups</p></li></ul><p style=\"min-height:1.5em\"></p><p style=\"min-height:1.5em\"><strong>Perks</strong></p><ul style=\"min-height:1.5em\"><li><p style=\"min-height:1.5em\">competitive salary &amp; equity</p></li><li><p style=\"min-height:1.5em\">company card for all things office food/snacks</p></li><li><p style=\"min-height:1.5em\">great breakfast and lunch (and dinner when working late in the office)</p></li><li><p style=\"min-height:1.5em\">relocation support if you don't live in Copenhagen</p></li><li><p style=\"min-height:1.5em\">office kayaks 🛶</p></li></ul>",
+            "descriptionPlain": "Subsets (YC S23) is an early-stage startup building the future of AI-driven subscription growth. As a Senior Software Engineer, you’ll join the early team building the future of subscription lifecycle management, helping brands create audiences, run experiments, and optimize how messaging impacts churn, retention, upsell and more!\n\n\n\nWhat you will do\n\n - own and ship new features from idea to production\n\n - build product and platform capabilities for audience creation, experimentation, and lifecycle insights\n\n - work closely with the founders and team to shape product direction and technical decisions\n\n - improve the performance, reliability, and scalability of systems that power customer messaging workflows\n\n - use customer problems and data to inform what we build next\n\n\n\nTech Stack:\n\n - backend: .NET 10, Entity Framework Core, PostgreSQL, Redis\n\n - frontend: React.js, Vite, Tailwind CSS, shadcn/ui.\n\n - infrastructure & CI/CD: Google Cloud Platform (GCP), Terraform, GitHub Actions.\n\nIt's not required to have prior experience with our chosen technologies.\n\n\n\nYou may be a good fit if\n\n - you have a strong bias toward action and the ability to work autonomously in fast-paced, loosely defined environments.\n\n - you have experience with Claude Code or similar\n\n - you have an \"anti-meeting\" culture mindset and value focused work time.\n\n - you prefer a primarily in-office way of working\n\n - you’re energized by the pace and intensity of early-stage startups\n\n\n\nPerks\n\n - competitive salary & equity\n\n - company card for all things office food/snacks\n\n - great breakfast and lunch (and dinner when working late in the office)\n\n - relocation support if you don't live in Copenhagen\n\n - office kayaks 🛶",
+            "compensation": {
+                "compensationTierSummary": "$115K – $160K • 0.05% – 0.15%",
+                "scrapeableCompensationSalarySummary": "$115K - $160K",
+                "compensationTiers": [
+                    {
+                        "id": "92cc5696-434c-4867-bc49-ad86af969044",
+                        "tierSummary": "$115K – $160K • 0.05% – 0.15%",
+                        "title": null,
+                        "additionalInformation": null,
+                        "components": [
+                            {
+                                "id": "5e4b2dba-4537-4084-9310-07a60950909d",
+                                "summary": "$115K – $160K",
+                                "compensationType": "Salary",
+                                "interval": "1 YEAR",
+                                "currencyCode": "USD",
+                                "minValue": 115000,
+                                "maxValue": 160000
+                            },
+                            {
+                                "id": "091c91d5-ee4b-4ff2-80f6-b0642e18b5f3",
+                                "summary": "0.05% – 0.15%",
+                                "compensationType": "EquityPercentage",
+                                "interval": "NONE",
+                                "currencyCode": null,
+                                "minValue": 0.05,
+                                "maxValue": 0.15
+                            }
+                        ]
+                    }
+                ],
+                "summaryComponents": [
+                    {
+                        "compensationType": "Salary",
+                        "interval": "1 YEAR",
+                        "currencyCode": "USD",
+                        "minValue": 115000,
+                        "maxValue": 160000
+                    },
+                    {
+                        "compensationType": "EquityPercentage",
+                        "interval": "NONE",
+                        "currencyCode": null,
+                        "minValue": 0.05,
+                        "maxValue": 0.15
+                    }
+                ]
+            }
+        },
+        {
+            "id": "2a9bc526-0ff1-4136-8642-2c066800e4df",
+            "title": "Account Executive - Enterprise",
+            "department": "GTM",
+            "team": "GTM",
+            "employmentType": "FullTime",
+            "location": "New York City",
+            "shouldDisplayCompensationOnJobPostings": true,
+            "secondaryLocations": [],
+            "publishedAt": "2026-06-19T08:25:02.465+00:00",
+            "isListed": true,
+            "isRemote": false,
+            "workplaceType": "OnSite",
+            "address": {
+                "postalAddress": {
+                    "addressRegion": "New York",
+                    "addressCountry": "United States",
+                    "addressLocality": "New York City"
+                }
+            },
+            "jobUrl": "https://jobs.ashbyhq.com/subsets/2a9bc526-0ff1-4136-8642-2c066800e4df",
+            "applyUrl": "https://jobs.ashbyhq.com/subsets/2a9bc526-0ff1-4136-8642-2c066800e4df/application",
+            "descriptionHtml": "<p style=\"min-height:1.5em\"><strong>About the job</strong></p><p style=\"min-height:1.5em\"><strong>Subsets (YC S23)</strong> is an early-stage startup building the future of AI-driven subscription growth. As an Account Executive, you will take Subsets from first conversation to signed contract. Our customers are growth, retention, and marketing leaders at consumer subscription businesses.</p><p style=\"min-height:1.5em\"><strong>What you will do</strong></p><ul style=\"min-height:1.5em\"><li><p style=\"min-height:1.5em\">own the full sales cycle - from lead qualification through to signed contract - with a seamless handoff to our customer team.</p></li><li><p style=\"min-height:1.5em\">build and manage a pipeline of enterprise opportunities across news media, streaming, and e-commerce subscriptions, combining outbound prospecting with event and conference follow-ups.</p></li><li><p style=\"min-height:1.5em\">run discovery, demo, and commercial conversations with senior stakeholders and navigate complex, multi-stakeholder deals.</p></li><li><p style=\"min-height:1.5em\">collaborate with our Lifecycle Engineers and Solutions Engineers to ensure new customers get off to a strong start.</p></li><li><p style=\"min-height:1.5em\">help define and evolve the sales playbook - messaging, ICP, objection handling, and process - as one of the first AEs at Subsets.</p></li><li><p style=\"min-height:1.5em\">build and nurture industry relationships and represent Subsets at key events and conferences.</p></li></ul><p style=\"min-height:1.5em\"><strong>You may be a great fit if you have</strong></p><ul style=\"min-height:1.5em\"><li><p style=\"min-height:1.5em\"><strong>(required)</strong> you have a proven track record of owning a full enterprise sales cycle (incl. opening your own deals) and consistently hitting or exceeding quota.</p></li><li><p style=\"min-height:1.5em\"><strong>(required)</strong> you're comfortable navigating complex, multi-stakeholder deals and building champions across an organisation.</p></li><li><p style=\"min-height:1.5em\">big plus if you have experience selling SaaS into subscription businesses or working with marketing tech - or a strong desire to build deep expertise here.</p></li><li><p style=\"min-height:1.5em\">you have a consultative, value-led approach and connect product to business outcomes, not features to specs.</p></li><li><p style=\"min-height:1.5em\">you have a builder mindset: you're not just executing a playbook, you're helping write it.</p></li><li><p style=\"min-height:1.5em\">a strong bias toward action and the ability to work autonomously in fast-paced, loosely defined environments.</p></li><li><p style=\"min-height:1.5em\">you don't think twice about booking a last-minute flight to be in the room.</p></li><li><p style=\"min-height:1.5em\">you prefer a primarily in-office way of working and are energized by the pace and intensity of early-stage startups.</p></li></ul><p style=\"min-height:1.5em\"><strong>Perks</strong></p><ul style=\"min-height:1.5em\"><li><p style=\"min-height:1.5em\">competitive salary and equity.</p></li><li><p style=\"min-height:1.5em\">company card for all things office food/snacks.</p></li><li><p style=\"min-height:1.5em\">dinner when working late in the office</p></li><li><p style=\"min-height:1.5em\">401(k) matching at 100% on the first 3% and 50% on the next 2% of employee contributions</p></li><li><p style=\"min-height:1.5em\">excellent health insurance</p></li></ul>",
+            "descriptionPlain": "About the job\n\nSubsets (YC S23) is an early-stage startup building the future of AI-driven subscription growth. As an Account Executive, you will take Subsets from first conversation to signed contract. Our customers are growth, retention, and marketing leaders at consumer subscription businesses.\n\nWhat you will do\n\n - own the full sales cycle - from lead qualification through to signed contract - with a seamless handoff to our customer team.\n\n - build and manage a pipeline of enterprise opportunities across news media, streaming, and e-commerce subscriptions, combining outbound prospecting with event and conference follow-ups.\n\n - run discovery, demo, and commercial conversations with senior stakeholders and navigate complex, multi-stakeholder deals.\n\n - collaborate with our Lifecycle Engineers and Solutions Engineers to ensure new customers get off to a strong start.\n\n - help define and evolve the sales playbook - messaging, ICP, objection handling, and process - as one of the first AEs at Subsets.\n\n - build and nurture industry relationships and represent Subsets at key events and conferences.\n\nYou may be a great fit if you have\n\n - (required) you have a proven track record of owning a full enterprise sales cycle (incl. opening your own deals) and consistently hitting or exceeding quota.\n\n - (required) you're comfortable navigating complex, multi-stakeholder deals and building champions across an organisation.\n\n - big plus if you have experience selling SaaS into subscription businesses or working with marketing tech - or a strong desire to build deep expertise here.\n\n - you have a consultative, value-led approach and connect product to business outcomes, not features to specs.\n\n - you have a builder mindset: you're not just executing a playbook, you're helping write it.\n\n - a strong bias toward action and the ability to work autonomously in fast-paced, loosely defined environments.\n\n - you don't think twice about booking a last-minute flight to be in the room.\n\n - you prefer a primarily in-office way of working and are energized by the pace and intensity of early-stage startups.\n\nPerks\n\n - competitive salary and equity.\n\n - company card for all things office food/snacks.\n\n - dinner when working late in the office\n\n - 401(k) matching at 100% on the first 3% and 50% on the next 2% of employee contributions\n\n - excellent health insurance",
+            "compensation": {
+                "compensationTierSummary": "$180K – $300K • 0.05% – 0.1%",
+                "scrapeableCompensationSalarySummary": "$180K - $300K",
+                "compensationTiers": [
+                    {
+                        "id": "b5f67a87-5147-465e-9e33-9a8326347bb6",
+                        "tierSummary": "$180K – $300K • 0.05% – 0.1%",
+                        "title": null,
+                        "additionalInformation": null,
+                        "components": [
+                            {
+                                "id": "1185b0df-14ac-4acd-b06a-2f89fbba9a6b",
+                                "summary": "$180K – $300K",
+                                "compensationType": "Salary",
+                                "interval": "1 YEAR",
+                                "currencyCode": "USD",
+                                "minValue": 180000,
+                                "maxValue": 300000
+                            },
+                            {
+                                "id": "5c2bb686-d65e-43df-8ff6-d72f3b3c8625",
+                                "summary": "0.05% – 0.1%",
+                                "compensationType": "EquityPercentage",
+                                "interval": "NONE",
+                                "currencyCode": null,
+                                "minValue": 0.05,
+                                "maxValue": 0.1
+                            }
+                        ]
+                    }
+                ],
+                "summaryComponents": [
+                    {
+                        "compensationType": "Salary",
+                        "interval": "1 YEAR",
+                        "currencyCode": "USD",
+                        "minValue": 180000,
+                        "maxValue": 300000
+                    },
+                    {
+                        "compensationType": "EquityPercentage",
+                        "interval": "NONE",
+                        "currencyCode": null,
+                        "minValue": 0.05,
+                        "maxValue": 0.1
+                    }
+                ]
+            }
+        }
+    ],
+    "apiVersion": "1"
+}

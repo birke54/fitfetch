@@ -26,13 +26,25 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
 
 /**
  * Fetches every slug of one ATS provider, several at a time, and collects the
  * jobs that are new and relevant.
  *
  * <p>This is the part every {@link Ats} shares; an implementation supplies only
- * its {@link Fetch}, its slugs and the jobs already stored.
+ * its {@link Fetch}, its slugs, the jobs already stored and, where its provider
+ * publishes a reason to skip a posting that the shared checks cannot see, a
+ * predicate saying which of its entries are worth keeping.
+ *
+ * <p><strong>Filtering.</strong> An entry is kept only if it carries an id and a
+ * title, is not already stored, passes {@link TitleFilter} and passes the
+ * provider's own {@code keep} predicate. The predicate is the hook for rules
+ * that exist on one board and have no analogue on another &mdash; Ashby's
+ * {@code isListed}, say &mdash; which therefore belong neither on
+ * {@link AtsJobEntry} nor in a {@link Fetch}, whose job ends at the HTTP call
+ * and deserialization. It is typed on the provider's own entry, so a board
+ * states its rule against its own record without a cast.
  *
  * <p><strong>Concurrency.</strong> Each slug runs on its own virtual thread, and
  * at most {@code max-concurrent} are fetched at once. The rate of requests is
@@ -64,6 +76,22 @@ public final class SlugSweep<T extends AtsJobEntry> {
     private final Fetch<T> fetcher;
     private final MetricService metricService;
     private final int maxConcurrent;
+    private final Predicate<T> keep;
+
+    /**
+     * Creates a sweep with no provider-specific rule, keeping every entry the
+     * shared checks accept.
+     *
+     * @param ats           the provider
+     * @param fetcher       its transport, which must be safe to call from
+     *                      several threads at once
+     * @param metricService sink for per-slug outcome counters
+     * @param maxConcurrent how many slugs may be fetched at once; at least 1
+     * @see #SlugSweep(AtsName, Fetch, MetricService, int, Predicate)
+     */
+    public SlugSweep(AtsName ats, Fetch<T> fetcher, MetricService metricService, int maxConcurrent) {
+        this(ats, fetcher, metricService, maxConcurrent, job -> true);
+    }
 
     /**
      * @param ats           the provider
@@ -71,8 +99,16 @@ public final class SlugSweep<T extends AtsJobEntry> {
      *                      several threads at once
      * @param metricService sink for per-slug outcome counters
      * @param maxConcurrent how many slugs may be fetched at once; at least 1
+     * @param keep          the provider's own test for an entry worth keeping,
+     *                      applied last, only to entries that already have an id
+     *                      and a title, so it never sees a {@code null} job and
+     *                      need not re-check those fields. It runs on the slug's
+     *                      own thread, so it must be safe to call from several
+     *                      threads at once, and should decide from the entry
+     *                      alone rather than by calling out
      */
-    public SlugSweep(AtsName ats, Fetch<T> fetcher, MetricService metricService, int maxConcurrent) {
+    public SlugSweep(AtsName ats, Fetch<T> fetcher, MetricService metricService, int maxConcurrent,
+                     Predicate<T> keep) {
         this.ats = Objects.requireNonNull(ats, "ats");
         this.fetcher = Objects.requireNonNull(fetcher, "fetcher");
         this.metricService = Objects.requireNonNull(metricService, "metricService");
@@ -80,6 +116,7 @@ public final class SlugSweep<T extends AtsJobEntry> {
             throw new IllegalArgumentException(ats + ": max-concurrent must be at least 1, but was " + maxConcurrent);
         }
         this.maxConcurrent = maxConcurrent;
+        this.keep = Objects.requireNonNull(keep, "keep");
     }
 
     /** What became of one slug. */
@@ -196,21 +233,29 @@ public final class SlugSweep<T extends AtsJobEntry> {
         int invalid = 0;
         int known = 0;
         int filtered = 0;
-        for (AtsJobEntry job : response.jobs()) {
+        for (T job : response.jobs()) {
             if (job == null || job.jobId() == null || job.title() == null) {
                 invalid++;
             } else if (knownJobIds.contains(job.jobId())) {
                 known++;
             } else if (!TitleFilter.keep(job.title())) {
                 filtered++;
+            } else if (!keep.test(job)) {
+                // Last, and counted with the title rejections: both are jobs that
+                // were fetched, are new and usable, and are not wanted. The order
+                // among the two is not observable, but it must follow the id and
+                // title checks, which are what make the entry safe to test.
+                filtered++;
             } else {
                 fresh.add(job.withSlug(slug));
             }
         }
-        LOGGER.debug("Found {} new jobs for {} from {}; dropped {} known or filtered by title",
+        LOGGER.debug("Found {} new jobs for {} from {}; dropped {} known or filtered",
                 fresh.size(), slug, ats.stringValue(), response.jobs().size() - fresh.size());
         recordJobs("new", fresh.size());
         recordJobs("known", known);
+        // One series for both rejections that mean "fetched, new, not wanted", so
+        // a board that adds a keep predicate does not split this counter in two.
         recordJobs("filtered_title", filtered);
         recordJobs("invalid", invalid);
         metricService.recordCounter(MetricName.SLUG_FETCH_SUCCESS_COUNT, tags());
