@@ -3,9 +3,10 @@
   "max_pages": 1000,
   "counts": {
     "greenhouse": 2,
-    "ashby": 2
+    "ashby": 2,
+    "lever": 2
   },
-  "total_unique_slugs": 4,
+  "total_unique_slugs": 6,
   "ats": {
     "greenhouse": [
       "1uphealth",
@@ -14,6 +15,10 @@
     "ashby": [
       "acmerobotics",
       "northwind"
+    ],
+    "lever": [
+      "cogswellcogs",
+      "vandelayindustries"
     ]
   },
   "fusions": [
