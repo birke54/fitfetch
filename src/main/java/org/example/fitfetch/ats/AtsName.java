@@ -18,7 +18,9 @@ public enum AtsName {
     /** The Greenhouse ATS (<a href="https://www.greenhouse.io/">greenhouse.io</a>). */
     GREENHOUSE("Greenhouse"),
     /** The Ashby ATS (<a href="https://www.ashbyhq.com/">ashbyhq.com</a>). */
-    ASHBY("Ashby");
+    ASHBY("Ashby"),
+    /** The Lever ATS (<a href="https://www.lever.co/">lever.co</a>). */
+    LEVER("Lever");
     // Add additional ATSs once implemented
 
     private final String stringValue;

@@ -27,7 +27,11 @@ class AtsRestClientsWiringTest {
             // converts to a Duration as it does at runtime.
             .withInitializer(context -> context.getBeanFactory()
                     .setConversionService(ApplicationConversionService.getSharedInstance()))
-            .withUserConfiguration(RestClientConfig.class, AtsRestClients.class, GreenhouseFetch.class)
+            // LeverFetch is here because it is the one fetcher that rebuilds
+            // its client, swapping in a mixin-aware JSON converter; that has to
+            // work against the real rate-limited client, not just a test one.
+            .withUserConfiguration(RestClientConfig.class, AtsRestClients.class,
+                    GreenhouseFetch.class, LeverFetch.class)
             .withBean(MetricService.class, () -> mock(MetricService.class))
             .withBean(ObservationRegistry.class, () -> ObservationRegistry.NOOP)
             .withBean(Clock.class, Clock::systemUTC);
@@ -48,6 +52,10 @@ class AtsRestClientsWiringTest {
                 assertThat(clients.forAts(ats)).isNotNull();
             }
             assertThat(context).hasSingleBean(GreenhouseFetch.class);
+            assertThat(context).hasSingleBean(LeverFetch.class);
+            // Lever ships no override: it did not throttle 40 requests a second.
+            assertThat(limits.forAts(AtsName.LEVER).requestsPerSecond()).isEqualTo(1.0);
+            assertThat(limits.forAts(AtsName.LEVER).maxConcurrent()).isEqualTo(3);
         });
     }
 
