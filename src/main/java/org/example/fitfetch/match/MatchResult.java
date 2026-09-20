@@ -45,9 +45,14 @@ public record MatchResult(int score, boolean eligible, List<String> gateFailures
      *                            profile's
      * @param domainAdjustment    points added for a preferred domain or taken
      *                            away for an avoided one
+     * @param requiredSkillsNamed how many distinct skills the required signals
+     *                            named that this side knows, which is what the
+     *                            skill match was taken over. Kept because it is
+     *                            what says whether a share of 1 stands on one
+     *                            skill or on nine, and why a null was a null
      */
     public record ScoreParts(double requirementCoverage, Double skillMatch, double levelFit,
-                             int domainAdjustment) {
+                             int domainAdjustment, int requiredSkillsNamed) {
     }
 
     /**

@@ -215,7 +215,8 @@ class MatchScorerTest {
         assertEquals(List.of("Go"), match.matchedSkills(), "one of the three is enough");
         assertEquals(List.of(), match.missingSkills());
         assertEquals(1.0, match.coverage(), "the choice is met");
-        assertEquals(1.0, result.parts().skillMatch(), 1e-9, "and it is one skill in the pool, not three");
+        assertEquals(1, result.parts().requiredSkillsNamed(), "it is one skill in the pool, not three");
+        assertNull(result.parts().skillMatch(), "and one is too few to take a share of");
     }
 
     @Test
@@ -338,6 +339,23 @@ class MatchScorerTest {
     }
 
     @Test
+    @DisplayName("A job naming one skill this side knows is not scored on it, however the share would read")
+    void testSkillMatchNeedsTwoSkills() {
+        Map<String, float[]> weak = Map.of("one", similarity(0.1));
+        NormalizedData one = job(required("Builds and runs APIs.", "Java", "stakeholder alignment"));
+
+        MatchResult held = scorer.score(one, signalVectors(1), profile(skills("Java"), "one"), weak);
+
+        assertNull(held.parts().skillMatch(), "one of one is a single observation, not a share");
+        assertEquals(1, held.parts().requiredSkillsNamed(), "the phrase beside it counts for nothing");
+
+        NormalizedData two = job(required("Builds and runs APIs.", "Java"), required("On AWS.", "AWS"));
+
+        assertEquals(0.5, scorer.score(two, signalVectors(2), profile(skills("Java"), "one"), weak)
+                .parts().skillMatch(), 1e-9, "two is enough to be a share");
+    }
+
+    @Test
     @DisplayName("In skill match, a signal's alternatives count as one required skill, held if any of them is")
     void testSkillMatchAlternatives() {
         NormalizedData job = job(required("A.", "Java"),
@@ -358,10 +376,10 @@ class MatchScorerTest {
         Map<String, float[]> half = Map.of("one", similarity(
                 (MatchScorer.SIMILARITY_FLOOR + MatchScorer.SIMILARITY_FULL) / 2));
 
-        int named = scorer.score(job(required("A.", "Rust")), signalVectors(1), javaOnly, half).score();
+        int named = scorer.score(job(required("A.", "Rust", "Go")), signalVectors(1), javaOnly, half).score();
         int unnamed = scorer.score(job(required("A.")), signalVectors(1), javaOnly, half).score();
 
-        assertEquals(50, named, "0.6 x 0.5 + 0.2 x 0 + 0.2 x 1: a skill named and not held counts");
+        assertEquals(50, named, "0.6 x 0.5 + 0.2 x 0 + 0.2 x 1: skills named and not held count");
         assertEquals(63, unnamed, "(0.6 x 0.5 + 0.2 x 1) / 0.8: no skill to count, so the rest decide");
     }
 
