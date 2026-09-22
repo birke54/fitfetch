@@ -1,0 +1,80 @@
+[
+    {
+        "additionalPlain": "Join us\n \nIf you're an experienced self-sufficient individual contributor passionate about product development and excited to make a significant impact, we'd love to hear from you. Please submit your resume and cover letter detailing your experience and why you're a great fit for this role.\n",
+        "additional": "<div><strong style=\"font-size: 24px;\">Join us</strong></div>\n<div>&nbsp;</div>\n<div><span style=\"font-size: 16px;\">If you're an experienced self-sufficient individual contributor passionate about product development and excited to make a significant impact, we'd love to hear from you. Please submit your resume and cover letter detailing your experience and why you're a great fit for this role.</span></div>",
+        "categories": {
+            "commitment": "Full-time",
+            "location": "Remote first/Office after relocation",
+            "team": "Termius",
+            "allLocations": [
+                "Remote first/Office after relocation"
+            ]
+        },
+        "createdAt": 1766065257028,
+        "descriptionPlain": "About Termius\nTermius is a cross-platform SSH client used by millions of engineers worldwide. Secure synchronization keeps hosts, credentials, and settings available across desktop and mobile devices, helping engineers access and manage remote systems from anywhere.\nWe’re looking for a Senior Product Engineer to maintain and evolve Termius Desktop. You’ll work with context, not control, and lead complex engineering work from investigation to production, communicating openly and seeking candid feedback along the way.\n",
+        "description": "<div>\n<h2 style=\"margin-top: 18pt; margin-bottom: 4pt;\"><strong><span style=\"font-size: 17pt; font-family: Arial, sans-serif;\">About Termius</span></strong></h2>\n<p style=\"margin-top: 12pt; margin-bottom: 12pt;\"><span style=\"font-size: 11pt; font-family: Arial, sans-serif;\">Termius is a cross-platform SSH client used by millions of engineers worldwide. Secure synchronization keeps hosts, credentials, and settings available across desktop and mobile devices, helping engineers access and manage remote systems from anywhere.</span></p>\n<p style=\"margin-top: 12pt; margin-bottom: 12pt;\"><span style=\"font-size: 11pt; font-family: Arial, sans-serif;\">We’re looking for a Senior Product Engineer to maintain and evolve Termius Desktop. You’ll work with context, not control, and lead complex engineering work from investigation to production, communicating openly and seeking candid feedback along the way.</span></p>\n</div>",
+        "id": "1bbdc24d-d912-4c9d-ac6f-4df21a62c8c9",
+        "lists": [
+            {
+                "text": "What you wiil do:",
+                "content": "<div>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; padding-inline-start: 48px;\">\n<li style=\"font-size: 11pt; font-family: Arial, sans-serif;\">\n<p style=\"margin-top: 12pt; margin-bottom: 0pt;\"><span style=\"font-size: 11pt;\">Build and evolve product experiences using React and TypeScript.</span></p>\n</li>\n<li style=\"font-size: 11pt; font-family: Arial, sans-serif;\">\n<p style=\"margin-top: 0pt; margin-bottom: 0pt;\"><span style=\"font-size: 11pt;\">Investigate issues involving synchronization, data integrity, local state, connectivity, and performance.</span></p>\n</li>\n<li style=\"font-size: 11pt; font-family: Arial, sans-serif;\">\n<p style=\"margin-top: 0pt; margin-bottom: 12pt;\"><span style=\"font-size: 11pt;\">Improve the desktop foundation, including Electron, native dependencies, application updates, and cross-platform behavior.</span></p>\n</li>\n<li style=\"font-size: 11pt; font-family: Arial, sans-serif;\">\n<p style=\"margin-top: 12pt; margin-bottom: 0pt;\"><span style=\"font-size: 11pt;\">Work across process, storage, network, and OS boundaries when needed.</span></p>\n</li>\n\n</ul></div>"
+            },
+            {
+                "text": "What We’re Looking For:",
+                "content": "\n<li><span style=\"font-size: 11pt;\">Strong experience with TypeScript, React, and complex production applications.</span></li>\n<li><span style=\"font-size: 11pt;\">Strong debugging, testing, and system-design skills.</span></li>\n<li><span style=\"font-size: 11pt;\">Comfort navigating a large existing codebase and improving it incrementally.</span></li>\n<li><span style=\"font-size: 11pt;\">Pragmatic product judgment and clear communication.</span></li>\n<li><span style=\"font-size: 11pt;\">Strong written English.</span>\n<p style=\"margin-top: 12pt; margin-bottom: 12pt;\"><span style=\"font-size: 11pt; font-family: Arial, sans-serif;\">Experience shipping desktop or other locally installed software is preferred; familiarity with Electron, native modules, C++, networking, SSH, cryptography, or OS-specific integrations is a plus, but not required.</span></p>\n<p style=\"margin-top: 12pt; margin-bottom: 0pt;\"><span style=\"font-size: 11pt; font-family: Arial, sans-serif;\">Our stack includes React, TypeScript, Electron, Node.js, Redux, Redux Saga, xterm.js, Jest, Storybook, Playwright, Sentry, and native C++ modules.</span></p>\n</li>\n\n<div>&nbsp;</div>"
+            },
+            {
+                "text": "What do we offer:",
+                "content": "<div>\n<ul style=\"margin-top: 0px; margin-bottom: 0px; padding-inline-start: 48px;\">\n<li style=\"font-size: 11pt; font-family: Arial, sans-serif;\">\n<p style=\"margin-top: 12pt; margin-bottom: 0pt;\"><span style=\"font-size: 11pt;\">Remote work from time zones between GMT+4 - GMT+12.</span></p>\n</li>\n<li style=\"font-size: 11pt; font-family: Arial, sans-serif;\">\n<p style=\"margin-top: 0pt; margin-bottom: 0pt;\"><span style=\"font-size: 11pt;\">Relocation support to Auckland, New Zealand.</span></p>\n</li>\n<li style=\"font-size: 11pt; font-family: Arial, sans-serif;\">\n<p style=\"margin-top: 0pt; margin-bottom: 12pt;\"><span style=\"font-size: 11pt;\">Hardware and accessories for a productive work environment.</span></p>\n</li>\n<li style=\"font-size: 11pt; font-family: Arial, sans-serif;\">\n<p style=\"margin-top: 0pt; margin-bottom: 12pt;\"><span style=\"font-size: 11pt;\">Paid vacation, sick leave, and flexible time off.</span></p>\n</li>\n\n</ul></div>"
+            }
+        ],
+        "text": "Senior Product Engineer (Desktop)",
+        "country": "GE",
+        "workplaceType": "remote",
+        "opening": "",
+        "openingPlain": "",
+        "descriptionBody": "<div>\n<h2 style=\"margin-top: 18pt; margin-bottom: 4pt;\"><strong><span style=\"font-size: 17pt; font-family: Arial, sans-serif;\">About Termius</span></strong></h2>\n<p style=\"margin-top: 12pt; margin-bottom: 12pt;\"><span style=\"font-size: 11pt; font-family: Arial, sans-serif;\">Termius is a cross-platform SSH client used by millions of engineers worldwide. Secure synchronization keeps hosts, credentials, and settings available across desktop and mobile devices, helping engineers access and manage remote systems from anywhere.</span></p>\n<p style=\"margin-top: 12pt; margin-bottom: 12pt;\"><span style=\"font-size: 11pt; font-family: Arial, sans-serif;\">We&rsquo;re looking for a Senior Product Engineer to maintain and evolve Termius Desktop. You&rsquo;ll work with context, not control, and lead complex engineering work from investigation to production, communicating openly and seeking candid feedback along the way.</span></p>\n</div>",
+        "descriptionBodyPlain": "About Termius\nTermius is a cross-platform SSH client used by millions of engineers worldwide. Secure synchronization keeps hosts, credentials, and settings available across desktop and mobile devices, helping engineers access and manage remote systems from anywhere.\nWe’re looking for a Senior Product Engineer to maintain and evolve Termius Desktop. You’ll work with context, not control, and lead complex engineering work from investigation to production, communicating openly and seeking candid feedback along the way.\n",
+        "hostedUrl": "https://jobs.lever.co/Termius/1bbdc24d-d912-4c9d-ac6f-4df21a62c8c9",
+        "applyUrl": "https://jobs.lever.co/Termius/1bbdc24d-d912-4c9d-ac6f-4df21a62c8c9/apply"
+    },
+    {
+        "additionalPlain": "Join us\n \nIf you're an experienced self-sufficient individual contributor passionate about product development and excited to make a significant impact, we'd love to hear from you. Please submit your resume and cover letter detailing your experience and why you're a great fit for this role.\n",
+        "additional": "<div>\n<div><strong style=\"font-size: 24px;\">Join us</strong></div>\n<div>&nbsp;</div>\n<div><span style=\"font-size: 16px;\">If you're an experienced self-sufficient individual contributor passionate about product development and excited to make a significant impact, we'd love to hear from you. Please submit your resume and cover letter detailing your experience and why you're a great fit for this role.</span></div>\n</div>",
+        "categories": {
+            "commitment": "Full-time",
+            "location": "Auckland",
+            "team": "Gloria",
+            "allLocations": [
+                "Auckland"
+            ]
+        },
+        "createdAt": 1776163525072,
+        "descriptionPlain": "About Termius\nTermius is redefining how engineers interact with remote systems. Millions of engineers and thousands of companies rely on Termius worldwide.\nWhile AI has transformed modern IDEs, terminals remain largely unchanged since the 1970s. As a leading cross-platform SSH client, our mission is to boost productivity and foster collaboration by rebuilding the Terminal for the modern era.\nWe’re looking for a product-minded Rust Engineer to join and strengthen our team. This is a great opportunity to be part of an important new technical direction for the company and work with Rust and tackle complex systems.\n",
+        "description": "<h2><strong>About Termius</strong></h2>\n<p>Termius is redefining how engineers interact with remote systems. Millions of engineers and thousands of companies rely on Termius worldwide.</p>\n<p>While AI has transformed modern IDEs, terminals remain largely unchanged since the 1970s. As a leading cross-platform SSH client, our mission is to boost productivity and foster collaboration by rebuilding the Terminal for the modern era.</p>\n<div>We’re looking for a product-minded Rust Engineer to join and strengthen our team. This is a great opportunity to be part of an important new technical direction for the company and work with Rust and tackle complex systems.</div>",
+        "id": "bc2c9a2c-1242-4a31-b97b-3bf70ad54848",
+        "lists": [
+            {
+                "text": "Why Join Termius",
+                "content": "\n<li>You will play a key role in designing the architecture of a brand-new product from its earliest stages</li>\n<li>You will bring your Rust expertise to the team, helping establish best practices and raising the engineering bar</li>\n<li>You&nbsp;will&nbsp;help&nbsp;define&nbsp;how&nbsp;logic&nbsp;is&nbsp;shared&nbsp;across&nbsp;platforms:&nbsp;a&nbsp;fundamental&nbsp;shift&nbsp;in&nbsp;how&nbsp;we&nbsp;build&nbsp;software</li>\n<li>Your&nbsp;expertise&nbsp;will&nbsp;influence&nbsp;the&nbsp;entire&nbsp;engineering&nbsp;team.&nbsp;You’ll&nbsp;act&nbsp;as&nbsp;a&nbsp;multiplier,&nbsp;not&nbsp;just&nbsp;an&nbsp;executor</li>\n<li>We&nbsp;value&nbsp;transparency,&nbsp;ownership,&nbsp;and&nbsp;fast&nbsp;decision-making</li>\n<li>We&nbsp;build&nbsp;for&nbsp;engineers&nbsp;and&nbsp;aim&nbsp;to&nbsp;make&nbsp;complex&nbsp;things&nbsp;simple&nbsp;and&nbsp;elegant</li>\n"
+            },
+            {
+                "text": "What You Will Do",
+                "content": "<p>&nbsp;</p>\n\n<li>Design&nbsp;and&nbsp;implement&nbsp;a&nbsp;shared&nbsp;core&nbsp;layer&nbsp;used&nbsp;across&nbsp;desktop,&nbsp;mobile,&nbsp;and&nbsp;backend</li>\n<li>Contribute&nbsp;to&nbsp;architecture&nbsp;decisions&nbsp;around&nbsp;CRDT&nbsp;and&nbsp;distributed&nbsp;systems</li>\n<li>Collaborate&nbsp;closely&nbsp;with&nbsp;frontend,&nbsp;mobile,&nbsp;and&nbsp;backend&nbsp;engineers&nbsp;to&nbsp;integrate&nbsp;Rust&nbsp;components</li>\n<li>Improve&nbsp;performance,&nbsp;reliability,&nbsp;and&nbsp;maintainability&nbsp;of&nbsp;the&nbsp;system</li>\n"
+            },
+            {
+                "text": "What We Offer ",
+                "content": "<div>\n\n<li>A&nbsp;full-time&nbsp;position&nbsp;in&nbsp;our&nbsp;modern&nbsp;Takapuna-based&nbsp;office</li>\n<li>Opportunities&nbsp;for&nbsp;professional&nbsp;growth&nbsp;and&nbsp;development</li>\n<li>A&nbsp;creative&nbsp;and&nbsp;collaborative&nbsp;work&nbsp;environment</li>\n<li>Apple&nbsp;Hardware&nbsp;and&nbsp;modern&nbsp;equipment</li>\n\n</div>"
+            }
+        ],
+        "text": "Senior Software Engineer (Rust) (Auckland, New Zealand)",
+        "country": "NZ",
+        "workplaceType": "onsite",
+        "opening": "",
+        "openingPlain": "",
+        "descriptionBody": "<h2><strong>About Termius</strong></h2>\n<p>Termius is redefining how engineers interact with remote systems. Millions of engineers and thousands of companies rely on Termius worldwide.</p>\n<p>While AI has transformed modern IDEs, terminals remain largely unchanged since the 1970s. As a leading cross-platform SSH client, our mission is to boost productivity and foster collaboration by rebuilding the Terminal for the modern era.</p>\n<div>We&rsquo;re looking for a product-minded Rust Engineer to join and strengthen our team. This is a great opportunity to be part of an important new technical direction for the company and work with Rust and tackle complex systems.</div>",
+        "descriptionBodyPlain": "About Termius\nTermius is redefining how engineers interact with remote systems. Millions of engineers and thousands of companies rely on Termius worldwide.\nWhile AI has transformed modern IDEs, terminals remain largely unchanged since the 1970s. As a leading cross-platform SSH client, our mission is to boost productivity and foster collaboration by rebuilding the Terminal for the modern era.\nWe’re looking for a product-minded Rust Engineer to join and strengthen our team. This is a great opportunity to be part of an important new technical direction for the company and work with Rust and tackle complex systems.\n",
+        "hostedUrl": "https://jobs.lever.co/Termius/bc2c9a2c-1242-4a31-b97b-3bf70ad54848",
+        "applyUrl": "https://jobs.lever.co/Termius/bc2c9a2c-1242-4a31-b97b-3bf70ad54848/apply"
+    }
+]

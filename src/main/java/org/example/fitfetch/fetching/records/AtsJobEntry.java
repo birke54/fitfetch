@@ -30,10 +30,11 @@ import java.time.OffsetDateTime;
 )
 @JsonSubTypes({
         @JsonSubTypes.Type(value = GreenhouseJobEntry.class, name = "GREENHOUSE"),
-        @JsonSubTypes.Type(value = AshbyJobEntry.class, name = "ASHBY")
-        // Add future integrations here (e.g. Lever, Workday)
+        @JsonSubTypes.Type(value = AshbyJobEntry.class, name = "ASHBY"),
+        @JsonSubTypes.Type(value = LeverJobEntry.class, name = "LEVER")
+        // Add future integrations here (e.g. Workday)
 })
-public sealed interface AtsJobEntry permits GreenhouseJobEntry, AshbyJobEntry {
+public sealed interface AtsJobEntry permits GreenhouseJobEntry, AshbyJobEntry, LeverJobEntry {
 
     /** @return the human-readable ATS provider name (e.g. {@code "Greenhouse"}) */
     String atsName();
