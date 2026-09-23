@@ -189,7 +189,7 @@ app:
     home-state: WA
     # One real posting enumerates remote eligibility across fifteen states; the
     # cap stops a pathological label from filling job_locations.
-    max-locations-per-job: 10
+    max-locations-per-job: ${MAX_LOCATIONS_PER_JOB:10}
     llm:
       base-url: ${OLLAMA_BASE_URL}
       model: ${OLLAMA_MODEL}
